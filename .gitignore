@@ -1,0 +1,10 @@
+/build*/
+/.DS_Store
+/local/
+*.wav
+*.nki
+*.nkr
+*.nkc
+
+# Original recovered proprietary reference; keep local in this public repo.
+/docs/reference/
