@@ -1,2 +1,2 @@
 # SPAGlitch
-Silverplatter Audio's unhinged glitch intrument 
+Silverplatter Audio's unhinged glitch instrument 
