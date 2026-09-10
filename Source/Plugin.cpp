@@ -1,85 +1,100 @@
 #include "Plugin.h"
-GlitchProcessor::GlitchProcessor()
- : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
- parameters(*this, nullptr, "SPAGlitch", {std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1}, "Output", -60.0f, 6.0f, -6.0f)})
+#include "PluginEditor.h"
+
+juce::AudioProcessorValueTreeState::ParameterLayout GlitchProcessor::layout()
 {
-    formats.registerBasicFormats();
-    for (int i=0; i<32; ++i) synth.addVoice(new juce::SamplerVoice());
+    juce::AudioProcessorValueTreeState::ParameterLayout p;
+    juce::StringArray groups; for(auto name:glitch::categories) groups.add(name);
+    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"category",1},"Category",groups,0));
+    p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"pitch",1},"Pitch",-12,12,0));
+    p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"lofi",1},"Lo-Fi",0,8,4));
+    p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"drive",1},"Distortion",0,1000000,488095));
+    p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"cutoff",1},"Cutoff",0,1000000,476191));
+    p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"resonance",1},"Resonance",0,100,49));
+    p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"randomness",1},"Randomness",0,100,0));
+    // 0 enables effects and 1 bypasses, matching the original UI callback.
+    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"destroy",1},"Destroy",juce::StringArray{"On","Off"},1));
+    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"filter",1},"Filter",juce::StringArray{"High-pass","Off","Low-pass"},1));
+    p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output",-60.0f,6.0f,-6.0f));
+    return p;
+}
+GlitchProcessor::GlitchProcessor()
+ : AudioProcessor(BusesProperties().withOutput("Output",juce::AudioChannelSet::stereo(),true)),
+   parameters(*this,nullptr,"SPAGlitch",layout())
+{
+    const char* ids[]{"category","pitch","lofi","drive","cutoff","resonance","randomness","destroy","filter","gain"};
+    for(size_t i=0;i<values.size();++i) values[i]=parameters.getRawParameterValue(ids[i]);
+}
+GlitchProcessor::~GlitchProcessor() { engine.setBank(nullptr); }
+glitch::Controls GlitchProcessor::controls() const noexcept
+{
+    glitch::Controls c;
+    c.category=(int)values[0]->load(); c.pitch=(int)values[1]->load(); c.lofi=(int)values[2]->load();
+    c.drive=(int)values[3]->load(); c.cutoff=(int)values[4]->load(); c.resonance=(int)values[5]->load();
+    c.randomness=(int)values[6]->load(); c.destroy=(int)values[7]->load(); c.filter=(int)values[8]->load(); c.gainDb=values[9]->load();
+    return c;
 }
 bool GlitchProcessor::isBusesLayoutSupported(const BusesLayout& l) const
-{ return l.getMainInputChannelSet().isDisabled() && (l.getMainOutputChannelSet()==juce::AudioChannelSet::stereo() || l.getMainOutputChannelSet()==juce::AudioChannelSet::mono()); }
-void GlitchProcessor::prepareToPlay(double rate, int) { synth.setCurrentPlaybackSampleRate(rate); keyboard.reset(); }
-void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b, juce::MidiBuffer& m)
+{
+    return l.getMainInputChannelSet().isDisabled() && (l.getMainOutputChannelSet()==juce::AudioChannelSet::stereo() || l.getMainOutputChannelSet()==juce::AudioChannelSet::mono());
+}
+void GlitchProcessor::prepareToPlay(double rate,int)
+{
+    engine.setControls(controls()); engine.prepare(rate); keyboard.reset();
+}
+void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer& midi)
 {
     juce::ScopedNoDenormals guard;
     b.clear();
-    keyboard.processNextMidiBuffer(m,0,b.getNumSamples(),true);
-    synth.renderNextBlock(b,m,0,b.getNumSamples());
-    b.applyGain(juce::Decibels::decibelsToGain(parameters.getRawParameterValue("gain")->load()));
-}
-juce::Result GlitchProcessor::loadSample(const juce::File& file)
-{
-    std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(file));
-    if (!reader) return juce::Result::fail("Cannot read sample: " + file.getFileName());
-    if (reader->lengthInSamples <= 0 || reader->sampleRate <= 0 || reader->lengthInSamples / reader->sampleRate > 60.0)
-        return juce::Result::fail("Use a non-empty sample of at most 60 seconds.");
-    juce::BigInteger notes; notes.setRange(0,128,true);
-    juce::SynthesiserSound::Ptr sound = new juce::SamplerSound(file.getFileName(),*reader,notes,60,0.0,0.1,60.0);
-    const juce::ScopedLock lock(getCallbackLock());
-    synth.allNotesOff(0,false); synth.clearSounds(); synth.addSound(sound);
-    samplePath=file.getFullPathName();
-    return juce::Result::ok();
+    // Offline rendering can wait for restore; a real-time callback never waits.
+    if(isNonRealtime() && content.busy()) content.waitUntilReady(60000);
+    auto* bank=content.adoptForAudio();
+    if(bank!=currentBank) { engine.setBank(bank); currentBank=bank; }
+    if(auto seed=restoredSeed.exchange(0)) engine.setSeed(seed);
+    engine.setControls(controls());
+    if(panicRequested.exchange(false)) { engine.reset(); keyboard.reset(); }
+    keyboard.processNextMidiBuffer(midi,0,b.getNumSamples(),true);
+    int position=0;
+    for(const auto metadata:midi)
+    {
+        const int eventPosition=juce::jlimit(position,b.getNumSamples(),metadata.samplePosition);
+        engine.render(b,position,eventPosition-position);
+        if(metadata.numBytes<=3) engine.handle(metadata.getMessage());
+        position=eventPosition;
+    }
+    engine.render(b,position,b.getNumSamples()-position);
+    currentSeed=engine.seed(); playingCategory=engine.effective().category; playingPitch=engine.effective().pitchUnits;
+    voiceCount=engine.activeVoices();
+    if(b.getNumSamples()>0)
+    {
+        leftPeak=b.getMagnitude(0,0,b.getNumSamples());
+        rightPeak=b.getMagnitude(b.getNumChannels()>1?1:0,0,b.getNumSamples());
+    }
+    midi.clear();
 }
 void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)
 {
     auto state=parameters.copyState();
-    { const juce::ScopedLock lock(getCallbackLock()); state.setProperty("samplePath",samplePath,nullptr); }
-    if (auto xml=state.createXml()) copyXmlToBinary(*xml,out);
+    state.setProperty("stateVersion",2,nullptr);
+    const auto location=content.location();
+    state.setProperty("contentPath",location.path,nullptr);
+    state.setProperty("singleSample",location.single,nullptr);
+    const auto pendingSeed=restoredSeed.load();
+    state.setProperty("randomSeed",(juce::int64)(pendingSeed ? pendingSeed : currentSeed.load()),nullptr);
+    if(auto xml=state.createXml()) copyXmlToBinary(*xml,out);
 }
 void GlitchProcessor::setStateInformation(const void* data,int size)
 {
-    if (auto xml=getXmlFromBinary(data,size))
-        if (xml->hasTagName("SPAGlitch")) {
+    if(auto xml=getXmlFromBinary(data,size))
+        if(xml->hasTagName("SPAGlitch"))
+        {
             auto state=juce::ValueTree::fromXml(*xml);
             parameters.replaceState(state);
-            // State restores parameters only. File loading is explicit until a background
-            // asset manager is implemented; hosts may restore state on the audio thread.
-            const juce::ScopedLock lock(getCallbackLock());
-            samplePath=state.getProperty("samplePath").toString();
+            const auto seed=(uint32_t)(juce::int64)state.getProperty("randomSeed",(juce::int64)0x47544348u);
+            restoredSeed=seed ? seed : 1;
+            const bool legacy=state.hasProperty("samplePath") && !state.hasProperty("contentPath");
+            content.request(state.getProperty(legacy?"samplePath":"contentPath").toString(),legacy || (bool)state.getProperty("singleSample",false));
         }
 }
-class GlitchEditor final : public juce::AudioProcessorEditor
-{
-public:
-    explicit GlitchEditor(GlitchProcessor& p):AudioProcessorEditor(p),processor(p),keyboard(p.keyboard,juce::MidiKeyboardComponent::horizontalKeyboard),gain(p.parameters,"gain",slider)
-    {
-        title.setText("SPAGlitch / playback foundation",juce::dontSendNotification);
-        status.setText("Load a WAV. Middle C plays its original pitch. Mapping is provisional.",juce::dontSendNotification);
-        load.setButtonText("Load sample...");
-        slider.setSliderStyle(juce::Slider::LinearHorizontal); slider.setTextBoxStyle(juce::Slider::TextBoxRight,false,80,24); slider.setTextValueSuffix(" dB");
-        for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&load,&slider,&keyboard}) addAndMakeVisible(c);
-        load.onClick=[this] {
-            chooser=std::make_unique<juce::FileChooser>("Choose a Glitch WAV",juce::File{},"*.wav");
-            chooser->launchAsync(juce::FileBrowserComponent::openMode|juce::FileBrowserComponent::canSelectFiles,
-                [safe=juce::Component::SafePointer<GlitchEditor>(this)](const juce::FileChooser& fc) {
-                    if(safe && fc.getResult().existsAsFile()) {
-                        auto result=safe->processor.loadSample(fc.getResult());
-                        safe->status.setText(result.wasOk()?fc.getResult().getFileName():result.getErrorMessage(),juce::dontSendNotification);
-                    }
-                });
-        };
-        setSize(680,260);
-    }
-    void paint(juce::Graphics& g) override { g.fillAll(juce::Colour(0xff202329)); }
-    void resized() override { auto r=getLocalBounds().reduced(20); title.setBounds(r.removeFromTop(32)); status.setBounds(r.removeFromTop(44)); load.setBounds(r.removeFromTop(32).removeFromLeft(160)); slider.setBounds(r.removeFromTop(36)); keyboard.setBounds(r); }
-private:
-    GlitchProcessor& processor;
-    juce::Label title,status;
-    juce::TextButton load;
-    juce::Slider slider;
-    juce::MidiKeyboardComponent keyboard;
-    juce::AudioProcessorValueTreeState::SliderAttachment gain;
-    std::unique_ptr<juce::FileChooser> chooser;
-};
 juce::AudioProcessorEditor* GlitchProcessor::createEditor() { return new GlitchEditor(*this); }
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new GlitchProcessor(); }

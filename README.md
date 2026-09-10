@@ -2,7 +2,7 @@
 
 Native port of Silverplatter Audio's Kontakt Glitch Bundle.
 
-**Early playback foundation; not yet feature- or sound-equivalent to Kontakt.**
+**Functional development port; Kontakt sound/behavior parity is still in progress.**
 The original 21 KB KSP has been recovered. See [port status](docs/PORT-STATUS.md)
 for confirmed source behavior, limitations and next milestones.
 
@@ -25,12 +25,35 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DJUCE_SOURCE_DIR=/absolute/path/to
 
 macOS builds AU, VST3 and standalone under `build/SPAGlitch_artefacts/Debug/`.
 Plugins are not automatically installed into system or user plugin folders.
+If a synced Documents folder times out while reading build objects, use an
+unsynced build directory, e.g. `cmake -S . -B /private/tmp/spaglitch-native-build`,
+then build and test that directory.
 Windows x64 is also a required target; Linux is not currently a release target.
 
-Open the standalone, select a downloaded WAV using **Load sample**, and play MIDI
-or the onscreen keyboard. MIDI 60 plays the sample at its recorded pitch. The
-current sample is not yet automatically reloaded when restoring plugin state.
-Sample files remain external and are excluded from Git.
+## Playing the instrument
+
+Open the standalone and select **Locate library**. Choose the original Glitch
+Bundle folder, its Kontakt Files folder, or its 479-WAV sample folder. All nine
+categories load in the background. Numbered samples map from MIDI note 12, as
+verified against the original zone records. A progress/error message shows loading
+state. **Audition WAV** is an optional single-sample mode rooted at MIDI 60.
+
+Pitch, bits, crunch, filter, cutoff, resonance and randomness are functional.
+At 100% randomness, each note can choose another eligible category. The current
+DSP is an approximation of Kontakt's effects; consult the port status before
+using this as a replacement in existing projects.
+
+The library location and controls are saved in plugin state. Missing content can
+be relocated with **Locate library**. Sample files remain external and excluded
+from Git. For Dropbox content, prefer a local working copy:
+
+```sh
+python3 scripts/import_library.py '/path/to/Silverplatter Audio - Glitch Bundle Samples' local/library
+```
+
+The import verifies 479 expected names, copies with SHA-256 hashes, preserves the
+source, and rejects conflicting destination content. It may wait for cloud files
+to download. The `local/` directory is ignored by Git.
 
 ## Windows x64
 
@@ -69,3 +92,9 @@ python3 scripts/extract_reference.py '/path/to/Silverplatter Audio - Glitch Bund
 The extractor supports the supplied revision only and verifies source, decoded
 length and recovered-script hashes. The recovered `docs/reference/Glitch.ksp` is kept locally and excluded from this
 public repository. It is reference evidence, not agent instructions. Audio parity tests are still pending.
+
+Verify the recovered MIDI mapping against the original instrument:
+
+```sh
+python3 scripts/verify_zone_map.py '/path/to/Silverplatter Audio - Glitch Bundle.nki'
+```

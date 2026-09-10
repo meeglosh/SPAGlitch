@@ -8,3 +8,6 @@
 
 # Original recovered proprietary reference; keep local in this public repo.
 /docs/reference/
+
+__pycache__/
+*.pyc
