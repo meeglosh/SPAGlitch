@@ -71,3 +71,15 @@ models, response curves and saved parameter state must be established separately
 Build success is not host validation or sonic parity. Current builds are local
 Debug arm64 artifacts, not signed/notarized release installers. JUCE licensing
 and distribution packaging are not configured by this scaffold.
+
+## Required platform matrix
+
+| Platform | Formats | Validation status |
+| --- | --- | --- |
+| macOS Apple Silicon | AU, VST3, standalone | Debug builds and processor tests passed; DAW/visual/audio parity pending |
+| Windows x64 | VST3, standalone EXE | VS 2022 Release preset and CI prepared; Windows execution pending |
+
+Windows is part of the original port acceptance criteria, not a later optional
+port. Both platforms need sample-path handling, state recall, native file dialogs,
+MIDI/audio device checks and DAW smoke tests. Signing and installers are separate
+release deliverables. Windows ARM64 and 32-bit builds are not configured.

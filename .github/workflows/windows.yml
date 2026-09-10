@@ -1,0 +1,47 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Configure Visual Studio x64
+        run: cmake --preset windows-x64
+      - name: Build VST3, standalone and tests
+        run: cmake --build --preset windows-x64-release --parallel 4
+      - name: Run processor tests
+        run: ctest --preset windows-x64-release
+      - name: Verify deliverables
+        shell: pwsh
+        run: |
+          $root = 'build/windows-x64/SPAGlitch_artefacts/Release'
+          $required = @(
+            "$root/Standalone/SPAGlitch.exe",
+            "$root/VST3/SPAGlitch.vst3/Contents/x86_64-win/SPAGlitch.vst3"
+          )
+          foreach ($file in $required) {
+            if (!(Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Missing deliverable: $file"
+            }
+          }
+      - name: Upload unsigned Windows binaries
+        uses: actions/upload-artifact@v6
+        with:
+          name: SPAGlitch-Windows-x64-Release
+          path: |
+            build/windows-x64/SPAGlitch_artefacts/Release/Standalone/SPAGlitch.exe
+            build/windows-x64/SPAGlitch_artefacts/Release/VST3/SPAGlitch.vst3/
+          if-no-files-found: error
+          retention-days: 14

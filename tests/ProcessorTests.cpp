@@ -7,8 +7,8 @@ int main()
     juce::AudioBuffer<float> b(2,512); juce::MidiBuffer midi;
     b.clear(); p.processBlock(b,midi);
     if(b.getMagnitude(0,512)!=0) return 1;
-    if(p.loadSample(juce::File("/nonexistent.wav")).wasOk()) return 2;
     auto file=juce::File::getSpecialLocation(juce::File::tempDirectory).getNonexistentChildFile("spaglitch-test",".wav");
+    if(p.loadSample(file).wasOk()) return 2;
     {
         juce::WavAudioFormat wav;
         auto stream=file.createOutputStream();
