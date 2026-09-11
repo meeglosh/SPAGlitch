@@ -84,15 +84,22 @@ private:
         bool silent=false;
         // Identical note, varied velocity and gate: separates amp response from
         // sample content. Every capture includes a long held-note reference.
-        for(const int velocity:{127,64,32}) for(const int gate:{2400,24000,144000})
+        for(const int rate:{48000,44100,96000})
         {
-            constexpr int rate=48000, frames=192000, block=256;
+        // First capture uses the existing live 48 kHz engine unchanged.
+        if(rate!=48000) { plugin->releaseResources();plugin->setRateAndBufferSizeDetails(rate,256);plugin->prepareToPlay(rate,256); }
+        for(int velocity=127;velocity>=1;--velocity) for(const int gateMs:{50,500,3000})
+        {
+            if(rate!=48000 && velocity!=127) continue;
+            if(velocity!=127 && velocity!=64 && velocity!=32 && gateMs!=3000) continue;
+            const int frames=rate*4,gate=rate*gateMs/1000;
+            constexpr int block=256;
             const int channels=juce::jmax(2,plugin->getTotalNumOutputChannels());
             juce::AudioBuffer<float> buffer(channels,block), output(2,frames); output.clear();
             juce::MidiBuffer midi;
             // Drain previous voices without restoring state, which may reload
             // samples asynchronously and invalidate an immediate render.
-            for(int p=0;p<rate;++p) { if(p%block!=0) continue; buffer.clear(); midi.clear(); if(p==0) midi.addEvent(juce::MidiMessage::allSoundOff(1),0); plugin->processBlock(buffer,midi); }
+            for(int p=0;p<rate;p+=block) { buffer.clear(); midi.clear(); if(p==0) midi.addEvent(juce::MidiMessage::allSoundOff(1),0); plugin->processBlock(buffer,midi); }
             for(int p=0;p<frames;p+=block)
             {
                 const int n=juce::jmin(block,frames-p); buffer.clear(); midi.clear();
@@ -101,14 +108,18 @@ private:
                 plugin->processBlock(buffer,midi);
                 for(int ch=0;ch<2;++ch) output.copyFrom(ch,p,buffer,ch,0,n);
             }
-            const auto file=dir.getChildFile("n12-v"+juce::String(velocity)+"-g"+juce::String(gate)+".wav");
+            const auto prefix=rate==48000 ? juce::String{} : "r"+juce::String(rate)+"-";
+            const auto file=dir.getChildFile(prefix+"n12-v"+juce::String(velocity)+"-g"+juce::String(gate)+".wav");
             juce::WavAudioFormat wav; auto stream=file.createOutputStream();
             if(!stream) { status.setText("Cannot open capture WAV",juce::dontSendNotification); return; }
             std::unique_ptr<juce::AudioFormatWriter> writer(wav.createWriterFor(stream.release(),rate,2,24,{},0));
             if(!writer || !writer->writeFromAudioSampleBuffer(output,0,frames)) { status.setText("WAV write failed",juce::dontSendNotification); return; }
-            report+="12,"+juce::String(velocity)+","+juce::String(gate)+",48000,"+juce::String(output.getMagnitude(0,frames),9)+"\n";
-            silent|=output.getMagnitude(0,frames)==0;
+            report+="12,"+juce::String(velocity)+","+juce::String(gate)+","+juce::String(rate)+","+juce::String(output.getMagnitude(0,frames),9)+"\n";
+            // Low velocities can legitimately be silent; a full-velocity take cannot.
+            silent|=velocity==127 && output.getMagnitude(0,frames)==0;
         }
+        }
+        plugin->releaseResources();plugin->setRateAndBufferSizeDetails(48000,256);plugin->prepareToPlay(48000,256);
         dir.getChildFile("capture.csv").replaceWithText(report);
         status.setText(silent ? "Capture contains silence. Check the NKI, samples, MIDI channel 1 and Kontakt demo status."
                               : "Captured "+dir.getFullPathName(),juce::dontSendNotification);

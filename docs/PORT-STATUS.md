@@ -91,8 +91,14 @@ writer. Versions 1/2 remain readable.
   are provisional DSP. The native four-pole topology and fixed 4410 Hz resampling
   reflect inspected settings, but exact Lo-Fi clock/rate and response still need
   measurement. Fractional bit reduction and Tube-style asymmetry are implemented.
-- Pitch interpolation, velocity response, fixed 100 ms native release, pitch-bend
-  range and master gain still need controlled Kontakt audio comparisons.
+- The first dry reference calibrated full-velocity level and the 48 kHz release
+  (479 linear fade intervals). New instances default to Output 0 dB, with a small
+  fixed output trim matching the captured dry level. Existing states retain their
+  saved Output setting. Internal effect gain staging, other sample rates, pitch
+  interpolation and pitch-bend range still require controlled comparisons.
+- Velocity remains linear in the native engine pending a full sweep. Reference
+  velocities 64 and 32 measure 0.24696352 and 0.08410957 relative to velocity 127,
+  so the original curve is measurably nonlinear.
 - Separate LP/HP memories are implemented, but their initial physical values
   remain provisional until the original parameter mapping is measured.
 - Original graphics, parameter gestures, keyboard colours and exact animation
@@ -100,9 +106,8 @@ writer. Versions 1/2 remain readable.
   Boom mode; the user category remains stable while a label shows the playing group.
 - File paths are stored per instance. Missing/moved libraries require Locate
   library; portable content identifiers and distribution installation remain work.
-- The first Windows CI run failed on an MSVC nested lambda capture in the
-  library picker. The capture is now constructed outside the nested lambda;
-  a new Windows run is required to verify the fix.
+- Windows build and tests passed for commit dd1d132 (run 34599524871), including
+  the corrected library-picker capture. Later changes require their own CI run.
 
 ## Validation completed
 
@@ -125,7 +130,7 @@ writer. Versions 1/2 remain readable.
 | Platform | Formats | Status |
 | --- | --- | --- |
 | macOS Apple Silicon | AU, VST3, standalone | Builds and native engine tests passed; DAW/audio-parity validation pending |
-| Windows x64 | VST3, standalone EXE | First CI failed; library-picker compile fix awaiting CI |
+| Windows x64 | VST3, standalone EXE | Build/tests passed on dd1d132; DAW validation pending |
 
 Do not call the port complete until Kontakt sound/behavior comparisons and host
 validation pass on both required platforms. Current artifacts are unsigned Debug
@@ -134,16 +139,23 @@ remain separate release work.
 
 ## Current parity measurement work
 
-An optional `GlitchReferenceHost` loads the installed Kontakt VST3 and captures
-MIDI note 12 at velocities 127/64/32, with 50 ms/500 ms/3 s gates at 48 kHz.
-The companion `SPAGlitchRender` renders the same matrix, and
+An optional `GlitchReferenceHost` loads the installed Kontakt VST3. The first
+live capture (2026-09-11) measured note 12 in Glitch Digital at velocities
+127/64/32, gates 50 ms/500 ms/3 s, 48 kHz, with the original saved dry settings.
+Reference audio is safely stored in ignored `local/parity/dry`.
+
+After dry gain/release calibration, the native full-velocity captures have zero
+sample offset and maximum absolute error 1.1920928955078125e-7 (one 24-bit PCM
+step). These results cover only that sample, rate and velocity. Detailed metrics
+and WAV hashes are in `dry-reference-results.json`. No effect match is claimed.
+
+The expanded host now supports all 127 velocities at 48 kHz and full-velocity
+captures at 44.1/96 kHz. It requires a new live NKI load. Restoring the captured
+Kontakt state in a separate measurement process returned silence, so that path
+was not used as evidence and the experimental batch host was removed.
+
+The companion `SPAGlitchRender` renders the initial nine-file matrix, and
 `scripts/compare_audio.py` reports delay, raw/aligned error, gain mismatch and
 gain-corrected residual separately. Silence is an error, not a passing match.
 All captures and proprietary plugin states stay in ignored `local/parity`.
 See `PARITY-CAPTURE.md` for the repeatable procedure.
-
-The host compiled and loaded Kontakt, but the app-control tool cannot operate
-its embedded editor (AXError.notImplemented). Loading the original NKI in that
-editor requires a user handoff. **No Kontakt audio capture or sonic parity result
-has been obtained in this pass.** The physical DSP, velocity curve and release
-have not been relabeled as calibrated or exact.

@@ -193,7 +193,9 @@ float Engine::processEffect(float input,int channel) noexcept
 }
 void Engine::render(juce::AudioBuffer<float>& out,int start,int length) noexcept
 {
-    const float releaseStep=1.0f/(float)(sampleRate*0.1);
+    // Kontakt capture at 48 kHz: 479 linear fade intervals after note-off.
+    // Other rates retain the inferred 10 ms duration pending reference checks.
+    const float releaseStep=1.0f/(float)std::max(1.0,std::floor(sampleRate*0.01)-1.0);
     for(int i=start;i<start+length;++i)
     {
         std::array<float,2> mixed{};
@@ -204,7 +206,7 @@ void Engine::render(juce::AudioBuffer<float>& out,int start,int length) noexcept
             const int frame=(int)v.position;
             if(frame>=audio.getNumSamples()) { v={}; continue; }
             const int next=std::min(frame+1,audio.getNumSamples()-1);
-            const float fraction=(float)(v.position-frame), amplitude=v.velocity*v.envelope*0.5011872336f; // observed group amplifier: -6 dB
+            const float fraction=(float)(v.position-frame), amplitude=v.velocity*v.envelope*groupGain;
             for(int ch=0;ch<2;++ch)
             {
                 const auto* data=audio.getReadPointer(std::min(ch,audio.getNumChannels()-1));
@@ -213,7 +215,7 @@ void Engine::render(juce::AudioBuffer<float>& out,int start,int length) noexcept
             v.position+=v.baseStep*bend[(size_t)v.channel-1];
             if(v.releasing) { v.envelope=std::max(0.0f,v.envelope-releaseStep); if(v.envelope==0) v={}; }
         }
-        const float gain=outputGain.getNextValue();
+        const float gain=outputGain.getNextValue()*referenceOutputTrim;
         const float left=processEffect(mixed[0],0)*gain, right=processEffect(mixed[1],1)*gain;
         if(out.getNumChannels()==1) out.addSample(0,i,(left+right)*0.5f);
         else { out.addSample(0,i,left); out.addSample(1,i,right); }

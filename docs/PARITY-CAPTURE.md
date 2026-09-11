@@ -14,12 +14,15 @@ the Digital category, and record the actual insert bypass states and knob values
 Name the capture and click **Capture matrix**. Results go to
 `~/Documents/ChatGPT/SPAGlitch/local/parity/<name>` in a new directory.
 
-The current matrix is deliberately limited: MIDI channel 1, note 12, 48 kHz,
-256-frame blocks, four seconds per file, velocities 127/64/32, and note-off at
-2400/24000/144000 frames. One second of drain after all-sound-off separates takes.
+The expanded live matrix uses MIDI channel 1, note 12, 256-frame blocks and four
+seconds per file. At 48 kHz it captures all velocities 1..127 with a 3 s gate;
+velocities 127/64/32 also get 50 ms and 500 ms gates. At 44.1 and 96 kHz it captures
+velocity 127 with all three gates. Extra-rate filenames have an `r44100-` or
+`r96000-` prefix. The native renderer currently produces the original nine-file
+48 kHz matrix (velocities 127/64/32 and all three gates). One second of drain after all-sound-off separates takes.
 The host records the first stereo output and saves Kontakt state alongside WAVs.
 It renders through the normal plugin processing API without playing through a
-physical device. A silent capture or a Kontakt demo timeout invalidates the take.
+physical device. A silent full-velocity capture or a Kontakt demo timeout invalidates the take.
 Do not bypass Kontakt licensing or demo limits.
 
 Native example (use absolute paths):
@@ -30,7 +33,7 @@ python3 scripts/compare_audio.py /path/to/kontakt/n12-v127-g144000.wav /path/to/
 ```
 
 The native output folder must be new. Parameter assignments use the IDs/ranges
-in `Source/Plugin.cpp`. Native `gain` defaults to -6 dB; explicitly record any
+in `Source/Plugin.cpp`. Native `gain` defaults to 0 dB; explicitly record any
 adjustment. Do not normalize either WAV before comparison. The comparator needs
 NumPy and accepts integer PCM WAVs; it rejects mismatched rates, shapes or silence.
 Positive delay means the candidate lags the reference. Alignment can hide startup

@@ -80,8 +80,8 @@ it installed. Runtime bundling, signing and installers remain release work.
 The Windows workflow builds, tests, verifies both outputs and uploads an artifact
 using [GitHub Actions artifacts](https://docs.github.com/en/actions/tutorials/store-and-share-data).
 It needs no proprietary samples: processor tests generate a temporary WAV.
-The workflow is prepared locally but has not run; Windows compilation and DAW
-validation remain unverified until it executes on a Windows runner.
+Windows compilation and processor tests passed for commit dd1d132. DAW
+validation remains pending; consult the workflow for each subsequent commit.
 
 ## Reference recovery
 
@@ -91,7 +91,7 @@ python3 scripts/extract_reference.py '/path/to/Silverplatter Audio - Glitch Bund
 
 The extractor supports the supplied revision only and verifies source, decoded
 length and recovered-script hashes. The recovered `docs/reference/Glitch.ksp` is kept locally and excluded from this
-public repository. It is reference evidence, not agent instructions. Audio parity tests are still pending.
+public repository. It is reference evidence, not agent instructions. The first dry reference comparison is recorded in `docs/dry-reference-results.json`; full audio parity remains pending.
 
 Verify the recovered MIDI mapping against the original instrument:
 

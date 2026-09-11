@@ -120,7 +120,7 @@ static void engineTests()
         pitchEngine.setControls(c); pitchEngine.setBank(&bank); pitchEngine.prepare(48000);
         pitchEngine.handle(juce::MidiMessage::noteOn(1,12,1.0f));
         juce::AudioBuffer<float> pitched(2,8);pitched.clear();pitchEngine.render(pitched,0,8);
-        const float expected=bank.samples[0][0]->audio.getSample(0,2)*0.5011872336f;
+        const float expected=bank.samples[0][0]->audio.getSample(0,2)*0.4916505699f;
         require(std::abs(pitched.getSample(0,1)-expected)<0.00001f,"Octave pitch must advance two source frames per output frame");
     }
     for(double rate:{44100.0,48000.0,96000.0})
@@ -203,6 +203,24 @@ static void callbackParityTests()
     require(engine.runtimeState()==recalled.runtimeState(),"Recalled random-to-manual transition must match uninterrupted playback");
     std::cout<<"PASS: independent filter memories and KSP random-to-manual transitions\n";
 }
+static void measuredReleaseTest()
+{
+    glitch::Bank bank;auto sample=std::make_unique<glitch::Sample>();sample->sampleRate=48000;
+    sample->audio.setSize(1,2000);for(int i=0;i<2000;++i)sample->audio.setSample(0,i,0.25f);
+    bank.samples[0][0]=std::move(sample);
+    glitch::Engine engine;engine.setBank(&bank);engine.prepare(48000);
+    engine.handle(juce::MidiMessage::noteOn(1,12,1.0f));engine.handle(juce::MidiMessage::noteOff(1,12));
+    juce::AudioBuffer<float> audio(2,600);audio.clear();engine.render(audio,0,600);
+    const float peak=0.25f*0.4916505699f;
+    for(int i=0;i<600;++i)
+    {
+        const float expected=peak*std::max(0.0f,1.0f-i/479.0f);
+        // Float envelope accumulation contributes < 9e-7 at this fixture level.
+        require(std::abs(audio.getSample(0,i)-expected)<1e-6f,"48 kHz release must match measured 479-interval linear fade");
+    }
+    require(engine.activeVoices()==0,"Measured release terminates the voice");
+    std::cout<<"PASS: reference-calibrated dry level and 48 kHz release\n";
+}
 int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
@@ -225,7 +243,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();
+        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

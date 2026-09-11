@@ -11,6 +11,10 @@ inline constexpr std::array<const char*,9> categories {
     "Glitch Heavy Long", "Glitch Heavy Short", "Glitch Rapid Modulation", "Glitch Squelchy", "Glitch Percussive" };
 inline constexpr std::array<int,9> counts {46,14,95,76,24,65,32,50,77};
 inline constexpr int firstNote=12;
+// Measured full-velocity dry level, relative to the original PCM. Keep the
+// small residual trim after effects until the internal gain staging is isolated.
+inline constexpr float groupGain=0.5011872336f;
+inline constexpr float referenceOutputTrim=0.49165056986916567f/groupGain;
 
 struct Sample
 {
@@ -34,7 +38,7 @@ struct Controls
 {
     int category=0, pitch=0, lofi=4, drive=488095, cutoff=476191, resonance=49;
     int randomness=0, destroy=1, filter=1;
-    float gainDb=-6;
+    float gainDb=0;
 };
 struct NoteSettings
 {

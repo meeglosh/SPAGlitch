@@ -15,7 +15,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GlitchProcessor::layout()
     // 0 enables effects and 1 bypasses, matching the original UI callback.
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"destroy",1},"Destroy",juce::StringArray{"On","Off"},1));
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"filter",1},"Filter",juce::StringArray{"High-pass","Off","Low-pass"},1));
-    p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output",-60.0f,6.0f,-6.0f));
+    p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output",-60.0f,6.0f,0.0f));
     return p;
 }
 GlitchProcessor::GlitchProcessor()
