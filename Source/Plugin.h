@@ -33,6 +33,8 @@ public:
     juce::AudioProcessorValueTreeState parameters;
     juce::MidiKeyboardState keyboard;
     std::atomic<float> leftPeak{0},rightPeak{0};
+    // Held until the editor reads it, so short audio hits aren't missed between UI frames.
+    std::atomic<float> visualPeak{0};
     std::atomic<int> playingCategory{0},playingPitch{0},voiceCount{0};
 private:
     // Each mailbox has one writer. Atomics make a rejected read race-free;

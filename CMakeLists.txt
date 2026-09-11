@@ -17,7 +17,11 @@ endif()
 juce_add_plugin(SPAGlitch COMPANY_NAME "Silverplatter Audio" BUNDLE_ID "com.silverplatteraudio.spaglitch" PLUGIN_MANUFACTURER_CODE Spau PLUGIN_CODE Spgl FORMATS ${formats} PRODUCT_NAME "SPAGlitch" IS_SYNTH TRUE NEEDS_MIDI_INPUT TRUE NEEDS_MIDI_OUTPUT FALSE COPY_PLUGIN_AFTER_BUILD FALSE)
 target_sources(SPAGlitch PRIVATE Source/Plugin.cpp Source/GlitchEngine.cpp Source/TubeModel.cpp Source/ContentLoader.cpp Source/PluginEditor.cpp)
 target_compile_definitions(SPAGlitch PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
-target_link_libraries(SPAGlitch PUBLIC juce::juce_audio_utils juce::juce_recommended_config_flags)
+juce_add_binary_data(SpaArtwork SOURCES Assets/spa-calm.png
+  Assets/spa-electric-1.png Assets/spa-electric-2.png Assets/spa-electric-3.png
+  Assets/spa-electric-4.png Assets/spa-electric-5.png)
+set_target_properties(SpaArtwork PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+target_link_libraries(SPAGlitch PUBLIC SpaArtwork juce::juce_audio_utils juce::juce_recommended_config_flags)
 include(CTest)
 option(SPAGLITCH_REFERENCE_HOST "Build the local Kontakt measurement host" OFF)
 if(SPAGLITCH_REFERENCE_HOST)

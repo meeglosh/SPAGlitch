@@ -41,6 +41,7 @@ bool GlitchProcessor::isBusesLayoutSupported(const BusesLayout& l) const
 }
 void GlitchProcessor::prepareToPlay(double rate,int)
 {
+    visualPeak.store(0,std::memory_order_relaxed);
     engine.setControls(controls()); engine.prepare(rate); keyboard.reset();
 }
 void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer& midi)
@@ -77,6 +78,9 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
     {
         leftPeak=b.getMagnitude(0,0,b.getNumSamples());
         rightPeak=b.getMagnitude(b.getNumChannels()>1?1:0,0,b.getNumSamples());
+        const float peak=std::max(leftPeak.load(std::memory_order_relaxed),rightPeak.load(std::memory_order_relaxed));
+        auto held=visualPeak.load(std::memory_order_relaxed);
+        while(peak>held && !visualPeak.compare_exchange_weak(held,peak,std::memory_order_relaxed)) {}
     }
     midi.clear();
 }

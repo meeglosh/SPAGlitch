@@ -1,10 +1,39 @@
 #include "../Source/Plugin.h"
+#include "../Source/ShockAnimation.h"
 #include <cmath>
 #include <complex>
 #include <iostream>
 #include <stdexcept>
 
 static void require(bool ok,const char* message) { if(!ok) throw std::runtime_error(message); }
+static void shockTests()
+{
+    ShockAnimation shock;
+    shock.advance(0,true);
+    require(shock.energy()==0 && shock.variation()==-1,"Silent animation must stay idle");
+    int previous=-1;
+    for(int group=0;group<20;++group)
+    {
+        int seen=0;
+        for(int i=0;i<5;++i)
+        {
+            shock.advance(.7f,true);
+            const int selected=shock.variation();
+            require(selected>=0 && selected<5 && selected!=previous,"Shock must avoid immediate repeats");
+            require((seen & (1<<selected))==0,"Shock bag repeated before all five appeared");
+            seen|=1<<selected;previous=selected;shock.advance(0,true);
+        }
+        require(seen==31,"Shock bag must include all five expressions");
+    }
+    shock.advance(.7f,false);const int held=shock.variation();
+    for(int i=0;i<60;++i) shock.advance(.7f,false);
+    require(shock.variation()==held,"Motion off must hold the expression");
+    bool changed=false;
+    for(int i=0;i<16;++i) { shock.advance(.7f,true);changed|=shock.variation()!=held; }
+    require(changed,"Sustained audio must cycle expressions");
+    for(int i=0;i<60;++i) shock.advance(0,true);
+    require(shock.energy()<.002f,"Animation must settle after audio stops");
+}
 static void parameter(GlitchProcessor& p,const char* id,float value)
 {
     auto* param=p.parameters.getParameter(id);
@@ -47,6 +76,11 @@ static void processorTests(const juce::File& root)
     p.loadSample(file); require(p.waitForContent(),"WAV should load");
     note(p,b,60,128);
     require(b.getMagnitude(0,128)==0 && b.getMagnitude(128,384)>0,"Sample-accurate note onset");
+    const float visualHit=p.visualPeak.load();
+    require(visualHit>0,"Audio must publish visual activity");
+    p.allNotesOff();render(p,b);
+    require(p.visualPeak.exchange(0)>=visualHit,"A short hit must survive until the next editor frame");
+    render(p,b);require(p.visualPeak.load()==0,"Silence must not retrigger the visual");
     parameter(p,"gain",-18); parameter(p,"pitch",7);
     juce::MemoryBlock state; p.getStateInformation(state);
     GlitchProcessor restored; restored.prepareToPlay(48000,512);
@@ -375,16 +409,23 @@ int main(int argc,char** argv)
             for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,12);finite(b);require(b.getMagnitude(0,512)>0,"Real library category should sound"); }
             std::cout<<"PASS: original 479-sample library loaded and all nine categories render\n";return 0;
         }
-        if(argc==3 && juce::String(argv[1])=="--screenshot")
+        if(argc==3 && (juce::String(argv[1])=="--screenshot" || juce::String(argv[1])=="--screenshot-active"))
         {
             GlitchProcessor p; std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+            if(juce::String(argv[1])=="--screenshot-active")
+            {
+                p.visualPeak.store(.7f);
+                for(int i=0;i<40 && p.visualPeak.load()>0;++i)
+                { juce::Thread::sleep(25);juce::Timer::callPendingTimersSynchronously(); }
+                require(p.visualPeak.load()==0,"Editor did not consume visual audio peak");
+            }
             auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
             juce::PNGImageFormat format;auto output=juce::File(argv[2]).createOutputStream();
             require(output!=nullptr,"Screenshot open failed");
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

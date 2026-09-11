@@ -16,8 +16,11 @@ preload local content for dependable offline jobs. Cloud reads can exceed this
 window and cannot be forcibly interrupted safely while an OS read is pending.
 
 This is a functional development port, **not a verified sonic replica**.
-The UI is a temporary functional control panel. Original artwork/filmstrip
-recreation and the subsequent requested redesign are separate remaining work.
+The redesigned UI places controls in two side columns around an overhead spa
+photograph. Output audio activates five shuffled shocked expressions against an
+electrical blast background, with optional silhouette twitching. Artwork and
+generation prompts are documented in `Assets/README.md`. Exact sonic parity work
+is paused at the user's request while the interface evolves.
 
 ## Confirmed source evidence
 

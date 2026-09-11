@@ -1,17 +1,63 @@
 #include "PluginEditor.h"
+#include <BinaryData.h>
+
+namespace
+{
+const juce::Colour paper(0xffeeeae0),ink(0xff253c33),muted(0xff788478),sage(0xff8caa88),electric(0xff85e8f3);
+}
+
+void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,int height,float value,float start,float end,juce::Slider&)
+{
+    auto area=juce::Rectangle<float>((float)x,(float)y,(float)width,(float)height).reduced(8);
+    const float radius=std::min(area.getWidth(),area.getHeight())*.5f;
+    const auto centre=area.getCentre();
+    const float angle=start+value*(end-start);
+    juce::Path track,fill;
+    track.addCentredArc(centre.x,centre.y,radius,radius,0,start,end,true);
+    fill.addCentredArc(centre.x,centre.y,radius,radius,0,start,angle,true);
+    g.setColour(juce::Colour(0xffd2d6c9));g.strokePath(track,juce::PathStrokeType(3));
+    g.setColour(ink);g.strokePath(fill,juce::PathStrokeType(3));
+    const float body=radius-7;
+    g.setColour(juce::Colours::black.withAlpha(.06f));g.fillEllipse(centre.x-body,centre.y-body+2,body*2,body*2);
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xfffaf8f1),centre.x,centre.y-body,juce::Colour(0xffdce2d3),centre.x,centre.y+body,false));
+    g.fillEllipse(centre.x-body,centre.y-body,body*2,body*2);
+    g.setColour(juce::Colour(0xffbac5b4));g.drawEllipse(centre.x-body,centre.y-body,body*2,body*2,1);
+    const float dx=std::sin(angle),dy=-std::cos(angle);
+    g.setColour(ink);g.drawLine(centre.x+dx*body*.4f,centre.y+dy*body*.4f,centre.x+dx*body*.82f,centre.y+dy*body*.82f,2.5f);
+}
 
 GlitchEditor::GlitchEditor(GlitchProcessor& p)
  :AudioProcessorEditor(p),processor(p),keyboard(p.keyboard)
 {
-    look.setColour(juce::Slider::rotarySliderFillColourId,juce::Colour(0xffc991ff));
-    look.setColour(juce::Slider::rotarySliderOutlineColourId,juce::Colour(0xff34303e));
-    look.setColour(juce::Slider::thumbColourId,juce::Colour(0xffe7d4ff));
-    look.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xff25212e));
-    look.setColour(juce::TextButton::buttonColourId,juce::Colour(0xff34303e));
+    processor.visualPeak.store(0,std::memory_order_relaxed);
+    look.setColour(juce::Label::textColourId,ink);
+    look.setColour(juce::Slider::textBoxTextColourId,ink);
+    look.setColour(juce::Slider::textBoxBackgroundColourId,juce::Colours::transparentBlack);
+    look.setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);
+    look.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xfff8f6ef));
+    look.setColour(juce::ComboBox::textColourId,ink);
+    look.setColour(juce::ComboBox::arrowColourId,ink);
+    look.setColour(juce::ComboBox::outlineColourId,juce::Colour(0xffcbd2c3));
+    look.setColour(juce::PopupMenu::backgroundColourId,paper);
+    look.setColour(juce::PopupMenu::textColourId,ink);
+    look.setColour(juce::PopupMenu::highlightedBackgroundColourId,sage);
+    look.setColour(juce::PopupMenu::highlightedTextColourId,ink);
+    look.setColour(juce::TextButton::buttonColourId,juce::Colour(0xffe0e6d7));
+    look.setColour(juce::TextButton::textColourOffId,ink);
+    look.setColour(juce::ToggleButton::textColourId,muted);
+    look.setColour(juce::ToggleButton::tickColourId,ink);
     setLookAndFeel(&look);
-    title.setText("S P A G L I T C H",juce::dontSendNotification);
-    title.setFont(juce::Font(juce::FontOptions(24.0f,juce::Font::bold)));
-    categoryLabel.setText("CATEGORY",juce::dontSendNotification);
+    calmImage=juce::ImageCache::getFromMemory(BinaryData::spacalm_png,BinaryData::spacalm_pngSize);
+    const char* images[]{BinaryData::spaelectric1_png,BinaryData::spaelectric2_png,BinaryData::spaelectric3_png,BinaryData::spaelectric4_png,BinaryData::spaelectric5_png};
+    const int sizes[]{BinaryData::spaelectric1_pngSize,BinaryData::spaelectric2_pngSize,BinaryData::spaelectric3_pngSize,BinaryData::spaelectric4_pngSize,BinaryData::spaelectric5_pngSize};
+    for(size_t i=0;i<electricImages.size();++i) electricImages[i]=juce::ImageCache::getFromMemory(images[i],sizes[i]);
+    title.setText("SPA / GLITCH",juce::dontSendNotification);
+    title.setFont(juce::Font(juce::FontOptions("Georgia",30.0f,juce::Font::plain)));
+    load.setButtonText("Locate library");audition.setButtonText("Audition WAV");panic.setButtonText("All notes off");
+    motion.setToggleState(true,juce::dontSendNotification);
+    motion.setTooltip("Disable twitching while retaining the audio-reactive x-ray glow");
+    addAndMakeVisible(motion);
+    categoryLabel.setText("SAMPLE BANK",juce::dontSendNotification);
     destroyLabel.setText("DESTROY",juce::dontSendNotification);
     filterLabel.setText("FILTER",juce::dontSendNotification);
     for(int i=0;i<9;++i) category.addItem(glitch::categories[(size_t)i],i+1);
@@ -24,8 +70,14 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     for(size_t i=0;i<knobs.size();++i)
     {
         auto& knob=knobs[i];
+        knob.setColour(juce::Slider::textBoxTextColourId,ink);
+        knob.setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);
+        knob.setColour(juce::Slider::textBoxBackgroundColourId,juce::Colours::transparentBlack);
+        knob.setColour(juce::Slider::textBoxHighlightColourId,sage);
         knob.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-        knob.setTextBoxStyle(juce::Slider::TextBoxBelow,false,84,22);
+        knob.setTextBoxStyle(juce::Slider::TextBoxBelow,false,112,20);
+        knob.setRotaryParameters(juce::MathConstants<float>::pi*1.2f,juce::MathConstants<float>::pi*2.8f,true);
+        labels[i].setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
         knob.setTitle(names[i]); labels[i].setText(names[i],juce::dontSendNotification);
         labels[i].setJustificationType(juce::Justification::centred);
         addAndMakeVisible(knob); addAndMakeVisible(labels[i]);
@@ -39,7 +91,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     knobs[1].updateText(); knobs[3].updateText();
     knobs[2].setTextValueSuffix(" st"); knobs[4].setTextValueSuffix(" %");
     knobs[5].setTextValueSuffix(" %"); knobs[6].setTextValueSuffix(" dB");
-    keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(12); keyboard.setKeyWidth(15);
+    keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(12); keyboard.setKeyWidth(24);
     for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&destroyLabel,&filterLabel,&category,&destroy,&filter,&load,&audition,&panic,&keyboard}) addAndMakeVisible(c);
     auto choose=[this](bool single)
     {
@@ -54,39 +106,91 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     };
     load.onClick=[choose]{choose(false);}; audition.onClick=[choose]{choose(true);};
     panic.onClick=[this]{processor.allNotesOff();};
-    setSize(760,540); startTimerHz(20); timerCallback();
+    status.setFont(juce::Font(juce::FontOptions(11.5f)));
+    status.setColour(juce::Label::textColourId,muted);
+    effective.setFont(juce::Font(juce::FontOptions(11.5f)));
+    for(auto* label:{&categoryLabel,&destroyLabel,&filterLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
+    keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xfff8f6ef));
+    keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,ink);
+    keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
+    setSize(1120,780); startTimerHz(30); timerCallback();
 }
 GlitchEditor::~GlitchEditor() { stopTimer(); setLookAndFeel(nullptr); }
 void GlitchEditor::resized()
 {
-    title.setBounds(24,12,260,40); load.setBounds(450,18,140,28); audition.setBounds(600,18,136,28);
-    categoryLabel.setBounds(24,62,100,20); category.setBounds(24,86,260,30);
-    destroyLabel.setBounds(308,62,100,20); destroy.setBounds(308,86,116,30);
-    filterLabel.setBounds(448,62,100,20); filter.setBounds(448,86,140,30);
-    panic.setBounds(610,86,126,30);
-    const std::array<juce::Rectangle<int>,7> areas{
-        juce::Rectangle<int>(24,144,124,130),{24,282,124,130},{172,144,124,130},
-        {172,282,124,130},{320,144,124,130},{468,154,180,210},{636,282,100,130}};
-    for(size_t i=0;i<areas.size();++i)
+    title.setBounds(28,18,290,40);
+    load.setBounds(800,28,134,30);audition.setBounds(944,28,148,30);
+    categoryLabel.setBounds(368,16,280,16);category.setBounds(368,36,330,32);
+    photoBounds={196,128,728,486};
+    const int knobWidth=140,rowHeight=110;
+    const std::array<int,3> left{0,1,2};
+    const std::array<int,4> right{3,4,5,6};
+    for(size_t row=0;row<left.size();++row)
     {
-        auto r=areas[i]; labels[i].setBounds(r.removeFromTop(22)); knobs[i].setBounds(r);
+        const auto i=(size_t)left[row];const int y=133+(int)row*rowHeight;
+        labels[i].setBounds(28,y,knobWidth,18);knobs[i].setBounds(28,y+18,knobWidth,90);
     }
-    effective.setBounds(320,372,308,34); status.setBounds(24,416,712,30);
-    keyboard.setBounds(24,460,712, 60);
+    for(size_t row=0;row<right.size();++row)
+    {
+        const auto i=(size_t)right[row];const int y=133+(int)row*rowHeight;
+        labels[i].setBounds(952,y,knobWidth,18);knobs[i].setBounds(952,y+18,knobWidth,90);
+    }
+    destroyLabel.setBounds(32,487,132,18);destroy.setBounds(32,511,132,30);
+    filterLabel.setBounds(32,554,132,18);filter.setBounds(32,578,132,30);
+    motion.setBounds(952,586,130,26);
+    effective.setBounds(196,625,500,22);panic.setBounds(784,625,140,26);
+    status.setBounds(28,656,1064,24);
+    keyboard.setBounds(28,694,1064,64);
 }
 void GlitchEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(juce::Colour(0xff16131c));
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff36203f),0,120,juce::Colour(0xff16131c),760,430,false));
-    g.fillRoundedRectangle(12,130,736,282,10);
-    g.setColour(juce::Colour(0xff594363)); g.drawLine(24,126,736,126,1);
-    g.setColour(juce::Colour(0xff322a3b)); g.fillRect(308,24,118,5); g.fillRect(308,34,118,5);
-    g.setColour(juce::Colour(0xff96deac));
-    g.fillRect(308.0f,24.0f,118*juce::jlimit(0.0f,1.0f,meterLeft),5.0f);
-    g.fillRect(308.0f,34.0f,118*juce::jlimit(0.0f,1.0f,meterRight),5.0f);
+    g.fillAll(paper);
+    g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
+    g.drawText("S I L V E R P L A T T E R   A U D I O",32,64,290,18,juce::Justification::left);
+    g.setColour(juce::Colour(0xffcbd2c3));g.drawHorizontalLine(90,28,1092);
+    g.setColour(ink);g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
+    g.drawText("01  /  SOUND",32,102,140,18,juce::Justification::left);
+    g.drawText("02  /  ALTER",956,102,140,18,juce::Justification::left);
+    g.setColour(energy>.03f ? juce::Colour(0xff317c6f) : muted);
+    g.drawText(energy>.03f ? "SIGNAL ACTIVE" : "AT REST",212,102,300,18,juce::Justification::left);
+    g.setColour(energy>.03f ? electric.darker(.3f) : sage);
+    g.fillEllipse(196,107,6,6);
+    g.setColour(juce::Colour(0xffd5dbce));g.fillRect(786,107,138,3);g.fillRect(786,113,138,3);
+    g.setColour(ink);g.fillRect(786.0f,107.0f,138*std::min(1.f,meterLeft),3.0f);g.fillRect(786.0f,113.0f,138*std::min(1.f,meterRight),3.0f);
+    {
+        juce::Graphics::ScopedSaveState saved(g);
+        juce::Path clip;clip.addRoundedRectangle(photoBounds.toFloat(),6);g.reduceClipRegion(clip);
+        const auto bounds=photoBounds.toFloat();
+        g.drawImage(calmImage,bounds,juce::RectanglePlacement::stretchToFit);
+        if(energy>.002f)
+        {
+            const auto& electricImage=electricImages[(size_t)std::max(0,shock.variation())];
+            const float glow=std::min(1.f,energy*1.25f);
+            g.setOpacity(glow);g.drawImage(electricImage,bounds,juce::RectanglePlacement::stretchToFit);
+            if(motion.getToggleState())
+            {
+                // Keep the blast framing fixed; only the woman's silhouette twitches.
+                juce::Path body;
+                auto pt=[&](float x,float y){return juce::Point<float>(bounds.getX()+x*bounds.getWidth(),bounds.getY()+y*bounds.getHeight());};
+                body.startNewSubPath(pt(.5f,.055f));
+                body.cubicTo(pt(.28f,.055f),pt(.28f,.45f),pt(.39f,.68f));
+                body.cubicTo(pt(.4f,.74f),pt(.1f,.69f),pt(.08f,1.f));
+                body.lineTo(pt(.92f,1.f));
+                body.cubicTo(pt(.9f,.69f),pt(.6f,.74f),pt(.61f,.68f));
+                body.cubicTo(pt(.72f,.45f),pt(.72f,.055f),pt(.5f,.055f));body.closeSubPath();
+                g.reduceClipRegion(body);
+                const float dx=std::sin(animationFrame*2.39f)*energy*2.1f;
+                const float dy=std::cos(animationFrame*1.71f)*energy*.9f;
+                g.setOpacity(glow*.8f);g.drawImage(electricImage,bounds.translated(dx,dy),juce::RectanglePlacement::stretchToFit);
+            }
+        }
+    }
 }
 void GlitchEditor::timerCallback()
 {
+    const float peak=processor.visualPeak.exchange(0,std::memory_order_relaxed);
+    shock.advance(peak,motion.getToggleState());energy=shock.energy();
+    ++animationFrame;
     meterLeft=std::max(processor.leftPeak.load(),meterLeft*0.85f);
     meterRight=std::max(processor.rightPeak.load(),meterRight*0.85f);
     auto text=processor.contentStatus();
@@ -94,7 +198,7 @@ void GlitchEditor::timerCallback()
     status.setText(text,juce::dontSendNotification);
     int group=processor.voiceCount.load()>0 ? processor.playingCategory.load() : category.getSelectedItemIndex();
     group=juce::jlimit(0,8,group);
-    effective.setText("Playing: "+juce::String(glitch::categories[(size_t)group])+"\nPitch: "+juce::String(processor.playingPitch.load()/100000.0,1)+" st",juce::dontSendNotification);
+    effective.setText("Playing: "+juce::String(glitch::categories[(size_t)group])+"   /   Pitch: "+juce::String(processor.playingPitch.load()/100000.0,1)+" st",juce::dontSendNotification);
     if(group!=highlighted)
     {
         highlighted=group;
@@ -102,5 +206,5 @@ void GlitchEditor::timerCallback()
         keyboard.setMapping(group,false,0);
     }
     keyboard.setMapping(group,knobs[5].getValue()==100,processor.playingPitch.load()/10000);
-    repaint(300,20,130,24);
+    repaint(photoBounds.expanded(3));repaint(190,100,740,22);
 }
