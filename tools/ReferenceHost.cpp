@@ -7,8 +7,17 @@ class Panel final : public juce::Component
 public:
     Panel()
     {
-        for(auto* c:std::initializer_list<juce::Component*>{&load,&save,&render,&name,&status}) addAndMakeVisible(c);
+        for(auto* c:std::initializer_list<juce::Component*>{&load,&save,&render,&name,&status,&reveal,&instructions}) addAndMakeVisible(c);
         name.setText("dry"); status.setText("Load Kontakt, then load the reference NKI in its editor.",juce::dontSendNotification);
+        save.setEnabled(false);render.setEnabled(false);
+        instructions.setText("1. Load Kontakt.  2. Reveal Glitch.nki and drag it from Finder into Kontakt below.\n3. Wait for its samples, then capture. Loading Kontakt alone does not load an instrument.",juce::dontSendNotification);
+        instructions.setJustificationType(juce::Justification::centredLeft);
+        reveal.onClick=[this]
+        {
+            const juce::File reference("/private/tmp/spaglitch-reference/Glitch.nki");
+            if(reference.existsAsFile()) reference.revealToUser();
+            else status.setText("Reference copy missing. Drag the original Glitch.nki from your library into Kontakt.",juce::dontSendNotification);
+        };
         load.onClick=[this]{loadPlugin();}; save.onClick=[this]{saveState();}; render.onClick=[this]{capture();};
         setSize(1100,850);
     }
@@ -17,19 +26,22 @@ public:
     {
         load.setBounds(10,10,140,28); save.setBounds(160,10,120,28); name.setBounds(290,10,160,28); render.setBounds(460,10,160,28);
         status.setBounds(10,44,getWidth()-20,28);
-        if(editor) editor->setBounds(0,80,editor->getWidth(),editor->getHeight());
+        reveal.setBounds(630,10,160,28);
+        instructions.setBounds(10,74,getWidth()-20,44);
+        if(editor) editor->setBounds(0,128,editor->getWidth(),editor->getHeight());
     }
 private:
     juce::VST3PluginFormat format;
     std::unique_ptr<juce::AudioPluginInstance> plugin;
     std::unique_ptr<juce::AudioProcessorEditor> editor;
     juce::TextButton load{"Load Kontakt"},save{"Save state"},render{"Capture matrix"};
+    juce::TextButton reveal{"Reveal Glitch.nki"};
     juce::TextEditor name;
-    juce::Label status;
+    juce::Label status,instructions;
     juce::File root=juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("ChatGPT/SPAGlitch/local/parity");
     void loadPlugin()
     {
-        if(plugin) return;
+        if(plugin) { status.setText("Kontakt is already loaded. Drag Glitch.nki into its editor below.",juce::dontSendNotification); return; }
         juce::OwnedArray<juce::PluginDescription> types;
         format.findAllTypesForFile(types,"/Library/Audio/Plug-Ins/VST3/Kontakt 8.vst3");
         if(types.isEmpty()) { status.setText("Kontakt VST3 not found",juce::dontSendNotification); return; }
@@ -38,8 +50,16 @@ private:
         if(!plugin) { status.setText(error,juce::dontSendNotification); return; }
         plugin->enableAllBuses(); plugin->setRateAndBufferSizeDetails(48000,256); plugin->prepareToPlay(48000,256);
         editor.reset(plugin->createEditorAndMakeActive());
-        if(editor) { addAndMakeVisible(*editor); setSize(juce::jmax(800,editor->getWidth()),editor->getHeight()+80); resized(); }
-        status.setText("Load the reference NKI. Captures write only under local/parity.",juce::dontSendNotification);
+        if(!editor)
+        {
+            plugin->releaseResources();plugin.reset();
+            status.setText("Kontakt loaded but its editor could not open. Click Load Kontakt to retry.",juce::dontSendNotification);
+            return;
+        }
+        addAndMakeVisible(*editor); setSize(juce::jmax(800,editor->getWidth()),editor->getHeight()+128); resized();
+        load.setButtonText("Kontakt loaded");load.setEnabled(false);
+        save.setEnabled(true);render.setEnabled(true);
+        status.setText("Kontakt is ready. Now load Glitch.nki inside Kontakt, then wait for its samples.",juce::dontSendNotification);
     }
     juce::File directory()
     {
@@ -61,6 +81,7 @@ private:
         juce::MemoryBlock state; plugin->getStateInformation(state);
         dir.getChildFile("kontakt.state").replaceWithData(state.getData(),state.getSize());
         juce::String report="note,velocity,gate_frames,rate,peak\n";
+        bool silent=false;
         // Identical note, varied velocity and gate: separates amp response from
         // sample content. Every capture includes a long held-note reference.
         for(const int velocity:{127,64,32}) for(const int gate:{2400,24000,144000})
@@ -86,9 +107,11 @@ private:
             std::unique_ptr<juce::AudioFormatWriter> writer(wav.createWriterFor(stream.release(),rate,2,24,{},0));
             if(!writer || !writer->writeFromAudioSampleBuffer(output,0,frames)) { status.setText("WAV write failed",juce::dontSendNotification); return; }
             report+="12,"+juce::String(velocity)+","+juce::String(gate)+",48000,"+juce::String(output.getMagnitude(0,frames),9)+"\n";
+            silent|=output.getMagnitude(0,frames)==0;
         }
         dir.getChildFile("capture.csv").replaceWithText(report);
-        status.setText("Captured "+dir.getFullPathName(),juce::dontSendNotification);
+        status.setText(silent ? "Capture contains silence. Check the NKI, samples, MIDI channel 1 and Kontakt demo status."
+                              : "Captured "+dir.getFullPathName(),juce::dontSendNotification);
     }
 };
 class App final : public juce::JUCEApplication
