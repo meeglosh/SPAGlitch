@@ -1,0 +1,169 @@
+{
+  "scope": "Compiled production TubeModel; 48kHz; held-out drives; 8x input; output 269055; no alignment or normalization",
+  "tested": 24,
+  "excluded": [
+    {
+      "drive": 62500,
+      "file": "n12-v127-g2400.wav",
+      "reason": "Reference clipping"
+    },
+    {
+      "drive": 62500,
+      "file": "n12-v127-g24000.wav",
+      "reason": "Reference clipping"
+    },
+    {
+      "drive": 62500,
+      "file": "n12-v127-g144000.wav",
+      "reason": "Reference clipping"
+    }
+  ],
+  "measurements": [
+    {
+      "drive": 62500,
+      "file": "n12-v32-g2400.wav",
+      "relative_rms_error": 0.00021389464702459792,
+      "peak_error": 7.748603820800781e-06
+    },
+    {
+      "drive": 62500,
+      "file": "n12-v32-g24000.wav",
+      "relative_rms_error": 0.0001588062291314368,
+      "peak_error": 7.271766662597656e-06
+    },
+    {
+      "drive": 62500,
+      "file": "n12-v32-g144000.wav",
+      "relative_rms_error": 0.00011837221615770945,
+      "peak_error": 3.933906555175781e-06
+    },
+    {
+      "drive": 62500,
+      "file": "n12-v64-g2400.wav",
+      "relative_rms_error": 0.00024029277605170648,
+      "peak_error": 2.5033950805664062e-05
+    },
+    {
+      "drive": 62500,
+      "file": "n12-v64-g24000.wav",
+      "relative_rms_error": 0.00012902581112252882,
+      "peak_error": 1.1682510375976562e-05
+    },
+    {
+      "drive": 62500,
+      "file": "n12-v64-g144000.wav",
+      "relative_rms_error": 0.00015828848279992694,
+      "peak_error": 1.728534698486328e-05
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v32-g2400.wav",
+      "relative_rms_error": 0.00022139200869535194,
+      "peak_error": 1.049041748046875e-05
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v32-g24000.wav",
+      "relative_rms_error": 0.00015939497898288444,
+      "peak_error": 7.62939453125e-06
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v32-g144000.wav",
+      "relative_rms_error": 0.00015853257956246084,
+      "peak_error": 7.033348083496094e-06
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v64-g2400.wav",
+      "relative_rms_error": 0.0001004510631711879,
+      "peak_error": 1.1205673217773438e-05
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v64-g24000.wav",
+      "relative_rms_error": 0.000116437573926884,
+      "peak_error": 1.5974044799804688e-05
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v64-g144000.wav",
+      "relative_rms_error": 0.00013540107538447676,
+      "peak_error": 1.1682510375976562e-05
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v127-g2400.wav",
+      "relative_rms_error": 0.0002041683174102635,
+      "peak_error": 8.33272933959961e-05
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v127-g24000.wav",
+      "relative_rms_error": 0.000159457001881841,
+      "peak_error": 7.331371307373047e-05
+    },
+    {
+      "drive": 312500,
+      "file": "n12-v127-g144000.wav",
+      "relative_rms_error": 0.0001463947184690279,
+      "peak_error": 7.283687591552734e-05
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v32-g2400.wav",
+      "relative_rms_error": 0.00010327683335071502,
+      "peak_error": 7.033348083496094e-06
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v32-g24000.wav",
+      "relative_rms_error": 0.00015982974177236305,
+      "peak_error": 1.4424324035644531e-05
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v32-g144000.wav",
+      "relative_rms_error": 0.00012049669160421528,
+      "peak_error": 8.225440979003906e-06
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v64-g2400.wav",
+      "relative_rms_error": 7.868662766153818e-05,
+      "peak_error": 1.2874603271484375e-05
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v64-g24000.wav",
+      "relative_rms_error": 0.00014377230906553105,
+      "peak_error": 2.4557113647460938e-05
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v64-g144000.wav",
+      "relative_rms_error": 0.0001282815791121948,
+      "peak_error": 2.4557113647460938e-05
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v127-g2400.wav",
+      "relative_rms_error": 0.00011689467950662928,
+      "peak_error": 3.9696693420410156e-05
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v127-g24000.wav",
+      "relative_rms_error": 0.0001254041668366116,
+      "peak_error": 3.457069396972656e-05
+    },
+    {
+      "drive": 550000,
+      "file": "n12-v127-g144000.wav",
+      "relative_rms_error": 0.00013793274474143682,
+      "peak_error": 4.8995018005371094e-05
+    }
+  ],
+  "max_relative_rms_error": 0.00024029277605170648,
+  "max_peak_error": 8.33272933959961e-05
+}

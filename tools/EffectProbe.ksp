@@ -1,0 +1,59 @@
+{ Measurement helper for an unused script slot in a local reference copy.
+  It does not handle MIDI or alter the original Glitch script. }
+on init
+ declare ui_value_edit $DriveUnits (0, 1000000, 1)
+ declare ui_value_edit $OutputUnits (0, 1000000, 1)
+ declare ui_value_edit $BitsUnits (0, 1000000, 1)
+ declare ui_value_edit $CutoffUnits (0, 1000000, 1)
+ declare ui_value_edit $ResUnits (0, 1000000, 1)
+ declare ui_value_edit $FilterSlot (2, 3, 1)
+ declare ui_button $LoFiOn
+ declare ui_button $TubeOn
+ declare ui_button $LPOn
+ declare ui_button $HPOn
+ declare ui_label $Readout (6, 2)
+ $DriveUnits := get_engine_par($ENGINE_PAR_DRIVE, -1, 1, 1)
+ $OutputUnits := get_engine_par($ENGINE_PAR_INSERT_EFFECT_OUTPUT_GAIN, -1, 1, 1)
+ $BitsUnits := get_engine_par($ENGINE_PAR_BITS, -1, 0, 1)
+ $FilterSlot := 2
+ $CutoffUnits := get_engine_par($ENGINE_PAR_CUTOFF, -1, 2, 1)
+ $ResUnits := get_engine_par($ENGINE_PAR_RESONANCE, -1, 2, 1)
+ $LoFiOn := 1-get_engine_par($ENGINE_PAR_EFFECT_BYPASS, -1, 0, 1)
+ $TubeOn := 1-get_engine_par($ENGINE_PAR_EFFECT_BYPASS, -1, 1, 1)
+ $LPOn := 1-get_engine_par($ENGINE_PAR_EFFECT_BYPASS, -1, 2, 1)
+ $HPOn := 1-get_engine_par($ENGINE_PAR_EFFECT_BYPASS, -1, 3, 1)
+ set_text($Readout, "Live measurement controls; original NKI is not saved")
+end on
+on ui_control($DriveUnits)
+ set_engine_par($ENGINE_PAR_DRIVE, $DriveUnits, -1, 1, 1)
+end on
+on ui_control($OutputUnits)
+ set_engine_par($ENGINE_PAR_INSERT_EFFECT_OUTPUT_GAIN, $OutputUnits, -1, 1, 1)
+ set_text($Readout, "Output: " & get_engine_par_disp($ENGINE_PAR_INSERT_EFFECT_OUTPUT_GAIN, -1, 1, 1))
+end on
+on ui_control($BitsUnits)
+ set_engine_par($ENGINE_PAR_BITS, $BitsUnits, -1, 0, 1)
+end on
+on ui_control($FilterSlot)
+ $CutoffUnits := get_engine_par($ENGINE_PAR_CUTOFF, -1, $FilterSlot, 1)
+ $ResUnits := get_engine_par($ENGINE_PAR_RESONANCE, -1, $FilterSlot, 1)
+end on
+on ui_control($CutoffUnits)
+ set_engine_par($ENGINE_PAR_CUTOFF, $CutoffUnits, -1, $FilterSlot, 1)
+ set_text($Readout, "Cutoff: " & get_engine_par_disp($ENGINE_PAR_CUTOFF, -1, $FilterSlot, 1))
+end on
+on ui_control($ResUnits)
+ set_engine_par($ENGINE_PAR_RESONANCE, $ResUnits, -1, $FilterSlot, 1)
+end on
+on ui_control($LoFiOn)
+ set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1-$LoFiOn, -1, 0, 1)
+end on
+on ui_control($TubeOn)
+ set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1-$TubeOn, -1, 1, 1)
+end on
+on ui_control($LPOn)
+ set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1-$LPOn, -1, 2, 1)
+end on
+on ui_control($HPOn)
+ set_engine_par($ENGINE_PAR_EFFECT_BYPASS, 1-$HPOn, -1, 3, 1)
+end on

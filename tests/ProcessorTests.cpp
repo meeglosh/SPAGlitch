@@ -225,6 +225,31 @@ static void measuredReleaseTest()
     require(engine.activeVoices()==0,"Measured release terminates the voice");
     std::cout<<"PASS: reference-calibrated dry level and 48 kHz release\n";
 }
+static void tubeStabilityTest()
+{
+    // Exercise long filter tails, stereo isolation, overload and live control
+    // changes at every supported common rate. Reference accuracy is measured
+    // separately by the compiled renderer; these are numerical safety checks.
+    for(double rate:{44100.0,48000.0,88200.0,96000.0,192000.0})
+    {
+        glitch::TubeModel tube;tube.prepare(rate);tube.setParameters(0,338989);
+        double tail=0;
+        for(int i=0;i<(int)rate*2;++i)
+        {
+            if(i%997==0) tube.setParameters((i*37)%1000001,338989);
+            const double input=i<4096 ? 4.0*std::sin(i*0.173) : 0.0;
+            const double y=tube.process(input,0);
+            require(std::isfinite(y) && std::abs(y)<16,"Tube overload must remain finite and bounded");
+            require(tube.process(0,1)==0,"Tube channels must not share filter history");
+            if(i>(int)rate) tail=std::max(tail,std::abs(y));
+        }
+        require(tail<1e-8,"Tube tail must decay to silence");
+        tube.reset();require(tube.process(0,0)==0,"Tube reset must clear the tail");
+        tube.setParameters(1000000,0);
+        require(tube.process(1,0)==0,"Zero Tube output must mute");
+    }
+    std::cout<<"PASS: Tube stability, tails, stereo isolation and reset at five rates\n";
+}
 int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
@@ -275,7 +300,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();
+        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

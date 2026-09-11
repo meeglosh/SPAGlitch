@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <cmath>
+#include "TubeModel.h"
 #include <memory>
 
 namespace glitch
@@ -14,7 +15,7 @@ inline constexpr std::array<int,9> counts {46,14,95,76,24,65,32,50,77};
 inline constexpr int firstNote=12;
 // Measured full-velocity dry level, relative to the original PCM. Keep the
 // small residual trim after effects until the internal gain staging is isolated.
-inline constexpr float groupGain=0.5011872336f;
+inline constexpr float groupGain=0.5f;
 inline constexpr float referenceOutputTrim=0.49165056986916567f/groupGain;
 // Input/output retain the engine's group gain; quantization is measured in
 // original sample-amplitude units. Tube gain staging is a separate calibration.
@@ -107,7 +108,8 @@ private:
     std::array<bool,16> sustain{};
     std::array<double,16> bend{};
     std::array<std::array<std::array<FilterState,2>,2>,2> filters;
-    std::array<double,2> heldSample{},resamplePhase{},dcInput{},dcOutput{};
+    std::array<double,2> heldSample{},resamplePhase{};
+    TubeModel tube;
     const Bank* bank=nullptr;
     Controls controls;
     NoteSettings settings;
@@ -118,7 +120,7 @@ private:
     bool pitchKnobUsed=false;
     Random random;
     double sampleRate=48000, filterG=0, filterK=1.41421356237;
-    double quantisation=256, driveGain=1, compensation=1;
+    double quantisation=256;
     juce::SmoothedValue<float> outputGain;
     uint64_t clock=0;
     void updateEffects() noexcept;

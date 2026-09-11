@@ -34,6 +34,7 @@ NoteSettings forNote(const Controls& c,int note,Random& random,bool audition) no
 void Engine::prepare(double rate) noexcept
 {
     sampleRate=rate>0 ? rate : 48000;
+    tube.prepare(sampleRate);
     outputGain.reset(sampleRate,0.01);
     outputGain.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(controls.gainDb));
     reset(); updateEffects();
@@ -42,7 +43,7 @@ void Engine::reset() noexcept
 {
     for(auto& v:voices) v={};
     for(auto& f:filters) f={};
-    heldSample.fill(0); resamplePhase.fill(1); dcInput.fill(0); dcOutput.fill(0);
+    heldSample.fill(0); resamplePhase.fill(1); tube.reset();
     sustain.fill(false); bend.fill(1.0); clock=0;
 }
 void Engine::setControls(const Controls& c) noexcept
@@ -83,8 +84,7 @@ void Engine::updateEffects() noexcept
     // calibrated to Kontakt. Keep these separate from verified KSP arithmetic.
     const double bits=std::clamp(settings.bits/1000000.0*16.0,1.0,16.0);
     quantisation=std::pow(2.0,bits-1.0);
-    driveGain=1.0+24.0*settings.drive/1000000.0;
-    compensation=std::pow(10.0,-12.0*settings.drive/1000000.0/20.0);
+    tube.setParameters(settings.drive,settings.outputGainUnits());
     const double hz=std::min(20.0*std::pow(1000.0,settings.cutoff/1000000.0),sampleRate*0.45);
     filterG=std::tan(juce::MathConstants<double>::pi*hz/sampleRate);
     filterK=1.0/(0.70710678118+std::clamp(settings.resonance,0,100)*0.093);
@@ -171,17 +171,12 @@ float Engine::processEffect(float input,int channel) noexcept
         }
         phase+=sampleRate==48000.0 ? 1.0/11.0 : 4410.0/sampleRate;
         x=heldSample[(size_t)channel];
-        // Asymmetric saturation for Tube mode. This is a provisional model,
-        // not a reverse-engineered implementation of Kontakt's tube curve.
-        x=(std::tanh(x*driveGain+0.2)-std::tanh(0.2))*compensation;
-        const auto ch=(size_t)channel;
-        const double dcBlocked=x-dcInput[ch]+0.995*dcOutput[ch];
-        dcInput[ch]=x;dcOutput[ch]=dcBlocked;x=dcBlocked;
+        x=tube.process(x,channel);
     }
     if(settings.filter!=1)
     {
-        // Two cascaded two-pole stages provide the observed 24 dB/octave
-        // topology. Kontakt's adaptive resonance response still needs calibration.
+        // Provisional cascade. The reference mixes two/four-pole responses and
+        // adapts resonance to amplitude; this topology does not yet match it.
         for(auto& s:filters[settings.filter==2 ? 1 : 0][(size_t)channel])
         {
             const double a1=1.0/(1.0+filterG*(filterG+filterK));

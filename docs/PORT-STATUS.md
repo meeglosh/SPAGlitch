@@ -245,3 +245,30 @@ has replaced production DSP. `combined-effects-reference-results.json` records
 an explicit failing native/reference comparison after the Lo-Fi correction.
 Full effect parity is **not complete**: Tube dynamics, adaptive filters, control
 sweeps, clock transitions, and other sample rates still need validated models.
+
+## Tube repair (supersedes the provisional Tube status above)
+
+The production tanh approximation has been replaced with an empirical asymmetric
+transfer surface and measured linear filter. The compiled model passed 24
+held-out 48 kHz comparisons with maximum relative RMS error 0.02403% and maximum
+absolute sample error 0.00008333. Three clipped reference cases were excluded
+and still need quieter recaptures. See `TUBE-CALIBRATION.md` for the fitting
+procedure, exact scope, and remaining limitations.
+
+The macOS AU, VST3, standalone, and renderer build successfully. All three
+CTest suites pass, including new Tube overload, tail decay, stereo isolation,
+reset and live-parameter numerical checks at five sample rates. Those stability
+checks do not establish sound parity at unmeasured rates.
+
+The updated `combined-effects-reference-results.json` is still a failing
+full-chain comparison: Lo-Fi phase differs. A separate diagnostic with phase
+fitted per take brings the nine Destroy cases below 0.016% relative RMS error
+(`combined-effects-fitted-phase.json`). This supports the transfer model and
+gain staging, but does not validate the native clock's behavior. Do not treat
+the diagnostic as a production-chain pass.
+
+Full parity remains unfinished: adaptive LP/HP response, Lo-Fi startup/bypass
+clocking, control sweeps and other sample rates require further measurements.
+The live reference remains at increased group gain for Tube probing. Restore
+or reload the reference copy before ordinary instrument comparisons; the
+original NKI on disk has not been changed.

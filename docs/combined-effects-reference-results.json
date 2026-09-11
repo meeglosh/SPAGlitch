@@ -1,13 +1,86 @@
 {
-  "sample_rate": 48000,
-  "candidate_delay_frames": -1,
-  "raw_peak_error": 0.9639148712158203,
-  "aligned_peak_error": 0.9670366048812866,
-  "aligned_relative_rms_error": 2.7156278774729925,
-  "candidate_gain_relative_to_reference": 1.5311959883534851,
-  "gain_corrected_relative_rms_error": 2.663168336937347,
-  "status": "FAIL: full effect parity not achieved",
-  "reference": "Kontakt 6.8.0, Digital 01, note12, velocity127, gate144000, 48kHz, Lo-Fi8bits/default rate/noise0/output0; Tube48.8% damping0 output-4.1dB; filters bypassed",
-  "candidate": "Native Lo-Fi truncation/domain and 48kHz hold correction; provisional Tube unchanged",
-  "phase_note": "Lo-Fi phase is not synchronized between the instances; this comparison is a full-waveform failure, not a Tube-only fit metric."
+  "scope": "Production engine, default Lo-Fi + repaired Tube; 48 kHz; no alignment or gain correction; Lo-Fi clock phase remains unresolved",
+  "measurements": [
+    {
+      "file": "n12-v127-g144000.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.4189646244049072,
+      "aligned_peak_error": 0.4189646244049072,
+      "aligned_relative_rms_error": 0.8273236108851196,
+      "candidate_gain_relative_to_reference": 0.6750169868251966,
+      "gain_corrected_relative_rms_error": 0.7608221857147822
+    },
+    {
+      "file": "n12-v127-g2400.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.41265416145324707,
+      "aligned_peak_error": 0.41265416145324707,
+      "aligned_relative_rms_error": 1.1028777019268632,
+      "candidate_gain_relative_to_reference": 0.43493799281185247,
+      "gain_corrected_relative_rms_error": 0.9471241489055071
+    },
+    {
+      "file": "n12-v127-g24000.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.48794448375701904,
+      "aligned_peak_error": 0.48794448375701904,
+      "aligned_relative_rms_error": 1.1098733482516254,
+      "candidate_gain_relative_to_reference": 0.4016415181754096,
+      "gain_corrected_relative_rms_error": 0.9347651985326824
+    },
+    {
+      "file": "n12-v32-g144000.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.04297494888305664,
+      "aligned_peak_error": 0.04297494888305664,
+      "aligned_relative_rms_error": 1.0282456560675755,
+      "candidate_gain_relative_to_reference": 0.6218386857699363,
+      "gain_corrected_relative_rms_error": 0.9561815463820821
+    },
+    {
+      "file": "n12-v32-g2400.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.06391251087188721,
+      "aligned_peak_error": 0.06391251087188721,
+      "aligned_relative_rms_error": 0.9612757745639778,
+      "candidate_gain_relative_to_reference": 0.397867464805591,
+      "gain_corrected_relative_rms_error": 0.7493247125405176
+    },
+    {
+      "file": "n12-v32-g24000.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.06569206714630127,
+      "aligned_peak_error": 0.06569206714630127,
+      "aligned_relative_rms_error": 1.1265955477847696,
+      "candidate_gain_relative_to_reference": 0.3650213093591909,
+      "gain_corrected_relative_rms_error": 0.9306017358250246
+    },
+    {
+      "file": "n12-v64-g144000.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.1268301010131836,
+      "aligned_peak_error": 0.1268301010131836,
+      "aligned_relative_rms_error": 0.9666242483451352,
+      "candidate_gain_relative_to_reference": 0.49141259147578065,
+      "gain_corrected_relative_rms_error": 0.8220105141538131
+    },
+    {
+      "file": "n12-v64-g2400.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.12175476551055908,
+      "aligned_peak_error": 0.12175476551055908,
+      "aligned_relative_rms_error": 0.9186810206759153,
+      "candidate_gain_relative_to_reference": 0.5827023066004982,
+      "gain_corrected_relative_rms_error": 0.8184359796792886
+    },
+    {
+      "file": "n12-v64-g24000.wav",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.178938627243042,
+      "aligned_peak_error": 0.178938627243042,
+      "aligned_relative_rms_error": 1.0024825008532965,
+      "candidate_gain_relative_to_reference": 0.4355798459284939,
+      "gain_corrected_relative_rms_error": 0.8284932433007386
+    }
+  ]
 }
