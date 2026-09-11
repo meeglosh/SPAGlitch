@@ -3,7 +3,7 @@
 
 namespace
 {
-const juce::Colour paper(0xffeeeae0),ink(0xff253c33),muted(0xff788478),sage(0xff8caa88),electric(0xff85e8f3);
+const juce::Colour paper(0xff10241f),ink(0xfff3f5e9),muted(0xffbdcfc1),sage(0xff9abea3),electric(0xff85e8f3);
 }
 
 void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,int height,float value,float start,float end,juce::Slider&)
@@ -15,13 +15,13 @@ void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,in
     juce::Path track,fill;
     track.addCentredArc(centre.x,centre.y,radius,radius,0,start,end,true);
     fill.addCentredArc(centre.x,centre.y,radius,radius,0,start,angle,true);
-    g.setColour(juce::Colour(0xffd2d6c9));g.strokePath(track,juce::PathStrokeType(3));
-    g.setColour(ink);g.strokePath(fill,juce::PathStrokeType(3));
+    g.setColour(juce::Colour(0xff426156));g.strokePath(track,juce::PathStrokeType(3));
+    g.setColour(electric);g.strokePath(fill,juce::PathStrokeType(3));
     const float body=radius-7;
-    g.setColour(juce::Colours::black.withAlpha(.06f));g.fillEllipse(centre.x-body,centre.y-body+2,body*2,body*2);
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xfffaf8f1),centre.x,centre.y-body,juce::Colour(0xffdce2d3),centre.x,centre.y+body,false));
+    g.setColour(juce::Colours::black.withAlpha(.4f));g.fillEllipse(centre.x-body,centre.y-body+2,body*2,body*2);
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff527466),centre.x,centre.y-body,juce::Colour(0xff122e26),centre.x,centre.y+body,false));
     g.fillEllipse(centre.x-body,centre.y-body,body*2,body*2);
-    g.setColour(juce::Colour(0xffbac5b4));g.drawEllipse(centre.x-body,centre.y-body,body*2,body*2,1);
+    g.setColour(sage.withAlpha(.65f));g.drawEllipse(centre.x-body,centre.y-body,body*2,body*2,1);
     const float dx=std::sin(angle),dy=-std::cos(angle);
     g.setColour(ink);g.drawLine(centre.x+dx*body*.4f,centre.y+dy*body*.4f,centre.x+dx*body*.82f,centre.y+dy*body*.82f,2.5f);
 }
@@ -34,15 +34,15 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     look.setColour(juce::Slider::textBoxTextColourId,ink);
     look.setColour(juce::Slider::textBoxBackgroundColourId,juce::Colours::transparentBlack);
     look.setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);
-    look.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xfff8f6ef));
+    look.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xff203a30));
     look.setColour(juce::ComboBox::textColourId,ink);
     look.setColour(juce::ComboBox::arrowColourId,ink);
-    look.setColour(juce::ComboBox::outlineColourId,juce::Colour(0xffcbd2c3));
+    look.setColour(juce::ComboBox::outlineColourId,sage.withAlpha(.35f));
     look.setColour(juce::PopupMenu::backgroundColourId,paper);
     look.setColour(juce::PopupMenu::textColourId,ink);
-    look.setColour(juce::PopupMenu::highlightedBackgroundColourId,sage);
+    look.setColour(juce::PopupMenu::highlightedBackgroundColourId,juce::Colour(0xff426156));
     look.setColour(juce::PopupMenu::highlightedTextColourId,ink);
-    look.setColour(juce::TextButton::buttonColourId,juce::Colour(0xffe0e6d7));
+    look.setColour(juce::TextButton::buttonColourId,juce::Colour(0xff284638));
     look.setColour(juce::TextButton::textColourOffId,ink);
     look.setColour(juce::ToggleButton::textColourId,muted);
     look.setColour(juce::ToggleButton::tickColourId,ink);
@@ -111,7 +111,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     effective.setFont(juce::Font(juce::FontOptions(11.5f)));
     for(auto* label:{&categoryLabel,&destroyLabel,&filterLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
     keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xfff8f6ef));
-    keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,ink);
+    keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,paper);
     keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
     setSize(1120,780); startTimerHz(30); timerCallback();
 }
@@ -121,7 +121,7 @@ void GlitchEditor::resized()
     title.setBounds(28,18,290,40);
     load.setBounds(800,28,134,30);audition.setBounds(944,28,148,30);
     categoryLabel.setBounds(368,16,280,16);category.setBounds(368,36,330,32);
-    photoBounds={196,128,728,486};
+    photoBounds=getLocalBounds();
     const int knobWidth=140,rowHeight=110;
     const std::array<int,3> left{0,1,2};
     const std::array<int,4> right{3,4,5,6};
@@ -144,23 +144,10 @@ void GlitchEditor::resized()
 }
 void GlitchEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(paper);
-    g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
-    g.drawText("S I L V E R P L A T T E R   A U D I O",32,64,290,18,juce::Justification::left);
-    g.setColour(juce::Colour(0xffcbd2c3));g.drawHorizontalLine(90,28,1092);
-    g.setColour(ink);g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
-    g.drawText("01  /  SOUND",32,102,140,18,juce::Justification::left);
-    g.drawText("02  /  ALTER",956,102,140,18,juce::Justification::left);
-    g.setColour(energy>.03f ? juce::Colour(0xff317c6f) : muted);
-    g.drawText(energy>.03f ? "SIGNAL ACTIVE" : "AT REST",212,102,300,18,juce::Justification::left);
-    g.setColour(energy>.03f ? electric.darker(.3f) : sage);
-    g.fillEllipse(196,107,6,6);
-    g.setColour(juce::Colour(0xffd5dbce));g.fillRect(786,107,138,3);g.fillRect(786,113,138,3);
-    g.setColour(ink);g.fillRect(786.0f,107.0f,138*std::min(1.f,meterLeft),3.0f);g.fillRect(786.0f,113.0f,138*std::min(1.f,meterRight),3.0f);
     {
         juce::Graphics::ScopedSaveState saved(g);
-        juce::Path clip;clip.addRoundedRectangle(photoBounds.toFloat(),6);g.reduceClipRegion(clip);
-        const auto bounds=photoBounds.toFloat();
+        juce::Path clip;clip.addRectangle(photoBounds.toFloat());g.reduceClipRegion(clip);
+        const auto bounds=juce::RectanglePlacement(juce::RectanglePlacement::fillDestination).appliedTo(calmImage.getBounds().toFloat(),photoBounds.toFloat());
         g.drawImage(calmImage,bounds,juce::RectanglePlacement::stretchToFit);
         if(energy>.002f)
         {
@@ -203,6 +190,30 @@ void GlitchEditor::paint(juce::Graphics& g)
             }
         }
     }
+
+    // Stable contrast over both the warm photograph and the brightest blast.
+    g.setColour(paper.withAlpha(.82f));g.fillRect(0,0,getWidth(),90);
+    g.setColour(paper.withAlpha(.76f));
+    g.fillRoundedRectangle(18,100,160,520,16);
+    g.fillRoundedRectangle(942,100,160,520,16);
+    g.setColour(sage.withAlpha(.3f));
+    g.drawRoundedRectangle(18,100,160,520,16,1);
+    g.drawRoundedRectangle(942,100,160,520,16,1);
+    g.setColour(paper.withAlpha(.86f));g.fillRect(0,620,getWidth(),160);
+    g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
+    g.drawText("S I L V E R P L A T T E R   A U D I O",32,64,290,18,juce::Justification::left);
+    g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(90,0,getWidth());
+    g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
+    g.drawText("01  /  SOUND",32,108,140,18,juce::Justification::left);
+    g.drawText("02  /  ALTER",956,108,140,18,juce::Justification::left);
+    g.setColour(paper.withAlpha(.8f));g.fillRoundedRectangle(192,102,136,26,13);
+    g.setColour(energy>.03f ? electric : muted);
+    g.drawText(energy>.03f ? "SIGNAL ACTIVE" : "AT REST",214,105,108,18,juce::Justification::left);
+    g.fillEllipse(202,111,5,5);
+    g.setColour(sage.withAlpha(.25f));g.fillRect(32,631,132,3);g.fillRect(32,639,132,3);
+    g.setColour(electric);g.fillRect(32.f,631.f,132*std::min(1.f,meterLeft),3.f);
+    g.fillRect(32.f,639.f,132*std::min(1.f,meterRight),3.f);
+
 }
 void GlitchEditor::timerCallback()
 {

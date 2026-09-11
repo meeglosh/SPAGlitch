@@ -16,8 +16,10 @@ preload local content for dependable offline jobs. Cloud reads can exceed this
 window and cannot be forcibly interrupted safely while an OS read is pending.
 
 This is a functional development port, **not a verified sonic replica**.
-The redesigned UI places controls in two side columns around an overhead spa
-photograph. Output audio activates five shuffled shocked expressions against an
+The redesigned UI fills the window with an overhead spa photograph and places
+controls on translucent evergreen side panels, with ivory labels and cyan-ringed
+knobs. The image preserves its aspect ratio and the face stays unobstructed.
+Output audio activates five shuffled shocked expressions against an
 electrical blast background, with optional silhouette twitching. Artwork and
 generation prompts are documented in `Assets/README.md`. Exact sonic parity work
 is paused at the user's request while the interface evolves.
