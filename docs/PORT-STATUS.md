@@ -193,3 +193,10 @@ host now selects Kontakt 6/7/8 explicitly and defaults to 6, replacing its
 hardcoded Kontakt 8 path. Captures record the selected plugin path. Activation
 and cross-version dry equivalence still require verification before resuming
 effect calibration.
+
+The first Kontakt 6 dry capture completed all 133 takes with no wholly silent
+files. Of these, 130 are PCM-identical to the accepted Kontakt 8 dry reference,
+including all nine baseline gate/velocity cases. Velocities 48, 54 and 103 have
+large waveform differences and must be repeated before accepting the full sweep.
+See `kontakt6-dry-reference-results.json`. The Mac locked after capture, blocking
+further UI control; isolated effect measurement has not yet resumed.

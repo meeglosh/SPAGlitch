@@ -1,0 +1,45 @@
+{
+  "reference": "Kontakt 8.9.0 previously valid dry capture",
+  "candidate": "Kontakt 6.8.0 full licensed dry capture",
+  "sample_rate": 48000,
+  "note": 12,
+  "category": "Glitch Digital",
+  "effects": "Destroy off; filter bypass",
+  "takes": 133,
+  "pcm_identical_takes": 130,
+  "different_takes": [
+    "n12-v103-g144000.wav",
+    "n12-v48-g144000.wav",
+    "n12-v54-g144000.wav"
+  ],
+  "scope": "All 127 velocities at 3-second gate, plus 50/500-ms gates for velocities 32/64/127. No effect parity claim.",
+  "differences": {
+    "n12-v103-g144000.wav": {
+      "sample_rate": 48000,
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.128759503364563,
+      "aligned_peak_error": 0.128759503364563,
+      "aligned_relative_rms_error": 0.6849048487534364,
+      "candidate_gain_relative_to_reference": 0.5309053481540325,
+      "gain_corrected_relative_rms_error": 0.49904394541510877
+    },
+    "n12-v48-g144000.wav": {
+      "sample_rate": 48000,
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.03082144260406494,
+      "aligned_peak_error": 0.03082144260406494,
+      "aligned_relative_rms_error": 0.6849044113045104,
+      "candidate_gain_relative_to_reference": 0.530905947375622,
+      "gain_corrected_relative_rms_error": 0.49904390830548695
+    },
+    "n12-v54-g144000.wav": {
+      "sample_rate": 48000,
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 0.03739941120147705,
+      "aligned_peak_error": 0.03739941120147705,
+      "aligned_relative_rms_error": 0.6849044762392477,
+      "candidate_gain_relative_to_reference": 0.5309058584274418,
+      "gain_corrected_relative_rms_error": 0.49904391381406804
+    }
+  }
+}
