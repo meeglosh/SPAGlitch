@@ -43,9 +43,31 @@ def lofi_clock(block):
                 events=events, cases=[dict(start=s, gate=g) for s, g in zip(starts, gates)])
 
 
+def filter_rate(rate):
+    events, cases = [], []
+    def add(mode, cutoff, resonance):
+        start = len(cases)*rate*3
+        events.extend([cc(start, 120, 0), cc(start, 22, mode), cc(start, 21, cutoff),
+                       cc(start, 20, resonance), cc(start, 23, 50),
+                       dict(frame=start+rate//4, type='on', key=12, value=127),
+                       dict(frame=start+rate*2, type='off', key=12, value=0)])
+        cases.append(dict(start=start+rate//4, cutoff=cutoff*10000,
+                          resonance=resonance, type={0:'dry', 2:'lp', 3:'hp'}[mode]))
+    add(0, 50, 0)
+    add(2, 50, 0)
+    add(3, 50, 0)
+    for mode in [2, 3]:
+        for cutoff in [35, 65, 85, 95]:
+            for resonance in [50, 100]:
+                add(mode, cutoff, resonance)
+    add(0, 50, 0)  # Reject incomplete loading by comparing both dry takes.
+    return dict(rate=rate, block=256, frames=len(cases)*rate*3,
+                float=True, events=events, cases=cases)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('kind', choices=['filter-holdout', 'lofi-clock'])
+    parser.add_argument('kind', choices=['filter-holdout', 'filter-rates', 'lofi-clock'])
     parser.add_argument('directory', type=Path)
     parser.add_argument('--probe', type=Path)
     parser.add_argument('--state', type=Path)
@@ -53,8 +75,12 @@ def main():
     if bool(args.probe) != bool(args.state):
         parser.error('--probe and --state must be supplied together to capture audio')
     args.directory.mkdir(parents=True, exist_ok=False)
-    protocols = {'filter-holdout': filter_holdout()} if args.kind == 'filter-holdout' else {
-        f'lofi-clock-b{block}': lofi_clock(block) for block in [32, 64, 256, 512]}
+    if args.kind == 'filter-holdout':
+        protocols = {'filter-holdout': filter_holdout()}
+    elif args.kind == 'filter-rates':
+        protocols = {f'filter-rate-{rate}': filter_rate(rate) for rate in [44100, 96000]}
+    else:
+        protocols = {f'lofi-clock-b{block}': lofi_clock(block) for block in [32, 64, 256, 512]}
     for name, protocol in protocols.items():
         path = args.directory / (name+'.json')
         path.write_text(json.dumps(protocol, indent=2)+'\n')

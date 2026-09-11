@@ -17,6 +17,14 @@ These comparisons predict phase from the timeline; no per-note phase is fitted.
 `lofi-clock-validation.json` records the measurements. This excludes downstream
 Tube/filter tails and does not establish full Destroy-chain timing parity.
 
+A further 36 isolated-filter comparisons at 44.1/96 kHz (Digital 01, velocity
+127, four cutoff settings and resonance 50/100, plus initialization cases)
+have worst relative RMS residual 1.34780%. See `filter-rate-validation.json`.
+These use a dry reference as input, so they do not validate native sample-rate
+conversion. Repeated dry guards agree within 0.0151% at 44.1 kHz and are
+bit-identical at 96 kHz. An earlier incomplete 44.1 kHz dry capture was rejected;
+a fixed post-load wait alone is not proof that the reference is ready.
+
 ## Filter identification
 
 A low-level 101-point resonance sweep at cutoff 500000 established the linear
@@ -61,8 +69,9 @@ state and parameter memory. All processing uses fixed storage on the audio threa
   damping was approximately 1.49631 and 1.30042 respectively, versus 1.36524 for
   ordinary initialization. The cause is unestablished. Production does not
   hard-code these isolated observations or pretend to reproduce this behavior.
-- The cutoff ceiling and adaptive time constants at other sample rates are
-  extrapolated. Five-rate numerical stability tests are not sound-parity tests.
+- The full cutoff ceiling and adaptive parameter ranges at other sample rates
+  remain extrapolated beyond the 36 cases above. Five-rate numerical stability
+  tests are not sound-parity tests.
 - Rapid parameter sweeps, other samples/categories, stacked voices and combined
   filter/Destroy processing still require held-out reference comparisons.
 
@@ -87,8 +96,9 @@ Build with `SPAGLITCH_REFERENCE_HOST=ON`. On this Mac, `KontaktProbe` uses the
 licensed Kontakt 6 VST3 at `/Library/Audio/Plug-Ins/VST3/Kontakt.vst3`.
 It reloads a state, waits for asynchronous sample loading, and renders a MIDI
 protocol without requiring the editor or an unlocked screen. Verify a dry
-capture after changing the state; the current saved probe state produced a
-bit-identical dry check against the accepted reference.
+capture after changing the state, and compare dry takes before and after a
+measurement run. The current 48 kHz saved probe state produced a bit-identical
+dry check against the accepted reference.
 
 Install `tools/MidiEffectProbe.ksp` into a spare script slot of the temporary
 reference copy, leaving the original script intact, and save its state through
@@ -108,6 +118,10 @@ python3 scripts/effect_probe_protocols.py lofi-clock local/parity/new-clock \
   --probe /private/tmp/spaglitch-native-build/KontaktProbe --state STATE
 python3 scripts/validate_lofi_clock.py local/parity/new-clock \
   'local/library/Glitch Digital 01.wav' local/parity/new-clock/results.json
+python3 scripts/effect_probe_protocols.py filter-rates local/parity/new-rates \
+  --probe /private/tmp/spaglitch-native-build/KontaktProbe --state STATE
+python3 scripts/validate_filter_rates.py local/parity/new-rates \
+  /private/tmp/spaglitch-native-build/SPAGlitchRender local/parity/new-rates-native
 ctest --test-dir /private/tmp/spaglitch-native-build --output-on-failure
 ```
 
@@ -115,3 +129,9 @@ The validators require NumPy and SciPy. Output paths must be new. Filter
 validation invokes the compiled production class via `SPAGlitchRender`; its
 reference inputs are generated locally from the user's original PCM. Numeric
 measurements and derived source code are published with the user's authorization.
+
+The nine-take full Destroy comparison was rerun with MIDI CC120 matching the
+reference host, rather than native UI panic. The first short take now has
+0.01185% relative RMS error, but the other eight still fail waveform comparison
+because of clock phase. `combined-effects-reference-results.json` preserves
+that failure without delay, gain or per-note phase correction.

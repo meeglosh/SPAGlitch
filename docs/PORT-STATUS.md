@@ -284,8 +284,9 @@ filter stability. macOS AU/VST3/standalone builds pass.
 
 These are scoped improvements, not full parity. First-active-note filter
 initialization, remaining nonlinear filter residuals, and the exact combined
-chain tail shutdown/clock phase remain unresolved. Other-rate sound comparisons
-and rapid control sweeps remain necessary. Details, reproducer commands and
+chain tail shutdown/clock phase remain unresolved. Another 36 isolated-filter comparisons at 44.1/96 kHz passed the current
+regression limit (worst residual 1.34780%). Wider rate/parameter coverage, native
+sample-rate conversion and rapid control sweeps remain necessary. Details, reproducer commands and
 numeric results are in `FILTER-CALIBRATION.md`.
 
 The reference probe state has the original script plus a temporary MIDI helper
@@ -293,5 +294,5 @@ in a spare slot. It can be rendered unattended with licensed Kontakt 6. The
 original NKI on disk is unchanged. The current live reference is a measurement
 configuration; reload the reference copy before ordinary listening.
 
-Windows build/tests passed for Tube commit ee0e606 (run 34644289819); this repair
-requires its own Windows result before claiming platform validation.
+Windows x64 VST3/standalone build and all four test suites passed for DSP repair
+commit 02dc371, run 34650462927. Windows DAW/audio-device validation remains open.

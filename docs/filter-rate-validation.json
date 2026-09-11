@@ -1,0 +1,343 @@
+{
+  "scope": "isolated filters; Digital 01, velocity 127; supplied dry reference removes sampler interpolation from this comparison",
+  "guards": [
+    {
+      "rate": 44100,
+      "dry_repeat_relative_rms": 0.00015063023352972498,
+      "reference_sha256": "718518a1b4e95e35e1beb39439409c8facd61e939f7aabb64dd4b4e03f182645"
+    },
+    {
+      "rate": 96000,
+      "dry_repeat_relative_rms": 0.0,
+      "reference_sha256": "6702c7722cf1ecb65463c2dddf6df2726cb5c1e553236180304ff99cb626974a"
+    }
+  ],
+  "measurements": [
+    {
+      "rate": 44100,
+      "start": 143325,
+      "cutoff": 500000,
+      "resonance": 0,
+      "type": "lp",
+      "relative_rms": 0.001047107092900751,
+      "peak_error": 0.00021913647651672363
+    },
+    {
+      "rate": 44100,
+      "start": 275625,
+      "cutoff": 500000,
+      "resonance": 0,
+      "type": "hp",
+      "relative_rms": 0.0005494963425884801,
+      "peak_error": 0.0003902316093444824
+    },
+    {
+      "rate": 44100,
+      "start": 407925,
+      "cutoff": 350000,
+      "resonance": 50,
+      "type": "lp",
+      "relative_rms": 0.0022802335677666167,
+      "peak_error": 0.00032464414834976196
+    },
+    {
+      "rate": 44100,
+      "start": 540225,
+      "cutoff": 350000,
+      "resonance": 100,
+      "type": "lp",
+      "relative_rms": 0.006267371360723794,
+      "peak_error": 0.0012376382946968079
+    },
+    {
+      "rate": 44100,
+      "start": 672525,
+      "cutoff": 650000,
+      "resonance": 50,
+      "type": "lp",
+      "relative_rms": 0.00021925856284716366,
+      "peak_error": 7.049739360809326e-05
+    },
+    {
+      "rate": 44100,
+      "start": 804825,
+      "cutoff": 650000,
+      "resonance": 100,
+      "type": "lp",
+      "relative_rms": 0.0012388319951549263,
+      "peak_error": 0.0009638965129852295
+    },
+    {
+      "rate": 44100,
+      "start": 937125,
+      "cutoff": 850000,
+      "resonance": 50,
+      "type": "lp",
+      "relative_rms": 0.0003050167076396594,
+      "peak_error": 0.00021310150623321533
+    },
+    {
+      "rate": 44100,
+      "start": 1069425,
+      "cutoff": 850000,
+      "resonance": 100,
+      "type": "lp",
+      "relative_rms": 0.004532479558378806,
+      "peak_error": 0.004909217357635498
+    },
+    {
+      "rate": 44100,
+      "start": 1201725,
+      "cutoff": 950000,
+      "resonance": 50,
+      "type": "lp",
+      "relative_rms": 0.00016786749201044742,
+      "peak_error": 0.00013697147369384766
+    },
+    {
+      "rate": 44100,
+      "start": 1334025,
+      "cutoff": 950000,
+      "resonance": 100,
+      "type": "lp",
+      "relative_rms": 0.0002986133671057214,
+      "peak_error": 0.00021329522132873535
+    },
+    {
+      "rate": 44100,
+      "start": 1466325,
+      "cutoff": 350000,
+      "resonance": 50,
+      "type": "hp",
+      "relative_rms": 0.0010892813427882345,
+      "peak_error": 0.00025022029876708984
+    },
+    {
+      "rate": 44100,
+      "start": 1598625,
+      "cutoff": 350000,
+      "resonance": 100,
+      "type": "hp",
+      "relative_rms": 0.005829029772742861,
+      "peak_error": 0.0014527738094329834
+    },
+    {
+      "rate": 44100,
+      "start": 1730925,
+      "cutoff": 650000,
+      "resonance": 50,
+      "type": "hp",
+      "relative_rms": 0.0005797703196034852,
+      "peak_error": 0.0003641340881586075
+    },
+    {
+      "rate": 44100,
+      "start": 1863225,
+      "cutoff": 650000,
+      "resonance": 100,
+      "type": "hp",
+      "relative_rms": 0.0013159984033170756,
+      "peak_error": 0.000884130597114563
+    },
+    {
+      "rate": 44100,
+      "start": 1995525,
+      "cutoff": 850000,
+      "resonance": 50,
+      "type": "hp",
+      "relative_rms": 0.00012948590834614335,
+      "peak_error": 7.76052474975586e-05
+    },
+    {
+      "rate": 44100,
+      "start": 2127825,
+      "cutoff": 850000,
+      "resonance": 100,
+      "type": "hp",
+      "relative_rms": 0.004911226492832511,
+      "peak_error": 0.005169391632080078
+    },
+    {
+      "rate": 44100,
+      "start": 2260125,
+      "cutoff": 950000,
+      "resonance": 50,
+      "type": "hp",
+      "relative_rms": 0.0010538710856086307,
+      "peak_error": 0.00015167519450187683
+    },
+    {
+      "rate": 44100,
+      "start": 2392425,
+      "cutoff": 950000,
+      "resonance": 100,
+      "type": "hp",
+      "relative_rms": 0.0010894393425544564,
+      "peak_error": 0.0003753453493118286
+    },
+    {
+      "rate": 96000,
+      "start": 312000,
+      "cutoff": 500000,
+      "resonance": 0,
+      "type": "lp",
+      "relative_rms": 0.002274821077291369,
+      "peak_error": 0.00047644972801208496
+    },
+    {
+      "rate": 96000,
+      "start": 600000,
+      "cutoff": 500000,
+      "resonance": 0,
+      "type": "hp",
+      "relative_rms": 0.0002121012570765725,
+      "peak_error": 0.0001442432403564453
+    },
+    {
+      "rate": 96000,
+      "start": 888000,
+      "cutoff": 350000,
+      "resonance": 50,
+      "type": "lp",
+      "relative_rms": 0.004939906325280741,
+      "peak_error": 0.0007027387619018555
+    },
+    {
+      "rate": 96000,
+      "start": 1176000,
+      "cutoff": 350000,
+      "resonance": 100,
+      "type": "lp",
+      "relative_rms": 0.01347793820232253,
+      "peak_error": 0.0026570335030555725
+    },
+    {
+      "rate": 96000,
+      "start": 1464000,
+      "cutoff": 650000,
+      "resonance": 50,
+      "type": "lp",
+      "relative_rms": 0.0004819194842776798,
+      "peak_error": 0.00015679001808166504
+    },
+    {
+      "rate": 96000,
+      "start": 1752000,
+      "cutoff": 650000,
+      "resonance": 100,
+      "type": "lp",
+      "relative_rms": 0.002636503987535719,
+      "peak_error": 0.002315998077392578
+    },
+    {
+      "rate": 96000,
+      "start": 2040000,
+      "cutoff": 850000,
+      "resonance": 50,
+      "type": "lp",
+      "relative_rms": 0.00013061698141358775,
+      "peak_error": 0.00011599063873291016
+    },
+    {
+      "rate": 96000,
+      "start": 2328000,
+      "cutoff": 850000,
+      "resonance": 100,
+      "type": "lp",
+      "relative_rms": 0.0044278187956784685,
+      "peak_error": 0.005262881517410278
+    },
+    {
+      "rate": 96000,
+      "start": 2616000,
+      "cutoff": 950000,
+      "resonance": 50,
+      "type": "lp",
+      "relative_rms": 5.987476444695355e-05,
+      "peak_error": 5.835294723510742e-05
+    },
+    {
+      "rate": 96000,
+      "start": 2904000,
+      "cutoff": 950000,
+      "resonance": 100,
+      "type": "lp",
+      "relative_rms": 0.004019841216590111,
+      "peak_error": 0.007842808961868286
+    },
+    {
+      "rate": 96000,
+      "start": 3192000,
+      "cutoff": 350000,
+      "resonance": 50,
+      "type": "hp",
+      "relative_rms": 0.0021645271224324234,
+      "peak_error": 0.0004841126501560211
+    },
+    {
+      "rate": 96000,
+      "start": 3480000,
+      "cutoff": 350000,
+      "resonance": 100,
+      "type": "hp",
+      "relative_rms": 0.01236040642987237,
+      "peak_error": 0.0031123086810112
+    },
+    {
+      "rate": 96000,
+      "start": 3768000,
+      "cutoff": 650000,
+      "resonance": 50,
+      "type": "hp",
+      "relative_rms": 0.0002538495541136442,
+      "peak_error": 0.00011746585369110107
+    },
+    {
+      "rate": 96000,
+      "start": 4056000,
+      "cutoff": 650000,
+      "resonance": 100,
+      "type": "hp",
+      "relative_rms": 0.002816171737285181,
+      "peak_error": 0.002073824405670166
+    },
+    {
+      "rate": 96000,
+      "start": 4344000,
+      "cutoff": 850000,
+      "resonance": 50,
+      "type": "hp",
+      "relative_rms": 0.00023901019822384942,
+      "peak_error": 0.0001329854130744934
+    },
+    {
+      "rate": 96000,
+      "start": 4632000,
+      "cutoff": 850000,
+      "resonance": 100,
+      "type": "hp",
+      "relative_rms": 0.0047036994081986,
+      "peak_error": 0.0048812925815582275
+    },
+    {
+      "rate": 96000,
+      "start": 4920000,
+      "cutoff": 950000,
+      "resonance": 50,
+      "type": "hp",
+      "relative_rms": 0.0001614743708911637,
+      "peak_error": 6.636232137680054e-05
+    },
+    {
+      "rate": 96000,
+      "start": 5208000,
+      "cutoff": 950000,
+      "resonance": 100,
+      "type": "hp",
+      "relative_rms": 0.0051677273397548185,
+      "peak_error": 0.006645023822784424
+    }
+  ],
+  "regression_limit": 0.02,
+  "worst_relative_rms": 0.01347793820232253
+}
