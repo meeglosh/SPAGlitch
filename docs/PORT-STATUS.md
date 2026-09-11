@@ -186,3 +186,10 @@ full-Kontakt instance here or reference renders from a licensed machine. No
 physical effect DSP was changed based on the interrupted capture. The completed
 dry/velocity evidence and native calibration remain valid. The capture host now
 reports silent-take counts even when the first full-velocity take was nonzero.
+
+Native Access inspection subsequently confirmed the account lists full Kontakt
+6.8.0, but Kontakt 8 Player. Kontakt 6 was installed through Native Access. The
+host now selects Kontakt 6/7/8 explicitly and defaults to 6, replacing its
+hardcoded Kontakt 8 path. Captures record the selected plugin path. Activation
+and cross-version dry equivalence still require verification before resuming
+effect calibration.

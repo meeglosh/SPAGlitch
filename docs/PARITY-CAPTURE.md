@@ -7,7 +7,9 @@ sonic parity from native unit tests alone.
 ## Build and capture
 
 Configure with `-DSPAGLITCH_REFERENCE_HOST=ON` on macOS to build
-`Glitch Reference Host.app`. It hosts the installed Kontakt 8 VST3. Click
+`Glitch Reference Host.app`. Select a licensed installed Kontakt VST3 version
+(6, 7, or 8; defaults to 6) before loading. Kontakt 6 uses `Kontakt.vst3`.
+The selector does not verify activation; confirm full mode in Kontakt. Click
 **Load Kontakt**, then use Kontakt's editor to load the reference Glitch NKI.
 Do not overwrite the source instrument. Wait for all samples to load, choose
 the Digital category, and record the actual insert bypass states and knob values.

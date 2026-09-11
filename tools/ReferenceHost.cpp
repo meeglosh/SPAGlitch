@@ -7,7 +7,11 @@ class Panel final : public juce::Component
 public:
     Panel()
     {
-        for(auto* c:std::initializer_list<juce::Component*>{&load,&save,&render,&name,&status,&reveal,&instructions,&sampleRate,&matrix}) addAndMakeVisible(c);
+        for(auto* c:std::initializer_list<juce::Component*>{&load,&save,&render,&name,&status,&reveal,&instructions,&sampleRate,&matrix,&kontaktVersion}) addAndMakeVisible(c);
+        kontaktVersion.addItem("Kontakt 6 (full license)",6);
+        kontaktVersion.addItem("Kontakt 7",7);kontaktVersion.addItem("Kontakt 8",8);
+        kontaktVersion.setSelectedId(6);
+        kontaktVersion.setTooltip("Select the Kontakt version you have licensed. Player cannot run Glitch indefinitely.");
         sampleRate.addItem("48 kHz",48000);sampleRate.addItem("44.1 kHz",44100);sampleRate.addItem("96 kHz",96000);sampleRate.setSelectedId(48000);
         sampleRate.setTooltip("Choose before loading Kontakt. Restart this host to change rate.");
         matrix.addItem("All velocities",1);matrix.addItem("Three velocities",2);matrix.setSelectedId(1);
@@ -32,6 +36,7 @@ public:
         reveal.setBounds(630,10,160,28);
         instructions.setBounds(10,74,getWidth()-20,44);
         sampleRate.setBounds(10,120,140,26);matrix.setBounds(160,120,190,26);
+        kontaktVersion.setBounds(360,120,230,26);
         if(editor) editor->setBounds(0,156,editor->getWidth(),editor->getHeight());
     }
 private:
@@ -42,15 +47,18 @@ private:
     juce::TextButton reveal{"Reveal Glitch.nki"};
     juce::TextEditor name;
     juce::Label status,instructions;
-    juce::ComboBox sampleRate,matrix;
+    juce::ComboBox sampleRate,matrix,kontaktVersion;
+    juce::String loadedPluginPath;
     int rate=48000;
     juce::File root=juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("ChatGPT/SPAGlitch/local/parity");
     void loadPlugin()
     {
         if(plugin) { status.setText("Kontakt is already loaded. Drag Glitch.nki into its editor below.",juce::dontSendNotification); return; }
         juce::OwnedArray<juce::PluginDescription> types;
-        format.findAllTypesForFile(types,"/Library/Audio/Plug-Ins/VST3/Kontakt 8.vst3");
-        if(types.isEmpty()) { status.setText("Kontakt VST3 not found",juce::dontSendNotification); return; }
+        const auto version=kontaktVersion.getSelectedId();
+        loadedPluginPath="/Library/Audio/Plug-Ins/VST3/Kontakt"+juce::String(version==6 ? "" : " "+juce::String(version))+".vst3";
+        format.findAllTypesForFile(types,loadedPluginPath);
+        if(types.isEmpty()) { status.setText("Selected Kontakt VST3 not found: "+loadedPluginPath,juce::dontSendNotification); return; }
         juce::String error;
         rate=sampleRate.getSelectedId();
         plugin=format.createInstanceFromDescription(*types[0],rate,256,error);
@@ -66,6 +74,7 @@ private:
         }
         addAndMakeVisible(*editor); setSize(juce::jmax(800,editor->getWidth()),editor->getHeight()+156); resized();
         sampleRate.setEnabled(false);
+        kontaktVersion.setEnabled(false);
         load.setButtonText("Kontakt loaded");load.setEnabled(false);
         save.setEnabled(true);render.setEnabled(true);
         status.setText("Kontakt is ready. Now load Glitch.nki inside Kontakt, then wait for its samples.",juce::dontSendNotification);
@@ -126,7 +135,7 @@ private:
             ++totalTakes;if(output.getMagnitude(0,frames)==0)++silentTakes;
         }
         dir.getChildFile("capture.csv").replaceWithText(report);
-        dir.getChildFile("render-mode.txt").replaceWithText("VST3 offline processing; fixed sample rate "+juce::String(rate)+" Hz; block size 256\n");
+        dir.getChildFile("render-mode.txt").replaceWithText("VST3 offline processing; fixed sample rate "+juce::String(rate)+" Hz; block size 256\nPlugin: "+loadedPluginPath+"\n");
         dir.getChildFile("capture-summary.txt").replaceWithText(juce::String(totalTakes)+" takes; "+juce::String(silentTakes)+" silent.\nSilence may be legitimate at low velocity, or caused by missing content/licensing. Verify before calibration.\n");
         status.setText(silent ? "Capture contains silence. Check the NKI, samples, MIDI channel 1 and Kontakt demo status."
                               : silentTakes>0 ? "Captured "+juce::String(totalTakes)+" takes; "+juce::String(silentTakes)+" silent. Verify content/license before using them."
