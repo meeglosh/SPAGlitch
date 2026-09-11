@@ -4,7 +4,7 @@
 
 The AU, VST3 and standalone now share a 32-voice sample engine with all nine
 categories, mapped sample playback, per-note pitch, Lo-Fi, Tube-style distortion,
-four-pole low/high-pass filters, the recovered randomness arithmetic, output
+adaptive low/high-pass filters, the recovered randomness arithmetic, output
 control, meters, MIDI sustain/pitch bend, and an all-notes-off control.
 
 A background worker loads the full library, reports progress/errors and restores
@@ -87,10 +87,11 @@ writer. Versions 1/2 remain readable.
 
 ## Sound and compatibility gaps
 
-- The physical distortion curve, output compensation, and AR resonance response
-  are provisional DSP. The native four-pole topology and fixed 4410 Hz resampling
-  reflect inspected settings, but exact Lo-Fi clock/rate and response still need
-  measurement. Fractional bit reduction and Tube-style asymmetry are implemented.
+- Tube uses a measured transfer surface and linear filter. Adaptive filters now
+  use the measured two/four-pole blend and an empirical stereo resonance detector.
+  Isolated Lo-Fi startup/bypass and buffer-dependent clock behavior are measured.
+  Exact full-chain parity is still open; see `TUBE-CALIBRATION.md` and
+  `FILTER-CALIBRATION.md` for coverage and remaining residuals.
 - The first dry reference calibrated full-velocity level and the 48 kHz release
   (479 linear fade intervals). New instances default to Output 0 dB, with a small
   fixed output trim matching the captured dry level. Existing states retain their
@@ -272,3 +273,25 @@ clocking, control sweeps and other sample rates require further measurements.
 The live reference remains at increased group gain for Tube probing. Restore
 or reload the reference copy before ordinary instrument comparisons; the
 original NKI on disk has not been changed.
+
+## Adaptive filter and clock repair (current)
+
+The fixed filter cascade has been replaced. A fresh 34-case held-out comparison
+of the compiled filters has worst relative RMS residual 1.51641%; the isolated
+Lo-Fi clock passes 32 timelines with worst relative RMS 2.166e-7. Four CTest
+suites now pass, including measured complex filter responses and five-rate
+filter stability. macOS AU/VST3/standalone builds pass.
+
+These are scoped improvements, not full parity. First-active-note filter
+initialization, remaining nonlinear filter residuals, and the exact combined
+chain tail shutdown/clock phase remain unresolved. Other-rate sound comparisons
+and rapid control sweeps remain necessary. Details, reproducer commands and
+numeric results are in `FILTER-CALIBRATION.md`.
+
+The reference probe state has the original script plus a temporary MIDI helper
+in a spare slot. It can be rendered unattended with licensed Kontakt 6. The
+original NKI on disk is unchanged. The current live reference is a measurement
+configuration; reload the reference copy before ordinary listening.
+
+Windows build/tests passed for Tube commit ee0e606 (run 34644289819); this repair
+requires its own Windows result before claiming platform validation.

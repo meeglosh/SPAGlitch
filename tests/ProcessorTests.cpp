@@ -1,5 +1,6 @@
 #include "../Source/Plugin.h"
 #include <cmath>
+#include <complex>
 #include <iostream>
 #include <stdexcept>
 
@@ -225,6 +226,41 @@ static void measuredReleaseTest()
     require(engine.activeVoices()==0,"Measured release terminates the voice");
     std::cout<<"PASS: reference-calibrated dry level and 48 kHz release\n";
 }
+static void loFiClockTest()
+{
+    // Phases independently measured from continuous Kontakt timelines, with
+    // note-offs and natural sample ends. No per-note phase fitting in the model.
+    constexpr int starts[]{1024,51025,99333,148001,196003,244017,292099,340103};
+    constexpr int gates[]{2400,24000,30000,4800,2400,24000,30000,4800};
+    constexpr int sizes[]{32,64,256,512};
+    constexpr int phases[][8]{{10,7,5,1,1,2,2,1},{10,8,7,5,8,0,2,2},
+                             {10,0,5,4,6,4,1,6},{10,5,4,0,4,4,3,2}};
+    for(int setting=0;setting<4;++setting)
+    {
+        glitch::LoFiModel model;model.reset();model.setEnabled(true);model.setLevels(1e9);
+        std::array<int,8> first;first.fill(-1);
+        const int block=sizes[setting];
+        for(int start=0;start<400000;start+=block)
+        {
+            bool active=false;
+            for(int j=0;j<8;++j)
+                active|=starts[j]<start+block && starts[j]+std::min(gates[j]+480,25397)>start;
+            model.beginBlock(active);
+            for(int frame=start;frame<std::min(start+block,400000);++frame)
+            {
+                int note=-1;
+                for(int j=0;j<8;++j) if(frame>=starts[j] && frame<starts[j]+std::min(gates[j]+480,25397)) note=j;
+                const double output=model.process(note>=0 ? 0.25 : 0,0);
+                if(note>=0 && first[(size_t)note]<0 && output!=0) first[(size_t)note]=frame-starts[note];
+            }
+        }
+        for(int j=0;j<8;++j) require(first[(size_t)j]==phases[setting][j],"Lo-Fi clock must match measured buffer-dependent note phase");
+        model.setEnabled(false);model.setEnabled(true);model.beginBlock(true);
+        for(int i=0;i<10;++i) require(model.process(.25,0)==0,"Re-enabling Lo-Fi resets its ten-frame countdown");
+        require(model.process(.25,0)==.25,"Lo-Fi captures on frame ten after bypass reset");
+    }
+    std::cout<<"PASS: 32 measured Lo-Fi phases across four buffer sizes and bypass reset\n";
+}
 static void tubeStabilityTest()
 {
     // Exercise long filter tails, stereo isolation, overload and live control
@@ -250,11 +286,59 @@ static void tubeStabilityTest()
     }
     std::cout<<"PASS: Tube stability, tails, stereo isolation and reset at five rates\n";
 }
+static void adaptiveFilterTests()
+{
+    for(double rate:{44100.,48000.,88200.,96000.,192000.})
+        for(bool lowPass:{false,true})
+        {
+            glitch::AdaptiveFilter filter;filter.prepare(rate);
+            for(int cutoff:{0,500000,1000000})
+            {
+                filter.setParameters(cutoff,100);
+                for(int i=0;i<12000;++i)
+                {
+                    auto y=filter.process({i<6000 ? 4*std::sin(i*.35) : 0.,0.},lowPass);
+                    require(std::isfinite(y[0]) && std::abs(y[0])<100,"Adaptive filter overload and parameter changes must remain bounded");
+                    require(y[1]==0,"Linked resonance must not leak audio into a silent channel");
+                }
+            }
+            filter.reset();auto y=filter.process({0,0},lowPass);
+            require(y[0]==0 && y[1]==0,"Adaptive filter reset must clear both stages");
+        }
+    std::cout<<"PASS: adaptive filter overload, stereo isolation, reset and five rates\n";
+}
 int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
     try
     {
+        if(argc==3 && juce::String(argv[1])=="--filter-reference")
+        {
+            auto document=juce::JSON::parse(juce::File(argv[2]).loadFileAsString());
+            auto rows=document["measurements"];
+            require(rows.isArray() && rows.size()==5,"Filter transfer measurements must exist");
+            using Complex=std::complex<double>;const Complex imaginary(0,1);
+            for(auto& row:*rows.getArray()) for(bool lowPass:{false,true}) for(double frequency:{100.,500.,5000.})
+            {
+                const int resonance=(int)row["resonance"];
+                const double g=(double)row["g"],k=(double)row["k"],r=resonance/100.;
+                const double omega=2*juce::MathConstants<double>::pi*frequency/48000.;
+                const Complex z=std::exp(-imaginary*omega),q=1.-z,t=g*(1.+z),den=t*t+k*t*q+q*q;
+                const Complex expected=std::pow(10.,-2.4*r/20.)*
+                    ((lowPass ? t*t : q*q)*den+2*r*t*t*q*q)/(den*den);
+                glitch::AdaptiveFilter filter;filter.setParameters(500000,resonance);filter.prepare(48000);
+                Complex measured=0;
+                for(int i=0;i<96000;++i)
+                {
+                    const double phase=omega*i;
+                    const auto output=filter.process({1e-5*std::sin(phase),0.},lowPass);
+                    if(i>=48000) measured+=output[0]*std::exp(-imaginary*phase);
+                }
+                measured*=2.*imaginary/(48000.*1e-5);
+                require(std::abs(measured-expected)<1e-4*std::max(1.,std::abs(expected)),"Filter complex response must match measured Kontakt transfer");
+            }
+            std::cout<<"PASS: 30 complex filter responses against measured Kontakt coefficients\n";return 0;
+        }
         if(argc==3 && juce::String(argv[1])=="--lofi-reference")
         {
             auto document=juce::JSON::parse(juce::File(argv[2]).loadFileAsString());
@@ -300,7 +384,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();
+        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

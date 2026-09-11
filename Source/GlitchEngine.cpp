@@ -35,6 +35,7 @@ void Engine::prepare(double rate) noexcept
 {
     sampleRate=rate>0 ? rate : 48000;
     tube.prepare(sampleRate);
+    for(auto& filter:filters) filter.prepare(sampleRate);
     outputGain.reset(sampleRate,0.01);
     outputGain.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(controls.gainDb));
     reset(); updateEffects();
@@ -42,8 +43,9 @@ void Engine::prepare(double rate) noexcept
 void Engine::reset() noexcept
 {
     for(auto& v:voices) v={};
-    for(auto& f:filters) f={};
-    heldSample.fill(0); resamplePhase.fill(1); tube.reset();
+    for(auto& f:filters) f.reset();
+    lofi.reset(); tube.reset();
+    effectBlockPeak=0;
     sustain.fill(false); bend.fill(1.0); clock=0;
 }
 void Engine::setControls(const Controls& c) noexcept
@@ -80,14 +82,12 @@ void Engine::selectFilterValues() noexcept
 }
 void Engine::updateEffects() noexcept
 {
-    // Provisional response curves: they implement the controls but are not
-    // calibrated to Kontakt. Keep these separate from verified KSP arithmetic.
     const double bits=std::clamp(settings.bits/1000000.0*16.0,1.0,16.0);
     quantisation=std::pow(2.0,bits-1.0);
+    lofi.setLevels(quantisation);lofi.setEnabled(settings.destroy==0);
     tube.setParameters(settings.drive,settings.outputGainUnits());
-    const double hz=std::min(20.0*std::pow(1000.0,settings.cutoff/1000000.0),sampleRate*0.45);
-    filterG=std::tan(juce::MathConstants<double>::pi*hz/sampleRate);
-    filterK=1.0/(0.70710678118+std::clamp(settings.resonance,0,100)*0.093);
+    for(size_t i=0;i<filters.size();++i)
+        filters[i].setParameters(filterValues[i][0],filterValues[i][1]);
 }
 void Engine::noteOn(int channel,int note,float velocity) noexcept
 {
@@ -159,32 +159,8 @@ float Engine::processEffect(float input,int channel) noexcept
     double x=input;
     if(settings.destroy==0)
     {
-        // The isolated Kontakt 6 capture at 48 kHz holds for 11 frames and
-        // truncates in the source-amplitude domain. Other rates and the clock's
-        // start/bypass phase still need measurement; retain the old rate there.
-        auto& phase=resamplePhase[(size_t)channel];
-        if(phase>=1.0)
-        {
-            heldSample[(size_t)channel]=quantizeLoFi(x,quantisation);
-            if(sampleRate==48000.0) phase=0.0;
-            else phase-=std::floor(phase);
-        }
-        phase+=sampleRate==48000.0 ? 1.0/11.0 : 4410.0/sampleRate;
-        x=heldSample[(size_t)channel];
+        x=lofi.process(x,channel);
         x=tube.process(x,channel);
-    }
-    if(settings.filter!=1)
-    {
-        // Provisional cascade. The reference mixes two/four-pole responses and
-        // adapts resonance to amplitude; this topology does not yet match it.
-        for(auto& s:filters[settings.filter==2 ? 1 : 0][(size_t)channel])
-        {
-            const double a1=1.0/(1.0+filterG*(filterG+filterK));
-            const double v1=a1*(s.a+filterG*(x-s.b));
-            const double v2=s.b+filterG*v1;
-            s.a=2.0*v1-s.a; s.b=2.0*v2-s.b;
-            x=settings.filter==2 ? v2 : x-filterK*v1-v2;
-        }
     }
     return std::isfinite(x) ? (float)x : 0.0f;
 }
@@ -213,7 +189,13 @@ void Engine::render(juce::AudioBuffer<float>& out,int start,int length) noexcept
             if(v.releasing) { v.envelope=std::max(0.0f,v.envelope-releaseStep); if(v.envelope==0) v={}; }
         }
         const float gain=outputGain.getNextValue()*referenceOutputTrim;
-        const float left=processEffect(mixed[0],0)*gain, right=processEffect(mixed[1],1)*gain;
+        std::array<double,2> effected{processEffect(mixed[0],0),processEffect(mixed[1],1)};
+        if(settings.filter!=1)
+            effected=filters[settings.filter==2 ? 1 : 0].process(effected,settings.filter==2);
+        if(settings.destroy==0 || settings.filter!=1)
+            effectBlockPeak=std::max(effectBlockPeak,std::max(std::abs(effected[0]),std::abs(effected[1])));
+        const float left=std::isfinite(effected[0]) ? (float)effected[0]*gain : 0;
+        const float right=std::isfinite(effected[1]) ? (float)effected[1]*gain : 0;
         if(out.getNumChannels()==1) out.addSample(0,i,(left+right)*0.5f);
         else { out.addSample(0,i,left); out.addSample(1,i,right); }
     }

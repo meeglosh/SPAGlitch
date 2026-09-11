@@ -7,6 +7,35 @@ int main(int argc,char** argv)
     juce::ScopedJuceInitialiser_GUI init;
     try
     {
+        if(argc==7 && juce::String(argv[1])=="--filter-only")
+        {
+            juce::AudioFormatManager formats;formats.registerBasicFormats();
+            std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(juce::File(argv[2])));
+            if(!reader || reader->numChannels!=2 || reader->lengthInSamples>10000000)
+                throw std::runtime_error("Expected a short stereo reference WAV");
+            const juce::File outputFile(argv[3]);
+            if(outputFile.exists()) throw std::runtime_error("Output must be new");
+            juce::AudioBuffer<float> audio(2,(int)reader->lengthInSamples);
+            if(!reader->read(&audio,0,audio.getNumSamples(),0,true,true)) throw std::runtime_error("Reference read failed");
+            glitch::AdaptiveFilter filter;
+            filter.setParameters(juce::String(argv[4]).getIntValue(),juce::String(argv[5]).getIntValue());
+            filter.prepare(reader->sampleRate);
+            const bool lowPass=juce::String(argv[6])=="lp";
+            if(!lowPass && juce::String(argv[6])!="hp") throw std::runtime_error("Filter mode must be lp or hp");
+            for(int i=0;i<audio.getNumSamples();++i)
+            {
+                auto output=filter.process({audio.getSample(0,i)/glitch::referenceOutputTrim,
+                                            audio.getSample(1,i)/glitch::referenceOutputTrim},lowPass);
+                for(int ch=0;ch<2;++ch) audio.setSample(ch,i,(float)(output[(size_t)ch]*glitch::referenceOutputTrim));
+            }
+            juce::WavAudioFormat wav;std::unique_ptr<juce::OutputStream> stream=outputFile.createOutputStream();
+            if(!stream) throw std::runtime_error("Cannot open output WAV");
+            auto options=juce::AudioFormatWriterOptions().withSampleRate(reader->sampleRate).withNumChannels(2)
+                .withBitsPerSample(32).withSampleFormat(juce::AudioFormatWriterOptions::SampleFormat::floatingPoint);
+            auto writer=wav.createWriterFor(stream,options);
+            if(!writer || !writer->writeFromAudioSampleBuffer(audio,0,audio.getNumSamples())) throw std::runtime_error("Output write failed");
+            return 0;
+        }
         if(argc>=6 && juce::String(argv[1])=="--tube-only")
         {
             // The input is a dry reference at the instrument's normal output
@@ -47,8 +76,13 @@ int main(int argc,char** argv)
         {
             constexpr int frames=192000,block=256;
             juce::AudioBuffer<float> buffer(2,block),output(2,frames);output.clear();juce::MidiBuffer midi;
-            p.allNotesOff();
-            for(int i=0;i<48000;i+=block) { midi.clear();p.processBlock(buffer,midi); }
+            // Match ReferenceHost's MIDI CC120 drain, rather than the native
+            // UI panic (which additionally resets effect state and clock phase).
+            for(int i=0;i<48000;i+=block)
+            {
+                midi.clear();if(i==0) midi.addEvent(juce::MidiMessage::allSoundOff(1),0);
+                p.processBlock(buffer,midi);
+            }
             for(int i=0;i<frames;i+=block)
             {
                 midi.clear();

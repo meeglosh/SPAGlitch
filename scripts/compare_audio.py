@@ -8,9 +8,18 @@ import numpy as np
 
 
 def read(path):
-    with wave.open(str(path), "rb") as wav:
-        rate, channels, width = wav.getframerate(), wav.getnchannels(), wav.getsampwidth()
-        raw = wav.readframes(wav.getnframes())
+    try:
+        with wave.open(str(path), "rb") as wav:
+            rate, channels, width = wav.getframerate(), wav.getnchannels(), wav.getsampwidth()
+            raw = wav.readframes(wav.getnframes())
+    except wave.Error:
+        # The measurement runner can preserve above-unity output in float WAVs.
+        # SciPy is needed only for this newer reference format.
+        from scipy.io import wavfile
+        rate, samples = wavfile.read(str(path))
+        if samples.dtype.kind != 'f' or not np.isfinite(samples).all():
+            raise ValueError('Expected finite floating-point reference audio')
+        return rate, samples.astype(float).reshape(len(samples), -1)
     if width == 3:
         b = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 3).astype(np.int32)
         x = b[:, 0] | (b[:, 1] << 8) | (b[:, 2] << 16)

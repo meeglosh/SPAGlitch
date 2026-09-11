@@ -58,6 +58,9 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
     { engine.restoreRuntimeState(runtime); engine.setControls(controls()); appliedRuntime=revision; }
     if(panicRequested.exchange(false)) { engine.reset(); keyboard.reset(); }
     keyboard.processNextMidiBuffer(midi,0,b.getNumSamples(),true);
+    bool containsNoteOn=false;
+    for(const auto metadata:midi) if(metadata.numBytes<=3 && metadata.getMessage().isNoteOn()) containsNoteOn=true;
+    engine.beginBlock(containsNoteOn);
     int position=0;
     for(const auto metadata:midi)
     {

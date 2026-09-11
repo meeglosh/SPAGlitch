@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <cmath>
 #include "TubeModel.h"
+#include "LoFiModel.h"
+#include "AdaptiveFilter.h"
 #include <memory>
 
 namespace glitch
@@ -78,6 +80,14 @@ NoteSettings forNote(const Controls&,int note,Random&,bool audition=false) noexc
 class Engine
 {
 public:
+    void beginBlock(bool containsNoteOn) noexcept
+    {
+        // Downstream insert tails keep Kontakt's reducer clock running.
+        // The exact block-dependent Kontakt silence test remains uncalibrated;
+        // this conservative floor avoids stopping at the voice's end alone.
+        lofi.beginBlock(activeVoices()>0 || containsNoteOn || effectBlockPeak>=1e-6);
+        effectBlockPeak=0;
+    }
     using RuntimeState=std::array<int,26>;
     RuntimeState runtimeState() const noexcept;
     void restoreRuntimeState(const RuntimeState&) noexcept;
@@ -103,12 +113,11 @@ private:
         bool held=false, releasing=false;
         uint64_t age=0;
     };
-    struct FilterState { double a=0,b=0; };
     std::array<Voice,32> voices;
     std::array<bool,16> sustain{};
     std::array<double,16> bend{};
-    std::array<std::array<std::array<FilterState,2>,2>,2> filters;
-    std::array<double,2> heldSample{},resamplePhase{};
+    std::array<AdaptiveFilter,2> filters;
+    LoFiModel lofi;
     TubeModel tube;
     const Bank* bank=nullptr;
     Controls controls;
@@ -119,7 +128,8 @@ private:
     int selectedCategory=0, lastRandomTune=0, lastRandomCutoff=0, lastRandomResonance=0;
     bool pitchKnobUsed=false;
     Random random;
-    double sampleRate=48000, filterG=0, filterK=1.41421356237;
+    double sampleRate=48000;
+    double effectBlockPeak=0;
     double quantisation=256;
     juce::SmoothedValue<float> outputGain;
     uint64_t clock=0;
