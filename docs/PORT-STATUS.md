@@ -171,3 +171,18 @@ The companion `SPAGlitchRender` renders the initial nine-file matrix, and
 gain-corrected residual separately. Silence is an error, not a passing match.
 All captures and proprietary plugin states stay in ignored `local/parity`.
 See `PARITY-CAPTURE.md` for the repeatable procedure.
+
+## Effect measurement blocker
+
+The first Destroy-on capture at 48 kHz produced audio in 47 of 133 takes, then
+became silent starting at velocity 82. Kontakt displayed **Kontakt full version
+required** for the non-Player Glitch instrument. No restart or licensing bypass
+was attempted after identifying this condition. The initial full-velocity files
+are retained for exploratory analysis; the rest of this incomplete sweep is not
+accepted as calibration evidence. See `destroy-reference-status.json`.
+
+Further isolated Lo-Fi, distortion and filter measurements require a working
+full-Kontakt instance here or reference renders from a licensed machine. No
+physical effect DSP was changed based on the interrupted capture. The completed
+dry/velocity evidence and native calibration remain valid. The capture host now
+reports silent-take counts even when the first full-velocity take was nonzero.

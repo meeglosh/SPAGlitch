@@ -91,6 +91,7 @@ private:
         dir.getChildFile("kontakt.state").replaceWithData(state.getData(),state.getSize());
         juce::String report="note,velocity,gate_frames,rate,peak\n";
         bool silent=false;
+        int silentTakes=0,totalTakes=0;
         // Identical note, varied velocity and gate: separates amp response from
         // sample content. Every capture includes a long held-note reference.
         for(int velocity=127;velocity>=1;--velocity) for(const int gateMs:{50,500,3000})
@@ -122,11 +123,14 @@ private:
             report+="12,"+juce::String(velocity)+","+juce::String(gate)+","+juce::String(rate)+","+juce::String(output.getMagnitude(0,frames),9)+"\n";
             // Low velocities can legitimately be silent; a full-velocity take cannot.
             silent|=velocity==127 && output.getMagnitude(0,frames)==0;
+            ++totalTakes;if(output.getMagnitude(0,frames)==0)++silentTakes;
         }
         dir.getChildFile("capture.csv").replaceWithText(report);
         dir.getChildFile("render-mode.txt").replaceWithText("VST3 offline processing; fixed sample rate "+juce::String(rate)+" Hz; block size 256\n");
+        dir.getChildFile("capture-summary.txt").replaceWithText(juce::String(totalTakes)+" takes; "+juce::String(silentTakes)+" silent.\nSilence may be legitimate at low velocity, or caused by missing content/licensing. Verify before calibration.\n");
         status.setText(silent ? "Capture contains silence. Check the NKI, samples, MIDI channel 1 and Kontakt demo status."
-                              : "Captured "+dir.getFullPathName(),juce::dontSendNotification);
+                              : silentTakes>0 ? "Captured "+juce::String(totalTakes)+" takes; "+juce::String(silentTakes)+" silent. Verify content/license before using them."
+                                              : "Captured "+dir.getFullPathName(),juce::dontSendNotification);
     }
 };
 class App final : public juce::JUCEApplication
