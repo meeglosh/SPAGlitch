@@ -1,0 +1,110 @@
+#include <juce_audio_utils/juce_audio_utils.h>
+
+// Local measurement utility, not part of the shipped instrument. The user loads
+// a licensed Kontakt instrument in its own editor; no NKI parsing or patching.
+class Panel final : public juce::Component
+{
+public:
+    Panel()
+    {
+        for(auto* c:std::initializer_list<juce::Component*>{&load,&save,&render,&name,&status}) addAndMakeVisible(c);
+        name.setText("dry"); status.setText("Load Kontakt, then load the reference NKI in its editor.",juce::dontSendNotification);
+        load.onClick=[this]{loadPlugin();}; save.onClick=[this]{saveState();}; render.onClick=[this]{capture();};
+        setSize(1100,850);
+    }
+    ~Panel() override { editor.reset(); if(plugin) plugin->releaseResources(); }
+    void resized() override
+    {
+        load.setBounds(10,10,140,28); save.setBounds(160,10,120,28); name.setBounds(290,10,160,28); render.setBounds(460,10,160,28);
+        status.setBounds(10,44,getWidth()-20,28);
+        if(editor) editor->setBounds(0,80,editor->getWidth(),editor->getHeight());
+    }
+private:
+    juce::VST3PluginFormat format;
+    std::unique_ptr<juce::AudioPluginInstance> plugin;
+    std::unique_ptr<juce::AudioProcessorEditor> editor;
+    juce::TextButton load{"Load Kontakt"},save{"Save state"},render{"Capture matrix"};
+    juce::TextEditor name;
+    juce::Label status;
+    juce::File root=juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("ChatGPT/SPAGlitch/local/parity");
+    void loadPlugin()
+    {
+        if(plugin) return;
+        juce::OwnedArray<juce::PluginDescription> types;
+        format.findAllTypesForFile(types,"/Library/Audio/Plug-Ins/VST3/Kontakt 8.vst3");
+        if(types.isEmpty()) { status.setText("Kontakt VST3 not found",juce::dontSendNotification); return; }
+        juce::String error;
+        plugin=format.createInstanceFromDescription(*types[0],48000,256,error);
+        if(!plugin) { status.setText(error,juce::dontSendNotification); return; }
+        plugin->enableAllBuses(); plugin->setRateAndBufferSizeDetails(48000,256); plugin->prepareToPlay(48000,256);
+        editor.reset(plugin->createEditorAndMakeActive());
+        if(editor) { addAndMakeVisible(*editor); setSize(juce::jmax(800,editor->getWidth()),editor->getHeight()+80); resized(); }
+        status.setText("Load the reference NKI. Captures write only under local/parity.",juce::dontSendNotification);
+    }
+    juce::File directory()
+    {
+        auto label=juce::File::createLegalFileName(name.getText().trim());
+        if(label.isEmpty()) label="capture";
+        auto dir=root.getNonexistentChildFile(label,""); dir.createDirectory(); return dir;
+    }
+    void saveState()
+    {
+        if(!plugin) return;
+        const auto dir=directory(); juce::MemoryBlock state; plugin->getStateInformation(state);
+        dir.getChildFile("kontakt.state").replaceWithData(state.getData(),state.getSize());
+        status.setText("Saved "+dir.getFullPathName(),juce::dontSendNotification);
+    }
+    void capture()
+    {
+        if(!plugin) return;
+        const auto dir=directory();
+        juce::MemoryBlock state; plugin->getStateInformation(state);
+        dir.getChildFile("kontakt.state").replaceWithData(state.getData(),state.getSize());
+        juce::String report="note,velocity,gate_frames,rate,peak\n";
+        // Identical note, varied velocity and gate: separates amp response from
+        // sample content. Every capture includes a long held-note reference.
+        for(const int velocity:{127,64,32}) for(const int gate:{2400,24000,144000})
+        {
+            constexpr int rate=48000, frames=192000, block=256;
+            const int channels=juce::jmax(2,plugin->getTotalNumOutputChannels());
+            juce::AudioBuffer<float> buffer(channels,block), output(2,frames); output.clear();
+            juce::MidiBuffer midi;
+            // Drain previous voices without restoring state, which may reload
+            // samples asynchronously and invalidate an immediate render.
+            for(int p=0;p<rate;++p) { if(p%block!=0) continue; buffer.clear(); midi.clear(); if(p==0) midi.addEvent(juce::MidiMessage::allSoundOff(1),0); plugin->processBlock(buffer,midi); }
+            for(int p=0;p<frames;p+=block)
+            {
+                const int n=juce::jmin(block,frames-p); buffer.clear(); midi.clear();
+                if(p==0) midi.addEvent(juce::MidiMessage::noteOn(1,12,(juce::uint8)velocity),0);
+                if(gate>=p && gate<p+n) midi.addEvent(juce::MidiMessage::noteOff(1,12),gate-p);
+                plugin->processBlock(buffer,midi);
+                for(int ch=0;ch<2;++ch) output.copyFrom(ch,p,buffer,ch,0,n);
+            }
+            const auto file=dir.getChildFile("n12-v"+juce::String(velocity)+"-g"+juce::String(gate)+".wav");
+            juce::WavAudioFormat wav; auto stream=file.createOutputStream();
+            if(!stream) { status.setText("Cannot open capture WAV",juce::dontSendNotification); return; }
+            std::unique_ptr<juce::AudioFormatWriter> writer(wav.createWriterFor(stream.release(),rate,2,24,{},0));
+            if(!writer || !writer->writeFromAudioSampleBuffer(output,0,frames)) { status.setText("WAV write failed",juce::dontSendNotification); return; }
+            report+="12,"+juce::String(velocity)+","+juce::String(gate)+",48000,"+juce::String(output.getMagnitude(0,frames),9)+"\n";
+        }
+        dir.getChildFile("capture.csv").replaceWithText(report);
+        status.setText("Captured "+dir.getFullPathName(),juce::dontSendNotification);
+    }
+};
+class App final : public juce::JUCEApplication
+{
+    class Window final : public juce::DocumentWindow
+    {
+    public:
+        Window():DocumentWindow("Glitch Reference Host",juce::Colours::darkgrey,allButtons)
+        { setUsingNativeTitleBar(true); setContentOwned(new Panel(),true); centreWithSize(getWidth(),getHeight()); setVisible(true); }
+        void closeButtonPressed() override { juce::JUCEApplication::getInstance()->systemRequestedQuit(); }
+    };
+    std::unique_ptr<Window> window;
+public:
+    const juce::String getApplicationName() override { return "Glitch Reference Host"; }
+    const juce::String getApplicationVersion() override { return "0.1"; }
+    void initialise(const juce::String&) override { window=std::make_unique<Window>(); }
+    void shutdown() override { window.reset(); }
+};
+START_JUCE_APPLICATION(App)

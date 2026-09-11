@@ -35,6 +35,28 @@ public:
     std::atomic<float> leftPeak{0},rightPeak{0};
     std::atomic<int> playingCategory{0},playingPitch{0},voiceCount{0};
 private:
+    // Each mailbox has one writer. Atomics make a rejected read race-free;
+    // the audio thread tries once and defers a concurrent restore to next block.
+    struct RuntimeMailbox
+    {
+        static_assert(std::atomic<int>::is_always_lock_free && std::atomic<uint64_t>::is_always_lock_free);
+        std::atomic<uint64_t> revision{0};
+        std::array<std::atomic<int>,26> values{};
+        void write(const glitch::Engine::RuntimeState& state) noexcept
+        {
+            revision.fetch_add(1);
+            for(size_t i=0;i<values.size();++i) values[i].store(state[i]);
+            revision.fetch_add(1);
+        }
+        bool read(glitch::Engine::RuntimeState& state,uint64_t& version) const noexcept
+        {
+            version=revision.load(); if(version&1) return false;
+            for(size_t i=0;i<values.size();++i) state[i]=values[i].load();
+            return version==revision.load();
+        }
+    };
+    RuntimeMailbox publishedRuntime,pendingRuntime;
+    std::atomic<uint64_t> appliedRuntime{0};
     ContentLoader content;
     glitch::Engine engine;
     const glitch::Bank* currentBank=nullptr;

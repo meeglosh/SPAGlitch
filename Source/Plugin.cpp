@@ -24,6 +24,7 @@ GlitchProcessor::GlitchProcessor()
 {
     const char* ids[]{"category","pitch","lofi","drive","cutoff","resonance","randomness","destroy","filter","gain"};
     for(size_t i=0;i<values.size();++i) values[i]=parameters.getRawParameterValue(ids[i]);
+    publishedRuntime.write(engine.runtimeState());
 }
 GlitchProcessor::~GlitchProcessor() { engine.setBank(nullptr); }
 glitch::Controls GlitchProcessor::controls() const noexcept
@@ -52,6 +53,9 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
     if(bank!=currentBank) { engine.setBank(bank); currentBank=bank; }
     if(auto seed=restoredSeed.exchange(0)) engine.setSeed(seed);
     engine.setControls(controls());
+    glitch::Engine::RuntimeState runtime; uint64_t revision=0;
+    if(pendingRuntime.read(runtime,revision) && revision!=appliedRuntime.load())
+    { engine.restoreRuntimeState(runtime); engine.setControls(controls()); appliedRuntime=revision; }
     if(panicRequested.exchange(false)) { engine.reset(); keyboard.reset(); }
     keyboard.processNextMidiBuffer(midi,0,b.getNumSamples(),true);
     int position=0;
@@ -65,6 +69,7 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
     engine.render(b,position,b.getNumSamples()-position);
     currentSeed=engine.seed(); playingCategory=engine.effective().category; playingPitch=engine.effective().pitchUnits;
     voiceCount=engine.activeVoices();
+    publishedRuntime.write(engine.runtimeState());
     if(b.getNumSamples()>0)
     {
         leftPeak=b.getMagnitude(0,0,b.getNumSamples());
@@ -75,7 +80,12 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
 void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)
 {
     auto state=parameters.copyState();
-    state.setProperty("stateVersion",2,nullptr);
+    state.setProperty("stateVersion",3,nullptr);
+    glitch::Engine::RuntimeState runtime; uint64_t revision=0;
+    while(!pendingRuntime.read(runtime,revision)) juce::Thread::yield();
+    if(revision==appliedRuntime.load())
+        while(!publishedRuntime.read(runtime,revision)) juce::Thread::yield();
+    for(size_t i=0;i<runtime.size();++i) state.setProperty("runtime"+juce::String((int)i),runtime[i],nullptr);
     const auto location=content.location();
     state.setProperty("contentPath",location.path,nullptr);
     state.setProperty("singleSample",location.single,nullptr);
@@ -92,6 +102,14 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
             parameters.replaceState(state);
             const auto seed=(uint32_t)(juce::int64)state.getProperty("randomSeed",(juce::int64)0x47544348u);
             restoredSeed=seed ? seed : 1;
+            // Legacy states reconstruct their effective settings from controls;
+            // version 3 preserves latent insert values and script transition state.
+            glitch::Engine initial; initial.setControls(controls());
+            auto runtime=initial.runtimeState();
+            if((int)state.getProperty("stateVersion",1)>=3)
+                for(size_t i=0;i<runtime.size();++i)
+                    runtime[i]=(int)state.getProperty("runtime"+juce::String((int)i),runtime[i]);
+            pendingRuntime.write(runtime);
             const bool legacy=state.hasProperty("samplePath") && !state.hasProperty("contentPath");
             content.request(state.getProperty(legacy?"samplePath":"contentPath").toString(),legacy || (bool)state.getProperty("singleSample",false));
         }

@@ -47,20 +47,35 @@ void Engine::reset() noexcept
 }
 void Engine::setControls(const Controls& c) noexcept
 {
-    // Keep randomized effective values until a corresponding user value changes.
+    // KSP callbacks write only the addressed insert. Moving cutoff/resonance
+    // while bypassed changes the randomization target, not either filter.
+    if(c.category!=controls.category) selectedCategory=c.category;
+    if(c.pitch!=controls.pitch) pitchKnobUsed=true;
     if(c.drive!=controls.drive) settings.drive=c.drive;
     if(c.lofi!=controls.lofi) settings.bits=c.lofi*62500+250000;
-    if(c.cutoff!=controls.cutoff) settings.cutoff=c.cutoff;
-    if(c.resonance!=controls.resonance) settings.resonance=c.resonance;
     if(c.destroy!=controls.destroy) settings.destroy=c.destroy;
     if(c.filter!=controls.filter) settings.filter=c.filter;
-    if(c.randomness==0 && controls.randomness!=0)
+    if(c.randomness!=controls.randomness && c.randomness>=80 && c.randomness<100)
     {
-        settings.drive=c.drive; settings.bits=c.lofi*62500+250000;
-        settings.cutoff=c.cutoff; settings.resonance=c.resonance;
-        settings.destroy=c.destroy; settings.filter=c.filter;
+        if(controls.randomness==100) selectedCategory=c.category;
+        settings.filter=c.filter;
+        if(settings.filter!=1)
+            filterValues[settings.filter==2 ? 1 : 0]={lastRandomCutoff,lastRandomResonance};
     }
+    if(settings.filter!=1)
+    {
+        auto& values=filterValues[settings.filter==2 ? 1 : 0];
+        if(c.cutoff!=controls.cutoff) values[0]=c.cutoff;
+        if(c.resonance!=controls.resonance) values[1]=c.resonance;
+    }
+    selectFilterValues();
     controls=c; outputGain.setTargetValue(juce::Decibels::decibelsToGain(c.gainDb)); updateEffects();
+}
+void Engine::selectFilterValues() noexcept
+{
+    if(settings.filter==1) return;
+    const auto& values=filterValues[settings.filter==2 ? 1 : 0];
+    settings.cutoff=values[0]; settings.resonance=values[1];
 }
 void Engine::updateEffects() noexcept
 {
@@ -77,10 +92,28 @@ void Engine::updateEffects() noexcept
 void Engine::noteOn(int channel,int note,float velocity) noexcept
 {
     if(!bank) return;
-    auto selected=forNote(controls,note,random,bank->audition!=nullptr);
+    // Even an unmapped key runs the original callback and can change the
+    // instrument-wide effects on already sounding voices.
+    auto targets=controls; targets.category=selectedCategory;
+    auto selected=forNote(targets,note,random,bank->audition!=nullptr);
+    if(controls.randomness>0)
+    {
+        settings=selected;
+        lastRandomTune=selected.pitchUnits-controls.pitch*80000;
+        lastRandomCutoff=selected.cutoff; lastRandomResonance=selected.resonance;
+        pitchKnobUsed=false;
+        if(controls.randomness==100 && selected.category>=0) selectedCategory=selected.category;
+        if(settings.filter!=1)
+            filterValues[settings.filter==2 ? 1 : 0]={settings.cutoff,settings.resonance};
+    }
+    else
+    {
+        settings.category=selected.category;
+        settings.pitchUnits=pitchKnobUsed ? controls.pitch*100000 : lastRandomTune;
+    }
+    selectFilterValues(); updateEffects();
     const auto* sample=bank->get(selected.category,note);
     if(!sample) return;
-    settings=selected; updateEffects();
     Voice* target=nullptr;
     for(auto& v:voices) if(!v.sample) { target=&v; break; }
     if(!target) target=&*std::min_element(voices.begin(),voices.end(),[](auto& a,auto& b){return a.age<b.age;});
@@ -147,7 +180,7 @@ float Engine::processEffect(float input,int channel) noexcept
     {
         // Two cascaded two-pole stages provide the observed 24 dB/octave
         // topology. Kontakt's adaptive resonance response still needs calibration.
-        for(auto& s:filters[(size_t)channel])
+        for(auto& s:filters[settings.filter==2 ? 1 : 0][(size_t)channel])
         {
             const double a1=1.0/(1.0+filterG*(filterG+filterK));
             const double v1=a1*(s.a+filterG*(x-s.b));
@@ -187,4 +220,27 @@ void Engine::render(juce::AudioBuffer<float>& out,int start,int length) noexcept
     }
 }
 int Engine::activeVoices() const noexcept { return (int)std::count_if(voices.begin(),voices.end(),[](auto& v){return v.sample!=nullptr;}); }
+Engine::RuntimeState Engine::runtimeState() const noexcept
+{
+    return {settings.bits,settings.drive,settings.cutoff,settings.resonance,settings.destroy,settings.filter,
+            settings.category,settings.pitchUnits,filterValues[0][0],filterValues[0][1],filterValues[1][0],filterValues[1][1],
+            selectedCategory,lastRandomTune,pitchKnobUsed?1:0,lastRandomCutoff,lastRandomResonance,
+            controls.category,controls.pitch,controls.lofi,controls.drive,controls.cutoff,controls.resonance,
+            controls.randomness,controls.destroy,controls.filter};
+}
+void Engine::restoreRuntimeState(const RuntimeState& s) noexcept
+{
+    settings.bits=std::clamp(s[0],250000,1000000); settings.drive=std::clamp(s[1],0,1000000);
+    settings.cutoff=std::clamp(s[2],0,1000000); settings.resonance=std::clamp(s[3],0,100);
+    settings.destroy=std::clamp(s[4],0,1);settings.filter=std::clamp(s[5],0,2);
+    settings.category=std::clamp(s[6],-1,8);settings.pitchUnits=std::clamp(s[7],-2200000,2200000);
+    filterValues[0]={std::clamp(s[8],0,1000000),std::clamp(s[9],0,100)};
+    filterValues[1]={std::clamp(s[10],0,1000000),std::clamp(s[11],0,100)};
+    selectedCategory=std::clamp(s[12],0,8);lastRandomTune=std::clamp(s[13],-1000000,1000000);
+    pitchKnobUsed=s[14]!=0;lastRandomCutoff=std::clamp(s[15],0,1000000);lastRandomResonance=std::clamp(s[16],0,100);
+    controls.category=std::clamp(s[17],0,8);controls.pitch=std::clamp(s[18],-12,12);controls.lofi=std::clamp(s[19],0,8);
+    controls.drive=std::clamp(s[20],0,1000000);controls.cutoff=std::clamp(s[21],0,1000000);controls.resonance=std::clamp(s[22],0,100);
+    controls.randomness=std::clamp(s[23],0,100);controls.destroy=std::clamp(s[24],0,1);controls.filter=std::clamp(s[25],0,2);
+    selectFilterValues();updateEffects();
+}
 }

@@ -68,10 +68,22 @@ mapped note, Boom mode terminates with silence instead of the original endless
 reroll. A seeded PRNG supports repeatable native sequences; it is not Kontakt's
 PRNG, and purely visual random colour draws do not alter audio randomness.
 
-User target controls remain distinct from effective randomized values. Turning
-randomness off restores user targets consistently; the original's partial
-80..99 transition handling is not reproduced. Destroy follows its UI callback
-(0 on, 1 off), rather than the conflicting initialization branch.
+User target controls remain distinct from effective randomized values. Native
+callbacks now retain the last effective effects when randomness is turned off,
+retain Boom's last category on a direct transition to 0..79, and restore the user
+category on transition to 80..99. After randomness is disabled, pitch follows the
+source's last random offset until a new pitch gesture. These are script-derived
+behaviors, covered by regression tests; Kontakt audio comparison is pending.
+Destroy follows its UI callback (0 on, 1 off), rather than the conflicting
+initialization branch. Exact initialization of all persistent script variables,
+visual RNG draws, and same-value UI gestures still require reference validation.
+
+Low-pass and high-pass now retain separate cutoff/resonance settings and DSP
+histories. Moving cutoff/resonance while bypassed changes the user target but
+leaves both inserts unchanged. Ordinary notes no longer overwrite these latent
+settings. Version 3 native state saves filter memories, effective values and
+script transition state through atomic mailboxes; audio never waits for a restore
+writer. Versions 1/2 remain readable.
 
 ## Sound and compatibility gaps
 
@@ -81,14 +93,16 @@ randomness off restores user targets consistently; the original's partial
   measurement. Fractional bit reduction and Tube-style asymmetry are implemented.
 - Pitch interpolation, velocity response, fixed 100 ms native release, pitch-bend
   range and master gain still need controlled Kontakt audio comparisons.
-- Saved latent LP/HP settings are not independently retained; filter controls
-  currently drive a common cutoff/resonance state.
+- Separate LP/HP memories are implemented, but their initial physical values
+  remain provisional until the original parameter mapping is measured.
 - Original graphics, parameter gestures, keyboard colours and exact animation
   behavior still need parity work. Current keyboard marks mapped keys and colours
   Boom mode; the user category remains stable while a label shows the playing group.
 - File paths are stored per instance. Missing/moved libraries require Locate
   library; portable content identifiers and distribution installation remain work.
-- Windows CI is configured but has not executed; public push approval is pending.
+- The first Windows CI run failed on an MSVC nested lambda capture in the
+  library picker. The capture is now constructed outside the nested lambda;
+  a new Windows run is required to verify the fix.
 
 ## Validation completed
 
@@ -111,9 +125,25 @@ randomness off restores user targets consistently; the original's partial
 | Platform | Formats | Status |
 | --- | --- | --- |
 | macOS Apple Silicon | AU, VST3, standalone | Builds and native engine tests passed; DAW/audio-parity validation pending |
-| Windows x64 | VST3, standalone EXE | VS 2022 Release preset/CI ready; Windows execution pending |
+| Windows x64 | VST3, standalone EXE | First CI failed; library-picker compile fix awaiting CI |
 
 Do not call the port complete until Kontakt sound/behavior comparisons and host
 validation pass on both required platforms. Current artifacts are unsigned Debug
 builds, not signed/notarized installers. JUCE release licensing and packaging
 remain separate release work.
+
+## Current parity measurement work
+
+An optional `GlitchReferenceHost` loads the installed Kontakt VST3 and captures
+MIDI note 12 at velocities 127/64/32, with 50 ms/500 ms/3 s gates at 48 kHz.
+The companion `SPAGlitchRender` renders the same matrix, and
+`scripts/compare_audio.py` reports delay, raw/aligned error, gain mismatch and
+gain-corrected residual separately. Silence is an error, not a passing match.
+All captures and proprietary plugin states stay in ignored `local/parity`.
+See `PARITY-CAPTURE.md` for the repeatable procedure.
+
+The host compiled and loaded Kontakt, but the app-control tool cannot operate
+its embedded editor (AXError.notImplemented). Loading the original NKI in that
+editor requires a user handoff. **No Kontakt audio capture or sonic parity result
+has been obtained in this pass.** The physical DSP, velocity curve and release
+have not been relabeled as calibrated or exact.

@@ -44,8 +44,9 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     auto choose=[this](bool single)
     {
         chooser=std::make_unique<juce::FileChooser>(single?"Choose a WAV":"Choose the Glitch Bundle or sample folder",juce::File{},single?"*.wav":"");
+        const auto safe=juce::Component::SafePointer<GlitchEditor>(this);
         chooser->launchAsync(juce::FileBrowserComponent::openMode|(single?juce::FileBrowserComponent::canSelectFiles:juce::FileBrowserComponent::canSelectDirectories),
-          [safe=juce::Component::SafePointer<GlitchEditor>(this),single](const juce::FileChooser& fc)
+          [safe,single](const juce::FileChooser& fc)
           {
               if(!safe || fc.getResult()==juce::File{}) return;
               if(single) safe->processor.loadSample(fc.getResult()); else safe->processor.loadLibrary(fc.getResult());

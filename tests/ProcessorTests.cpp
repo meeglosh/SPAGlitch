@@ -54,6 +54,7 @@ static void processorTests(const juce::File& root)
     require(std::abs(restored.parameters.getRawParameterValue("gain")->load()+18)<0.001f,"Gain state recall");
     require(restored.parameters.getRawParameterValue("pitch")->load()==7,"Pitch state recall");
     note(restored,b); require(b.getMagnitude(0,512)>0,"Restored sample must play");
+    require(restored.playingPitch.load()==700000,"A pitch edit saved before processing must survive runtime restore");
     restored.allNotesOff(); render(restored,b); require(b.getMagnitude(0,512)==0,"Panic must stop MIDI voices");
     // Missing content must clear old audio and remain recoverable.
     file.deleteFile(); restored.setStateInformation(state.getData(),(int)state.getSize());
@@ -65,6 +66,19 @@ static void processorTests(const juce::File& root)
     restored.loadSample(root.getChildFile("missing.wav")); restored.loadSample(file);
     require(restored.waitForContent(),"Newest load request must win");
     note(restored,b); require(b.getMagnitude(0,512)>0,"Newest bank should be active");
+    parameter(restored,"filter",2);render(restored,b);
+    parameter(restored,"cutoff",200000);render(restored,b);
+    parameter(restored,"filter",0);render(restored,b);
+    parameter(restored,"cutoff",800000);render(restored,b);
+    restored.getStateInformation(state);
+    GlitchProcessor recalled;recalled.prepareToPlay(48000,512);recalled.setStateInformation(state.getData(),(int)state.getSize());
+    // Saving again before the first callback must preserve the pending runtime.
+    juce::MemoryBlock pending;recalled.getStateInformation(pending);
+    auto saved=juce::AudioProcessor::getXmlFromBinary(pending.getData(),(int)pending.getSize());
+    require(saved && saved->getIntAttribute("runtime8")==800000 && saved->getIntAttribute("runtime10")==200000,"Pending state must preserve independent filters");
+    require(recalled.waitForContent(),"Runtime state content reload");render(recalled,b);
+    recalled.getStateInformation(pending);saved=juce::AudioProcessor::getXmlFromBinary(pending.getData(),(int)pending.getSize());
+    require(saved && saved->getIntAttribute("runtime8")==800000 && saved->getIntAttribute("runtime10")==200000,"Applied state must preserve independent filters");
     std::cout<<"PASS: WAV playback, MIDI timing, restore, panic, missing-content recovery\n";
 }
 static void libraryTests(const juce::File& root)
@@ -145,6 +159,50 @@ static void engineTests()
     }
     std::cout<<"PASS: sustain, release, polyphony, rates, effects stability, seeded KSP arithmetic\n";
 }
+static void callbackParityTests()
+{
+    glitch::Bank bank;
+    for(int g=0;g<9;++g)
+    {
+        auto sample=std::make_unique<glitch::Sample>(); sample->audio.setSize(1,16); sample->audio.clear();
+        bank.samples[(size_t)g][0]=std::move(sample);
+    }
+    glitch::Engine engine; engine.setBank(&bank); engine.prepare(48000);
+    glitch::Controls c;
+    c.filter=2; engine.setControls(c);
+    c.cutoff=200000; c.resonance=15; engine.setControls(c);
+    c.filter=0; engine.setControls(c);
+    c.cutoff=800000; c.resonance=75; engine.setControls(c);
+    c.filter=1; engine.setControls(c);
+    c.cutoff=500000; c.resonance=50; engine.setControls(c);
+    c.filter=2; engine.setControls(c);
+    require(engine.effective().cutoff==200000 && engine.effective().resonance==15,"LP must remember its own values; bypass edits do not write it");
+    engine.handle(juce::MidiMessage::noteOn(1,12,1.0f));
+    require(engine.effective().cutoff==200000,"Dry note must not overwrite latent filter settings");
+    c.filter=0; engine.setControls(c);
+    require(engine.effective().cutoff==800000 && engine.effective().resonance==75,"HP must remember independent values");
+    c.pitch=7;c.randomness=100;engine.setControls(c);engine.setSeed(42);
+    engine.handle(juce::MidiMessage::noteOn(1,12,1.0f));
+    auto last=engine.effective();
+    c.randomness=0;engine.setControls(c);
+    engine.handle(juce::MidiMessage::noteOn(1,12,1.0f));
+    auto stopped=engine.effective();
+    require(stopped.category==last.category,"Boom to zero retains last selected category");
+    require(stopped.drive==last.drive && stopped.bits==last.bits && stopped.filter==last.filter && stopped.destroy==last.destroy,"Randomness zero retains effective inserts");
+    require(stopped.pitchUnits==last.pitchUnits-7*80000,"Randomness zero uses last random pitch offset, as KSP does");
+    c.pitch=8;engine.setControls(c);engine.handle(juce::MidiMessage::noteOn(1,12,1.0f));
+    require(engine.effective().pitchUnits==800000,"Pitch gesture restores manual tuning");
+    c.randomness=100;engine.setControls(c);engine.handle(juce::MidiMessage::noteOn(1,12,1.0f));
+    c.randomness=90;engine.setControls(c);engine.handle(juce::MidiMessage::noteOn(1,12,1.0f));
+    require(engine.effective().category==c.category,"Boom to 80..99 restores user category");
+    auto runtime=engine.runtimeState();
+    glitch::Engine recalled;recalled.setBank(&bank);recalled.prepare(48000);recalled.restoreRuntimeState(runtime);
+    require(recalled.runtimeState()==runtime,"Script state and both filter memories must round trip");
+    c.randomness=0;engine.setControls(c);recalled.setControls(c);
+    engine.handle(juce::MidiMessage::noteOn(1,12,1.0f));recalled.handle(juce::MidiMessage::noteOn(1,12,1.0f));
+    require(engine.runtimeState()==recalled.runtimeState(),"Recalled random-to-manual transition must match uninterrupted playback");
+    std::cout<<"PASS: independent filter memories and KSP random-to-manual transitions\n";
+}
 int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
@@ -167,7 +225,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();
+        Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

@@ -57,6 +57,9 @@ NoteSettings forNote(const Controls&,int note,Random&,bool audition=false) noexc
 class Engine
 {
 public:
+    using RuntimeState=std::array<int,26>;
+    RuntimeState runtimeState() const noexcept;
+    void restoreRuntimeState(const RuntimeState&) noexcept;
     void prepare(double rate) noexcept;
     void reset() noexcept;
     void setBank(const Bank* b) noexcept { reset(); bank=b; }
@@ -67,6 +70,8 @@ public:
     uint32_t seed() const noexcept { return random.state; }
     const NoteSettings& effective() const noexcept { return settings; }
     int activeVoices() const noexcept;
+    int filterCutoff(int mode) const noexcept { return filterValues[mode==2 ? 1 : 0][0]; }
+    int filterResonance(int mode) const noexcept { return filterValues[mode==2 ? 1 : 0][1]; }
 private:
     struct Voice
     {
@@ -81,17 +86,23 @@ private:
     std::array<Voice,32> voices;
     std::array<bool,16> sustain{};
     std::array<double,16> bend{};
-    std::array<std::array<FilterState,2>,2> filters;
+    std::array<std::array<std::array<FilterState,2>,2>,2> filters;
     std::array<double,2> heldSample{},resamplePhase{},dcInput{},dcOutput{};
     const Bank* bank=nullptr;
     Controls controls;
     NoteSettings settings;
+    // Separate insert parameter memories. Initial physical Kontakt values still
+    // require calibration; these preserve subsequent KSP callback routing.
+    std::array<std::array<int,2>,2> filterValues{{{476191,49},{476191,49}}};
+    int selectedCategory=0, lastRandomTune=0, lastRandomCutoff=0, lastRandomResonance=0;
+    bool pitchKnobUsed=false;
     Random random;
     double sampleRate=48000, filterG=0, filterK=1.41421356237;
     double quantisation=256, driveGain=1, compensation=1;
     juce::SmoothedValue<float> outputGain;
     uint64_t clock=0;
     void updateEffects() noexcept;
+    void selectFilterValues() noexcept;
     void noteOn(int channel,int note,float velocity) noexcept;
     void noteOff(int channel,int note) noexcept;
     float processEffect(float,int channel) noexcept;
