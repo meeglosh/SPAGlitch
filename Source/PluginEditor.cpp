@@ -122,18 +122,18 @@ void GlitchEditor::resized()
     load.setBounds(800,28,134,30);audition.setBounds(944,28,148,30);
     categoryLabel.setBounds(368,16,280,16);category.setBounds(368,36,330,32);
     photoBounds=getLocalBounds();
-    const int knobWidth=140,rowHeight=110;
+    const int knobWidth=140,rowHeight=112;
     const std::array<int,3> left{0,1,2};
     const std::array<int,4> right{3,4,5,6};
     for(size_t row=0;row<left.size();++row)
     {
         const auto i=(size_t)left[row];const int y=133+(int)row*rowHeight;
-        labels[i].setBounds(28,y,knobWidth,18);knobs[i].setBounds(28,y+18,knobWidth,90);
+        labels[i].setBounds(28,y+4,knobWidth,18);knobs[i].setBounds(28,y+22,knobWidth,80);
     }
     for(size_t row=0;row<right.size();++row)
     {
         const auto i=(size_t)right[row];const int y=133+(int)row*rowHeight;
-        labels[i].setBounds(952,y,knobWidth,18);knobs[i].setBounds(952,y+18,knobWidth,90);
+        labels[i].setBounds(952,y+4,knobWidth,18);knobs[i].setBounds(952,y+22,knobWidth,80);
     }
     destroyLabel.setBounds(32,487,132,18);destroy.setBounds(32,511,132,30);
     filterLabel.setBounds(32,554,132,18);filter.setBounds(32,578,132,30);
@@ -199,6 +199,16 @@ void GlitchEditor::paint(juce::Graphics& g)
     g.setColour(sage.withAlpha(.3f));
     g.drawRoundedRectangle(18,100,160,520,16,1);
     g.drawRoundedRectangle(942,100,160,520,16,1);
+    // Enclose each label, dial and readout in one visual group.
+    for(size_t i=0;i<knobs.size();++i)
+    {
+        auto card=labels[i].getBounds().getUnion(knobs[i].getBounds()).toFloat();
+        card.setY(card.getY()-4);card.setHeight(106);
+        g.setColour(paper.withAlpha(.72f));g.fillRoundedRectangle(card,9);
+        g.setColour(sage.withAlpha(.28f));g.drawRoundedRectangle(card,9,1);
+        const auto value=knobs[i].getBounds().toFloat().removeFromBottom(20).reduced(21,0);
+        g.setColour(sage.withAlpha(.10f));g.fillRoundedRectangle(value,5);
+    }
     g.setColour(paper.withAlpha(.86f));g.fillRect(0,620,getWidth(),160);
     g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
     g.drawText("S I L V E R P L A T T E R   A U D I O",32,64,290,18,juce::Justification::left);
