@@ -41,5 +41,11 @@
       "candidate_gain_relative_to_reference": 0.5309058584274418,
       "gain_corrected_relative_rms_error": 0.49904391381406804
     }
+  },
+  "repeat": {
+    "takes": 133,
+    "pcm_identical_takes": 133,
+    "different_takes": [],
+    "result": "All original discrepancies absent on fresh capture"
   }
 }

@@ -200,3 +200,22 @@ including all nine baseline gate/velocity cases. Velocities 48, 54 and 103 have
 large waveform differences and must be repeated before accepting the full sweep.
 See `kontakt6-dry-reference-results.json`. The Mac locked after capture, blocking
 further UI control; isolated effect measurement has not yet resumed.
+
+After unlocking, a fresh Kontakt 6 dry sweep matched all 133 accepted Kontakt 8
+files bit-for-bit. The earlier three discrepancies were absent on repeat.
+Kontakt 6's embedded editor accepts UI control, enabling isolated insert captures.
+At 48 kHz we captured all 133 cases for Lo-Fi alone (4, 8, 12 bits), Tube alone
+(48.8% drive, 0% damping, -4.1 dB output), and both at their original defaults.
+Lo-Fi shows 4.8 kHz in Kontakt 6 and an observed 11-frame hold interval. The
+8-bit default has zero noise, 20% noise color and 0 dB output. Both filters remain
+bypassed. These changes are confined to the live reference, not the original NKI.
+
+`scripts/analyze_lofi.py` tests truncation toward zero with an 11-frame hold,
+fitting phase independently per take. All 127 long-gate four-bit cases and
+126/127 eight-bit cases match within three 24-bit PCM steps. Twelve-bit exploratory
+analysis has 44/127 cases with single-quantization-step residuals. Quantization
+of the dry reference is a possible cause, not yet confirmed. Phase fitting does
+not validate startup or bypass-transition behavior. Native DSP remains unchanged
+pending resolution of these residuals and internal gain staging; Tube/filter
+parity is still outstanding. The reference is left with 8-bit Lo-Fi and Tube on,
+filters bypassed, in the insert editor.
