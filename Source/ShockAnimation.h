@@ -12,8 +12,7 @@ public:
         const bool sounding=peak>1e-7f;
         if(sounding && (!wasSounding || (motion && --remaining<=0))) selectNext();
         wasSounding=sounding;
-        const float target=sounding ? std::min(1.f,.35f+std::pow(peak,.3f)*.8f) : 0.f;
-        intensity=std::max(target,intensity*.78f);
+        intensity=sounding ? 1.f : 0.f;
     }
     int variation() const noexcept { return selected; }
     float energy() const noexcept { return intensity; }

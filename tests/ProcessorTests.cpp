@@ -45,8 +45,12 @@ static void shockTests()
     bool changed=false;
     for(int i=0;i<16;++i) { shock.advance(.7f,true);changed|=shock.variation()!=held; }
     require(changed,"Sustained audio must cycle expressions");
-    for(int i=0;i<60;++i) shock.advance(0,true);
-    require(shock.energy()<.002f,"Animation must settle after audio stops");
+    shock.advance(0,true);
+    require(shock.energy()==0,"Zap must stop on the first silent frame without fading");
+    shock.advance(.000001f,true);
+    require(shock.energy()==1,"Even quiet audio must switch to a fully opaque zap");
+    shock.advance(0,false);
+    require(shock.energy()==0,"Motion off must retain the instant stop");
 }
 static void parameter(GlitchProcessor& p,const char* id,float value)
 {

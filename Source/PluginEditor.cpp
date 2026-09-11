@@ -152,7 +152,7 @@ void GlitchEditor::paint(juce::Graphics& g)
         if(energy>.002f)
         {
             const auto& electricImage=electricImages[(size_t)std::max(0,shock.variation())];
-            const float glow=std::min(1.f,energy*1.25f);
+            const float glow=1.f; // Hard cut: the calm image never bleeds through the zap.
             g.setOpacity(glow);g.drawImage(electricImage,bounds,juce::RectanglePlacement::stretchToFit);
             if(motion.getToggleState())
             {

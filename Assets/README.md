@@ -8,8 +8,8 @@ electrocution concept; neither reference is bundled in the product.
 - `spa-electric-1.png` through `spa-electric-5.png`: five shocked expressions with an electrical blast background, aligned to the same overhead composition.
 
 All six images are embedded with JUCE BinaryData, so installed plugins require no
-external image paths. Audio drives a crossfade and a small silhouette-clipped
-twitch. Motion can be disabled independently of the audio-reactive glow.
+external image paths. Audio switches instantly between fully opaque calm and zapped states, with a
+small silhouette-clipped twitch during playback. Motion can be disabled independently of the audio-triggered image switch.
 
 The electric image was revised at the user's request to add a shocked,
 asymmetrical open-mouth expression. Final expression-edit prompt:
@@ -53,3 +53,8 @@ Edit this EXACT electric-blast photograph to change ONLY the woman's mouth expre
 ### blastVariationPrompt5
 
 Edit this EXACT electric-blast photograph to change ONLY the woman's mouth expression to: mouth stretched very wide horizontally in a startled AAAGH, lower lip pulled down and to viewer right, upper teeth exposed, tense cheek and jaw; distinct from a round O or clenched teeth. Keep her head, cucumbers, nose, shoulders, white head/chest towels, cyan x-ray anatomy, lighting and explosive background absolutely identical and in the same position. Same size, same overhead camera, same crop. Correct the x-ray jaw and teeth for the new expression. Playful cartoon electrocution translated into photographic facial muscles. Clearly different expression, no serene smile, no gore, no text, no new pose. This is one frame in a registered five-expression UI animation.
+
+The calm/zapped transition uses a hard cut on each 30 Hz UI update: any held
+output peak above 1e-7 selects the fully opaque zap; the first silent update
+restores the calm photo. There is no attack fade, release fade, or opacity
+tracking of audio volume. Internal blast motion continues during the zap.
