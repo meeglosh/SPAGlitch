@@ -1,6 +1,7 @@
 #pragma once
 #include "Plugin.h"
 #include "ShockAnimation.h"
+#include "BlastAnimation.h"
 class SpaLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
@@ -42,6 +43,7 @@ private:
     juce::Image calmImage;
     std::array<juce::Image,5> electricImages;
     ShockAnimation shock;
+    BlastAnimation blast;
     juce::Rectangle<int> photoBounds;
     juce::ComboBox category,destroy,filter;
     std::array<juce::Slider,7> knobs;

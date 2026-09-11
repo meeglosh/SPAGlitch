@@ -28,6 +28,12 @@ Use case: identity-preserve. Edit target: the supplied spa photograph. Create it
 
 The five final electric frames replace the spa surroundings with a radial electrical blast. They are embedded alongside the calm image. A shuffled bag presents all five expressions before reshuffling, with no immediate repeat; sustained audio changes expression every 300–500 ms. Motion off holds the expression during sustained audio and disables twitching.
 
+The background is animated in JUCE: two crossfaded outward image drifts, five
+independently regenerating branched arcs with fading cyan halos, and 32 outward
+sparks. The subject is clipped out of these layers and receives small irregular
+jolts. All animation runs on the UI thread at 30 Hz and follows held output peaks;
+Motion off disables background motion as well. No extra generated artwork is used.
+
 ### blastPrompt
 
 Edit this exact electrified woman image. KEEP the woman herself EXACTLY aligned: same shocked crooked open-mouth expression, head position, face geometry, cucumbers on eyes, white hair towel, shoulders, cyan x-ray skull/spine/ribs, body outline and modest chest towel. Change the entire BACKGROUND around her into a spectacular cartoon-electrocution BLAST, photo-realistic VFX style. Remove ALL visible massage table, folded towels behind her, cucumber bowls, plants, wooden boards and quiet spa props. Instead: deep ink-blue/teal energy void, explosive radial cyan-white electric streaks erupting from behind her head and shoulders, jagged lightning spokes, bright turquoise sparks, a few hot lime and pale golden sparks, turbulent luminous electrical clouds. Strong outward burst lines communicate an enormous jolt; playful exaggerated impact, not fire, not injury. Still the exact same overhead view and crop and position of the woman. Background must feel kinetic and explosive everywhere rather than a room. Clearly visible face and x-ray anatomy remain focal. Not a flat comic sticker, not a literal bomb explosion, no text, no watermarks, no gore. Same image dimensions as input.

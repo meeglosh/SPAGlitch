@@ -1,5 +1,6 @@
 #include "../Source/Plugin.h"
 #include "../Source/ShockAnimation.h"
+#include "../Source/BlastAnimation.h"
 #include <cmath>
 #include <complex>
 #include <iostream>
@@ -8,6 +9,19 @@
 static void require(bool ok,const char* message) { if(!ok) throw std::runtime_error(message); }
 static void shockTests()
 {
+    BlastAnimation blast;
+    auto visiblePixels=[&]()
+    {
+        juce::Image image(juce::Image::ARGB,320,200,true);juce::Graphics g(image);
+        blast.draw(g,image.getBounds().toFloat(),1.f);
+        int count=0;
+        for(int y=0;y<200;++y) for(int x=0;x<320;++x) count+=image.getPixelAt(x,y).getAlpha()>0;
+        return count;
+    };
+    blast.advance(1.f,true);require(visiblePixels()>0,"Active blast must render");
+    blast.advance(1.f,false);require(visiblePixels()==0,"Motion off must clear blast geometry");
+    blast.advance(1.f,true);blast.advance(0.f,true);
+    require(visiblePixels()==0,"Silent blast must clear geometry");
     ShockAnimation shock;
     shock.advance(0,true);
     require(shock.energy()==0 && shock.variation()==-1,"Silent animation must stay idle");
@@ -408,6 +422,22 @@ int main(int argc,char** argv)
             juce::AudioBuffer<float> b(2,512);
             for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,12);finite(b);require(b.getMagnitude(0,512)>0,"Real library category should sound"); }
             std::cout<<"PASS: original 479-sample library loaded and all nine categories render\n";return 0;
+        }
+        if(argc==3 && juce::String(argv[1])=="--animation-preview")
+        {
+            GlitchProcessor p;std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+            juce::File directory(argv[2]);require(directory.createDirectory().wasOk(),"Preview directory failed");
+            for(int frame=0;frame<90;++frame)
+            {
+                p.visualPeak.store(frame<12 || frame>70 ? 0.f : .15f+.55f*std::abs(std::sin(frame*.23f)));
+                juce::Thread::sleep(34);juce::Timer::callPendingTimersSynchronously();
+                auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
+                juce::PNGImageFormat format;
+                auto output=directory.getChildFile(juce::String(frame).paddedLeft('0',3)+".png").createOutputStream();
+                require(output!=nullptr,"Preview frame open failed");output->setPosition(0);output->truncate();
+                require(format.writeImageToStream(shot,*output),"Preview frame write failed");
+            }
+            return 0;
         }
         if(argc==3 && (juce::String(argv[1])=="--screenshot" || juce::String(argv[1])=="--screenshot-active"))
         {

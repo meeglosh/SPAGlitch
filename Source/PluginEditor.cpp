@@ -55,7 +55,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     title.setFont(juce::Font(juce::FontOptions("Georgia",30.0f,juce::Font::plain)));
     load.setButtonText("Locate library");audition.setButtonText("Audition WAV");panic.setButtonText("All notes off");
     motion.setToggleState(true,juce::dontSendNotification);
-    motion.setTooltip("Disable twitching while retaining the audio-reactive x-ray glow");
+    motion.setTooltip("Disable animated lightning, sparks and twitching while retaining the audio-reactive x-ray glow");
     addAndMakeVisible(motion);
     categoryLabel.setText("SAMPLE BANK",juce::dontSendNotification);
     destroyLabel.setText("DESTROY",juce::dontSendNotification);
@@ -169,7 +169,7 @@ void GlitchEditor::paint(juce::Graphics& g)
             g.setOpacity(glow);g.drawImage(electricImage,bounds,juce::RectanglePlacement::stretchToFit);
             if(motion.getToggleState())
             {
-                // Keep the blast framing fixed; only the woman's silhouette twitches.
+                // Exclude the subject from the moving background and lightning.
                 juce::Path body;
                 auto pt=[&](float x,float y){return juce::Point<float>(bounds.getX()+x*bounds.getWidth(),bounds.getY()+y*bounds.getHeight());};
                 body.startNewSubPath(pt(.5f,.055f));
@@ -178,9 +178,27 @@ void GlitchEditor::paint(juce::Graphics& g)
                 body.lineTo(pt(.92f,1.f));
                 body.cubicTo(pt(.9f,.69f),pt(.6f,.74f),pt(.61f,.68f));
                 body.cubicTo(pt(.72f,.45f),pt(.72f,.055f),pt(.5f,.055f));body.closeSubPath();
+                {
+                    juce::Graphics::ScopedSaveState background(g);
+                    juce::Path outside;outside.setUsingNonZeroWinding(false);
+                    outside.addRectangle(bounds);outside.addPath(body);
+                    g.reduceClipRegion(outside);
+                    // A small outward drift gives the photographic energy depth.
+                    // Crossfade two offset phases so the travel never snaps back.
+                    for(int layer=0;layer<2;++layer)
+                    {
+                        const float phase=std::fmod(animationFrame/24.f+layer*.5f,1.f);
+                        const float fade=std::sin(phase*juce::MathConstants<float>::pi);
+                        const float scale=1.f+phase*.045f;
+                        auto moving=bounds.withSizeKeepingCentre(bounds.getWidth()*scale,bounds.getHeight()*scale);
+                        g.setOpacity(glow*fade*.48f);
+                        g.drawImage(electricImage,moving,juce::RectanglePlacement::stretchToFit);
+                    }
+                    g.setOpacity(1.f);blast.draw(g,bounds,energy);
+                }
                 g.reduceClipRegion(body);
-                const float dx=std::sin(animationFrame*2.39f)*energy*2.1f;
-                const float dy=std::cos(animationFrame*1.71f)*energy*.9f;
+                const float dx=blast.displacement().x;
+                const float dy=blast.displacement().y;
                 g.setOpacity(glow*.8f);g.drawImage(electricImage,bounds.translated(dx,dy),juce::RectanglePlacement::stretchToFit);
             }
         }
@@ -190,6 +208,7 @@ void GlitchEditor::timerCallback()
 {
     const float peak=processor.visualPeak.exchange(0,std::memory_order_relaxed);
     shock.advance(peak,motion.getToggleState());energy=shock.energy();
+    blast.advance(energy,motion.getToggleState());
     ++animationFrame;
     meterLeft=std::max(processor.leftPeak.load(),meterLeft*0.85f);
     meterRight=std::max(processor.rightPeak.load(),meterRight*0.85f);
