@@ -159,15 +159,17 @@ float Engine::processEffect(float input,int channel) noexcept
     double x=input;
     if(settings.destroy==0)
     {
-        // The original Lo-Fi module also has a fixed ~4.4 kHz sample-rate
-        // reduction, independent of its scripted bit-depth control.
+        // The isolated Kontakt 6 capture at 48 kHz holds for 11 frames and
+        // truncates in the source-amplitude domain. Other rates and the clock's
+        // start/bypass phase still need measurement; retain the old rate there.
         auto& phase=resamplePhase[(size_t)channel];
         if(phase>=1.0)
         {
-            heldSample[(size_t)channel]=std::round(x*quantisation)/quantisation;
-            phase-=std::floor(phase);
+            heldSample[(size_t)channel]=quantizeLoFi(x,quantisation);
+            if(sampleRate==48000.0) phase=0.0;
+            else phase-=std::floor(phase);
         }
-        phase+=4410.0/sampleRate;
+        phase+=sampleRate==48000.0 ? 1.0/11.0 : 4410.0/sampleRate;
         x=heldSample[(size_t)channel];
         // Asymmetric saturation for Tube mode. This is a provisional model,
         // not a reverse-engineered implementation of Kontakt's tube curve.

@@ -230,6 +230,19 @@ int main(int argc,char** argv)
     juce::ScopedJuceInitialiser_GUI init;
     try
     {
+        if(argc==3 && juce::String(argv[1])=="--lofi-reference")
+        {
+            auto document=juce::JSON::parse(juce::File(argv[2]).loadFileAsString());
+            auto measurements=document["measurements"];
+            require(measurements.isArray() && measurements.size()==200,"Lo-Fi empirical fixtures must exist");
+            for(auto& row:*measurements.getArray())
+            {
+                const double input=(double)row["source_amplitude"]*glitch::groupGain;
+                const double output=glitch::quantizeLoFi(input,std::pow(2.0,(int)row["bits"]-1))*glitch::referenceOutputTrim;
+                require(std::abs(output-(double)row["measured_output"])<=(double)document["tolerance"],"Lo-Fi transfer must agree with Kontakt measurements");
+            }
+            std::cout<<"PASS: 200 measured Lo-Fi transfer points\n";return 0;
+        }
         if(argc==3 && juce::String(argv[1])=="--velocity-reference")
         {
             auto document=juce::JSON::parse(juce::File(argv[2]).loadFileAsString());

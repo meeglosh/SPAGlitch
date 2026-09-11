@@ -219,3 +219,29 @@ not validate startup or bypass-transition behavior. Native DSP remains unchanged
 pending resolution of these residuals and internal gain staging; Tube/filter
 parity is still outstanding. The reference is left with 8-bit Lo-Fi and Tube on,
 filters bypassed, in the insert editor.
+
+## Native Lo-Fi correction and remaining effect work
+
+The native Lo-Fi now truncates in source-amplitude units and holds for 11 frames
+at 48 kHz. Other rates retain the prior rate approximation. Startup, bypass and
+silence-dependent clock phase remain unverified. Tests compare 200 measured
+4/8-bit transfer points against the production quantizer; this is not a test of
+the full effect chain. Using original sample PCM and per-velocity dry gain fits
+resolves all eight-bit long-gate discrepancies (127/127 within three PCM steps).
+The same analysis reduces twelve-bit discrepancies to velocities 13 and 29;
+those boundary cases are unresolved, not waived.
+
+New isolated filter captures include LP 441.2 Hz/61%, HP 7.4 kHz/89%, and both
+LP and HP at 1 kHz/0%, each with the full 133-take matrix. Zero-resonance data
+fits a two-pole response; a static four-pole fit fails at higher resonance.
+NI's [filter reference](https://docs.native-instruments.com/ni-tech-manuals/kontakt-manual/en/filter-reference)
+describes AR LP2/4 as combining two- and four-pole responses and adjusting
+resonance with input amplitude. The native fixed cascade does not model that.
+The reference is currently LP on at 1 kHz/0%, HP/Lo-Fi/Tube bypassed.
+
+Tube identification attempts (static tanh/atan/softsign and simple pre/post
+filter arrangements) fail waveform validation. No fitted Tube/filter candidate
+has replaced production DSP. `combined-effects-reference-results.json` records
+an explicit failing native/reference comparison after the Lo-Fi correction.
+Full effect parity is **not complete**: Tube dynamics, adaptive filters, control
+sweeps, clock transitions, and other sample rates still need validated models.

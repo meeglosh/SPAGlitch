@@ -2,6 +2,7 @@
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <array>
 #include <cstdint>
+#include <cmath>
 #include <memory>
 
 namespace glitch
@@ -15,6 +16,12 @@ inline constexpr int firstNote=12;
 // small residual trim after effects until the internal gain staging is isolated.
 inline constexpr float groupGain=0.5011872336f;
 inline constexpr float referenceOutputTrim=0.49165056986916567f/groupGain;
+// Input/output retain the engine's group gain; quantization is measured in
+// original sample-amplitude units. Tube gain staging is a separate calibration.
+inline double quantizeLoFi(double input,double levels) noexcept
+{
+    return std::trunc(input/groupGain*levels)/levels*groupGain;
+}
 // Fitted to the original instrument and verified against fresh, clean offline
 // captures at all 127 MIDI velocities (48 kHz, Glitch Digital 01).
 inline float velocityGain(float velocity) noexcept

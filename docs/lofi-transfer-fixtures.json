@@ -1,0 +1,1206 @@
+{
+  "source": "Kontakt 6.8.0 isolated Lo-Fi; 48 kHz; measured hold instants; default rate/noise/output; dry gain fitted per velocity",
+  "tolerance": 3.5762786865234375e-07,
+  "measurements": [
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -0.00027352629706797467,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -7.485999473202113e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": 1.5775774665617436e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -1.1831830999213075e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -2.2086084531864408e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -4.338338033044795e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -5.813767358646665e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": 0.0001251235847885115,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -0.0003707938077406722,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -0.00036595064491832765,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -8.567231629346869e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -8.539032432132077e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -2.4551049323367133e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -2.559816636679749e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -3.277417186782022e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -3.4371469052713986e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -8.223122544453088e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 1,
+      "source_amplitude": -8.852181559244584e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.001390765387232043,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.0003806313713807005,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": 8.021313342409788e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -6.015985006807341e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -1.1229838679373704e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -2.2058611691626917e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.00029560544995115674,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": 0.0006362004411115544,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.0018853294879999966,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.0018607040560387985,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.00043560744770124155,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.0004341736379412858,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.00012483168889125234,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -0.00013015583562227682,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -1.6664278468856333e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -1.7476436444775326e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -4.181109579731102e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 32,
+      "source_amplitude": -4.5009594492596924e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -2.9440345992013014e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.035159633686843404,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.024896228588145806,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": 2.44354871733708e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": 6.476876118242863e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -2.472989063329093e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -5.593665738482472e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.0009273120180564259,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": 0.003251332930665933,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.00604949061547681,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.004554833689808301,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.0013908208253546788,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.0013951485562155048,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.00034689559682388936,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.0003617335312038639,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -4.683959047329271e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -4.901817607670167e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.00013516062844933175,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 64,
+      "source_amplitude": -0.00014519978643260818,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": 6.214697578602373e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.013116989297301313,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.00808370572839125,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": 2.4858790314409493e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -6.028256651244301e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -1.9887032251527593e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.0023119917931916545,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": 0.0085841753243961,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.012451768068487714,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.009149339922194199,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.003082552145962563,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.0031026256191414485,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.0007061139388808016,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.0007355716054033768,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -9.601707758940666e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.00010086454170071651,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.00029662751542669123,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 94,
+      "source_amplitude": -0.0003171981644118651,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": 1.1920928955078125e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.025160789489746094,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.01550602912902832,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": 4.76837158203125e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -1.1563301086425781e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -3.814697265625e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.004434823989868164,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": 0.01646602153778076,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.02388477325439453,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.017550110816955566,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.005912899971008301,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.005951404571533203,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.0013544559478759766,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.0014109611511230469,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.00018417835235595703,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.00019347667694091797,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.0005689859390258789,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 4,
+      "velocity": 127,
+      "source_amplitude": -0.0006084442138671875,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -0.0002739837945332776,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -7.449517994287872e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": 1.2817816915814166e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -2.563563383162833e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -2.3466464815105934e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -1.045145071597155e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -5.70905565430363e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": 0.00015802593482548984,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -0.00038856916184515665,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -0.000338234580802671,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -8.824968347946393e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -8.813925305680461e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -2.4107355660896643e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -2.5142640873327786e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -3.224173947285563e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -3.385875637608142e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -8.516946347600213e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 1,
+      "source_amplitude": -9.171640996223337e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.0013953776424039286,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.00038085195749761676,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": 7.319448424948932e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -9.023977510211011e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -1.1630904346494193e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -3.9103902544247714e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.00029147447357981567,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": 0.000721096016199284,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.0019283738607237032,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.0017845416858526175,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.00044215484471698353,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.0004411521805491823,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.000123748811590027,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -0.00012904287839601746,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -1.6523905485364163e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -1.7346090102961167e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -4.25330139981279e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 32,
+      "source_amplitude": -4.5831779110193924e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -2.9440345992013014e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.035159633686843404,
+      "measured_output": -0.01536417007446289
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.024896228588145806,
+      "measured_output": -0.011523127555847168
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": 2.44354871733708e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": 6.476876118242863e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -2.472989063329093e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -5.593665738482472e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.0009273120180564259,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": 0.003251332930665933,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.00604949061547681,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.004554833689808301,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.0013908208253546788,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.0013951485562155048,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.00034689559682388936,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.0003617335312038639,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -4.683959047329271e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -4.901817607670167e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.00013516062844933175,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 64,
+      "source_amplitude": -0.00014519978643260818,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": 6.214697578602373e-08,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.013116989297301313,
+      "measured_output": -0.0038410425186157227
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.00808370572839125,
+      "measured_output": -0.0038410425186157227
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": 2.4858790314409493e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -6.028256651244301e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -1.9887032251527593e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.0023119917931916545,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": 0.0085841753243961,
+      "measured_output": 0.003840923309326172
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.012451768068487714,
+      "measured_output": -0.0038410425186157227
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.009149339922194199,
+      "measured_output": -0.0038410425186157227
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.003082552145962563,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.0031026256191414485,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.0007061139388808016,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.0007355716054033768,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -9.601707758940666e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.00010086454170071651,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.00029662751542669123,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 94,
+      "source_amplitude": -0.0003171981644118651,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": 1.1920928955078125e-07,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.025160789489746094,
+      "measured_output": -0.011523127555847168
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.01550602912902832,
+      "measured_output": -0.0038410425186157227
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": 4.76837158203125e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": 0.0,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -1.1563301086425781e-05,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -3.814697265625e-06,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.004434823989868164,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": 0.01646602153778076,
+      "measured_output": 0.0076819658279418945
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.02388477325439453,
+      "measured_output": -0.011523127555847168
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.017550110816955566,
+      "measured_output": -0.007682085037231445
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.005912899971008301,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.005951404571533203,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.0013544559478759766,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.0014109611511230469,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.00018417835235595703,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.00019347667694091797,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.0005689859390258789,
+      "measured_output": 0.0
+    },
+    {
+      "bits": 8,
+      "velocity": 127,
+      "source_amplitude": -0.0006084442138671875,
+      "measured_output": 0.0
+    }
+  ]
+}
