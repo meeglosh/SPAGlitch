@@ -7,10 +7,13 @@ class Panel final : public juce::Component
 public:
     Panel()
     {
-        for(auto* c:std::initializer_list<juce::Component*>{&load,&save,&render,&name,&status,&reveal,&instructions}) addAndMakeVisible(c);
+        for(auto* c:std::initializer_list<juce::Component*>{&load,&save,&render,&name,&status,&reveal,&instructions,&sampleRate,&matrix}) addAndMakeVisible(c);
+        sampleRate.addItem("48 kHz",48000);sampleRate.addItem("44.1 kHz",44100);sampleRate.addItem("96 kHz",96000);sampleRate.setSelectedId(48000);
+        sampleRate.setTooltip("Choose before loading Kontakt. Restart this host to change rate.");
+        matrix.addItem("All velocities",1);matrix.addItem("Three velocities",2);matrix.setSelectedId(1);
         name.setText("dry"); status.setText("Load Kontakt, then load the reference NKI in its editor.",juce::dontSendNotification);
         save.setEnabled(false);render.setEnabled(false);
-        instructions.setText("1. Load Kontakt.  2. Reveal Glitch.nki and drag it from Finder into Kontakt below.\n3. Wait for its samples, then capture. Loading Kontakt alone does not load an instrument.",juce::dontSendNotification);
+        instructions.setText("Choose the rate before Load Kontakt, then drag Glitch.nki into Kontakt below.\nCapture uses offline rendering at a fixed rate. Restart the host to change rate.",juce::dontSendNotification);
         instructions.setJustificationType(juce::Justification::centredLeft);
         reveal.onClick=[this]
         {
@@ -28,7 +31,8 @@ public:
         status.setBounds(10,44,getWidth()-20,28);
         reveal.setBounds(630,10,160,28);
         instructions.setBounds(10,74,getWidth()-20,44);
-        if(editor) editor->setBounds(0,128,editor->getWidth(),editor->getHeight());
+        sampleRate.setBounds(10,120,140,26);matrix.setBounds(160,120,190,26);
+        if(editor) editor->setBounds(0,156,editor->getWidth(),editor->getHeight());
     }
 private:
     juce::VST3PluginFormat format;
@@ -38,6 +42,8 @@ private:
     juce::TextButton reveal{"Reveal Glitch.nki"};
     juce::TextEditor name;
     juce::Label status,instructions;
+    juce::ComboBox sampleRate,matrix;
+    int rate=48000;
     juce::File root=juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("ChatGPT/SPAGlitch/local/parity");
     void loadPlugin()
     {
@@ -46,9 +52,11 @@ private:
         format.findAllTypesForFile(types,"/Library/Audio/Plug-Ins/VST3/Kontakt 8.vst3");
         if(types.isEmpty()) { status.setText("Kontakt VST3 not found",juce::dontSendNotification); return; }
         juce::String error;
-        plugin=format.createInstanceFromDescription(*types[0],48000,256,error);
+        rate=sampleRate.getSelectedId();
+        plugin=format.createInstanceFromDescription(*types[0],rate,256,error);
         if(!plugin) { status.setText(error,juce::dontSendNotification); return; }
-        plugin->enableAllBuses(); plugin->setRateAndBufferSizeDetails(48000,256); plugin->prepareToPlay(48000,256);
+        plugin->enableAllBuses();plugin->setNonRealtime(true);
+        plugin->setRateAndBufferSizeDetails(rate,256);plugin->prepareToPlay(rate,256);
         editor.reset(plugin->createEditorAndMakeActive());
         if(!editor)
         {
@@ -56,7 +64,8 @@ private:
             status.setText("Kontakt loaded but its editor could not open. Click Load Kontakt to retry.",juce::dontSendNotification);
             return;
         }
-        addAndMakeVisible(*editor); setSize(juce::jmax(800,editor->getWidth()),editor->getHeight()+128); resized();
+        addAndMakeVisible(*editor); setSize(juce::jmax(800,editor->getWidth()),editor->getHeight()+156); resized();
+        sampleRate.setEnabled(false);
         load.setButtonText("Kontakt loaded");load.setEnabled(false);
         save.setEnabled(true);render.setEnabled(true);
         status.setText("Kontakt is ready. Now load Glitch.nki inside Kontakt, then wait for its samples.",juce::dontSendNotification);
@@ -84,13 +93,9 @@ private:
         bool silent=false;
         // Identical note, varied velocity and gate: separates amp response from
         // sample content. Every capture includes a long held-note reference.
-        for(const int rate:{48000,44100,96000})
-        {
-        // First capture uses the existing live 48 kHz engine unchanged.
-        if(rate!=48000) { plugin->releaseResources();plugin->setRateAndBufferSizeDetails(rate,256);plugin->prepareToPlay(rate,256); }
         for(int velocity=127;velocity>=1;--velocity) for(const int gateMs:{50,500,3000})
         {
-            if(rate!=48000 && velocity!=127) continue;
+            if(matrix.getSelectedId()==2 && velocity!=127 && velocity!=64 && velocity!=32) continue;
             if(velocity!=127 && velocity!=64 && velocity!=32 && gateMs!=3000) continue;
             const int frames=rate*4,gate=rate*gateMs/1000;
             constexpr int block=256;
@@ -118,9 +123,8 @@ private:
             // Low velocities can legitimately be silent; a full-velocity take cannot.
             silent|=velocity==127 && output.getMagnitude(0,frames)==0;
         }
-        }
-        plugin->releaseResources();plugin->setRateAndBufferSizeDetails(48000,256);plugin->prepareToPlay(48000,256);
         dir.getChildFile("capture.csv").replaceWithText(report);
+        dir.getChildFile("render-mode.txt").replaceWithText("VST3 offline processing; fixed sample rate "+juce::String(rate)+" Hz; block size 256\n");
         status.setText(silent ? "Capture contains silence. Check the NKI, samples, MIDI channel 1 and Kontakt demo status."
                               : "Captured "+dir.getFullPathName(),juce::dontSendNotification);
     }

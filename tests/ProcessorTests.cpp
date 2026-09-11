@@ -205,6 +205,10 @@ static void callbackParityTests()
 }
 static void measuredReleaseTest()
 {
+    require(std::abs(glitch::velocityGain(64.0f/127)-0.2469635219f)<1e-6f,"Measured velocity 64 response");
+    require(std::abs(glitch::velocityGain(32.0f/127)-0.0841095666f)<1e-6f,"Measured velocity 32 response");
+    require(std::abs(glitch::velocityGain(1.0f/127)-0.0165420987f)<1e-6f,"Measured velocity 1 response");
+    require(glitch::velocityGain(1.0f)==1.0f && glitch::velocityGain(0.0f)==0.0f,"Velocity endpoints");
     glitch::Bank bank;auto sample=std::make_unique<glitch::Sample>();sample->sampleRate=48000;
     sample->audio.setSize(1,2000);for(int i=0;i<2000;++i)sample->audio.setSample(0,i,0.25f);
     bank.samples[0][0]=std::move(sample);
@@ -226,6 +230,21 @@ int main(int argc,char** argv)
     juce::ScopedJuceInitialiser_GUI init;
     try
     {
+        if(argc==3 && juce::String(argv[1])=="--velocity-reference")
+        {
+            auto document=juce::JSON::parse(juce::File(argv[2]).loadFileAsString());
+            auto measurements=document["measurements"];
+            require(measurements.isArray(),"Velocity reference data must exist");
+            int verified=0;
+            for(auto& row:*measurements.getArray()) if((bool)row["used_for_fit"])
+            {
+                const int velocity=(int)row["velocity"];
+                require(std::abs(glitch::velocityGain(velocity/127.0f)-(double)row["gain"])<1e-6,"Velocity must agree with clean Kontakt measurements");
+                ++verified;
+            }
+            require(verified==124,"Verify every clean original velocity measurement");
+            std::cout<<"PASS: 124 clean Kontakt velocity measurements\n";return 0;
+        }
         if(argc==3 && juce::String(argv[1])=="--library")
         {
             GlitchProcessor p;p.prepareToPlay(48000,512);p.loadLibrary(juce::File(argv[2]));

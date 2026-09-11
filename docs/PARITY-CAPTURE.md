@@ -14,12 +14,16 @@ the Digital category, and record the actual insert bypass states and knob values
 Name the capture and click **Capture matrix**. Results go to
 `~/Documents/ChatGPT/SPAGlitch/local/parity/<name>` in a new directory.
 
-The expanded live matrix uses MIDI channel 1, note 12, 256-frame blocks and four
-seconds per file. At 48 kHz it captures all velocities 1..127 with a 3 s gate;
-velocities 127/64/32 also get 50 ms and 500 ms gates. At 44.1 and 96 kHz it captures
-velocity 127 with all three gates. Extra-rate filenames have an `r44100-` or
-`r96000-` prefix. The native renderer currently produces the original nine-file
-48 kHz matrix (velocities 127/64/32 and all three gates). One second of drain after all-sound-off separates takes.
+The live host selects one fixed rate (48/44.1/96 kHz) **before** Kontakt loads.
+The rate selector is then disabled. Restart the host and reload the NKI to test a
+new rate: Kontakt warned that in-session rate changes require restarting, and the
+old multi-rate captures are invalid. Processing now uses VST3 offline mode.
+
+The matrix uses MIDI channel 1, note 12, 256-frame blocks and four seconds per
+file. "All velocities" captures 1..127 with a 3 s gate, plus 50/500 ms gates for
+127/64/32. "Three velocities" captures only those nine baseline files. Non-48 kHz
+filenames carry a rate prefix. The native renderer currently produces the
+nine-file baseline at 48 kHz. One second of drain after all-sound-off separates takes.
 The host records the first stereo output and saves Kontakt state alongside WAVs.
 It renders through the normal plugin processing API without playing through a
 physical device. A silent full-velocity capture or a Kontakt demo timeout invalidates the take.

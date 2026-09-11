@@ -118,7 +118,7 @@ void Engine::noteOn(int channel,int note,float velocity) noexcept
     for(auto& v:voices) if(!v.sample) { target=&v; break; }
     if(!target) target=&*std::min_element(voices.begin(),voices.end(),[](auto& a,auto& b){return a.age<b.age;});
     *target={}; target->sample=sample; target->note=note; target->channel=channel;
-    target->velocity=velocity; target->held=true; target->age=++clock;
+    target->velocity=velocityGain(velocity); target->held=true; target->age=++clock;
     double semitones=settings.pitchUnits/100000.0;
     if(bank->audition) semitones+=note-60;
     target->baseStep=sample->sampleRate/sampleRate*std::pow(2.0,semitones/12.0);

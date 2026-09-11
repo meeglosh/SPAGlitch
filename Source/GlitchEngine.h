@@ -15,6 +15,15 @@ inline constexpr int firstNote=12;
 // small residual trim after effects until the internal gain staging is isolated.
 inline constexpr float groupGain=0.5011872336f;
 inline constexpr float referenceOutputTrim=0.49165056986916567f/groupGain;
+// Fitted to 124 clean MIDI-velocity captures of the original instrument.
+// Three corrupted takes (12, 43, 126) are excluded from the fit.
+inline float velocityGain(float velocity) noexcept
+{
+    const float v=juce::jlimit(0.0f,1.0f,velocity);
+    if(v==0.0f) return 0.0f;
+    const float amplitude=0.2488846435f+0.7511153565f*v;
+    return amplitude*amplitude*amplitude;
+}
 
 struct Sample
 {

@@ -1,0 +1,1020 @@
+{
+  "scope": "Glitch Digital 01, dry, MIDI note 12, 48 kHz",
+  "formula": "gain = (beta + alpha * MIDI_velocity / 127)^3; MIDI velocity zero remains note-off",
+  "alpha": 0.7511153564878088,
+  "beta": 0.24888464351219122,
+  "clean_takes": 124,
+  "excluded_corrupt_takes": [
+    12,
+    43,
+    126
+  ],
+  "max_clean_gain_fit_error": 3.3785584646617295e-07,
+  "limitations": [
+    "Three corrupted takes excluded; new clean captures still required.",
+    "Other groups and sample rates not verified.",
+    "44.1/96 kHz takes invalidated by Kontakt restart warning.",
+    "Internal effect gain staging and effect sound remain uncalibrated."
+  ],
+  "measurements": [
+    {
+      "velocity": 1,
+      "gain": 0.016542098699480562,
+      "shape_residual": 2.429571015067019e-06,
+      "used_for_fit": true,
+      "sha256": "83039ab3795e267f91f99126b307e21f70ee067be072c2df36c98b02d38a8df2"
+    },
+    {
+      "velocity": 2,
+      "gain": 0.01772096954635658,
+      "shape_residual": 2.4176977296051863e-06,
+      "used_for_fit": true,
+      "sha256": "4c8144c0e314c2842e50596e7986737ce571bf6c542955b11afaf7ff4bb0a4b8"
+    },
+    {
+      "velocity": 3,
+      "gain": 0.01895454260105427,
+      "shape_residual": 2.4104152280065543e-06,
+      "used_for_fit": true,
+      "sha256": "ef14c2e8a2a7f396ff1483ae3c523b314ccf9fc2f516e3018a28be0f57616a70"
+    },
+    {
+      "velocity": 4,
+      "gain": 0.02024408350847116,
+      "shape_residual": 2.4083265536826945e-06,
+      "used_for_fit": true,
+      "sha256": "48d1c04cd6e693877078e223bcbdedb85bcbb5ee80ceb56a1f9b415c11957bf4"
+    },
+    {
+      "velocity": 5,
+      "gain": 0.021590805846690805,
+      "shape_residual": 2.4108343998021345e-06,
+      "used_for_fit": true,
+      "sha256": "2ef21ebb61c0f84b8b949735e2b779cf170281e544fd4c3430bf4fd9ec8fe237"
+    },
+    {
+      "velocity": 6,
+      "gain": 0.022995991414110403,
+      "shape_residual": 2.399430595586844e-06,
+      "used_for_fit": true,
+      "sha256": "2a67de09e28fbe68c05f512b41644b4ba723581335f8fc7977cf5e082cd65625"
+    },
+    {
+      "velocity": 7,
+      "gain": 0.024460854141412917,
+      "shape_residual": 2.383860957827493e-06,
+      "used_for_fit": true,
+      "sha256": "2dea1ca76aab78aecea68a015eb5a1e2d15e43261e60d469b75f23d8c541908b"
+    },
+    {
+      "velocity": 8,
+      "gain": 0.025986628324607828,
+      "shape_residual": 2.396577401230724e-06,
+      "used_for_fit": true,
+      "sha256": "8bc65c6f00058b3ff35d2ee62de62b2dd03de7b9047412649037a16196a7ade9"
+    },
+    {
+      "velocity": 9,
+      "gain": 0.0275745809049397,
+      "shape_residual": 2.3886369661943317e-06,
+      "used_for_fit": true,
+      "sha256": "4e0115b32ec2003f53be73c7a90c4cc87c064329ec7798765560c571ad84abe7"
+    },
+    {
+      "velocity": 10,
+      "gain": 0.029225933244558442,
+      "shape_residual": 2.3698759749727558e-06,
+      "used_for_fit": true,
+      "sha256": "b68e4f73687cedf8857d6698f2a3983bcfb2ba73741da6124f7069305e106417"
+    },
+    {
+      "velocity": 11,
+      "gain": 0.03094193990524897,
+      "shape_residual": 2.366955505296711e-06,
+      "used_for_fit": true,
+      "sha256": "9e61b0bd64cdfa41668197205ea953350cad9cdc77336952414e2921373fb635"
+    },
+    {
+      "velocity": 12,
+      "gain": 0.01737331068376835,
+      "shape_residual": 0.016330683540543164,
+      "used_for_fit": false,
+      "sha256": "10cb7512d94c50263f58f64486873a17707ae4de21e6bdecfc40eaeefd186392"
+    },
+    {
+      "velocity": 13,
+      "gain": 0.03457283186727049,
+      "shape_residual": 2.34766616377964e-06,
+      "used_for_fit": true,
+      "sha256": "924a4c879583e864bb49a60547e4862fecdddfa9bfd4446d7318fe26c7b8cc47"
+    },
+    {
+      "velocity": 14,
+      "gain": 0.03649021308073915,
+      "shape_residual": 2.3441843580960774e-06,
+      "used_for_fit": true,
+      "sha256": "2b1b25aa3794eb14bab769706021f1bcfb2ff7ebdd924d147821abe15a739466"
+    },
+    {
+      "velocity": 15,
+      "gain": 0.03847722611533099,
+      "shape_residual": 2.323616816656533e-06,
+      "used_for_fit": true,
+      "sha256": "7078c3cbdf7f8fd9e0861ff0e63fbe86d336a1e62130448569d089d5c8f6e221"
+    },
+    {
+      "velocity": 16,
+      "gain": 0.04053506760421638,
+      "shape_residual": 2.320048940218414e-06,
+      "used_for_fit": true,
+      "sha256": "691e0a5e6b1166470ee105081e5f4cba7e41c86fd7ec257680c151c130513373"
+    },
+    {
+      "velocity": 17,
+      "gain": 0.042665005912206115,
+      "shape_residual": 2.312553873671766e-06,
+      "used_for_fit": true,
+      "sha256": "3d1b284cdbe138c360faacb0ca9f1f2d0356af36b91bec9066ec544d16ec835b"
+    },
+    {
+      "velocity": 18,
+      "gain": 0.04486827994566285,
+      "shape_residual": 2.305468136336634e-06,
+      "used_for_fit": true,
+      "sha256": "67afd079d1cb9ba9a12a11458c31aec1684b5e5a7f4c7bc7c5bb7229c0e84123"
+    },
+    {
+      "velocity": 19,
+      "gain": 0.04714615339955378,
+      "shape_residual": 2.3025741939660335e-06,
+      "used_for_fit": true,
+      "sha256": "201e3b881cca48c793af796b6739bdf2a6742fd1d56777df152294f334dc8e9e"
+    },
+    {
+      "velocity": 20,
+      "gain": 0.04949983248621243,
+      "shape_residual": 2.30190150752034e-06,
+      "used_for_fit": true,
+      "sha256": "882578bb83486585bf233f92985638cff7bc23d131812559924f3c4527792e64"
+    },
+    {
+      "velocity": 21,
+      "gain": 0.05193055021789592,
+      "shape_residual": 2.2993249344506467e-06,
+      "used_for_fit": true,
+      "sha256": "ace5e3421f00ae22f0bddf93c6c78499fb8f53465e467335513b9bed7f71fd08"
+    },
+    {
+      "velocity": 22,
+      "gain": 0.05443960556298656,
+      "shape_residual": 2.2963124448555606e-06,
+      "used_for_fit": true,
+      "sha256": "cb9be49cb56d6172ec1114a881522aabf65cd87af6c07ef874bd3e706b7b1583"
+    },
+    {
+      "velocity": 23,
+      "gain": 0.05702817145807652,
+      "shape_residual": 2.2800800818521957e-06,
+      "used_for_fit": true,
+      "sha256": "fa6d8f9b409064411c428bc3d6bb04bdd57bb19a231ec92b097e1e0d4fd2c2e2"
+    },
+    {
+      "velocity": 24,
+      "gain": 0.05969754813191116,
+      "shape_residual": 2.265234186064023e-06,
+      "used_for_fit": true,
+      "sha256": "e8039bdc0995eab45aa1d4b62f9efe63b361673794a5247f1b72d83f2d64d2f0"
+    },
+    {
+      "velocity": 25,
+      "gain": 0.06244893129347373,
+      "shape_residual": 2.2659134216171097e-06,
+      "used_for_fit": true,
+      "sha256": "966fed95a2b15541521b3d977ca0b05f129cd7b189bf19e53af80cba90acaebe"
+    },
+    {
+      "velocity": 26,
+      "gain": 0.06528358005965956,
+      "shape_residual": 2.2480595159844534e-06,
+      "used_for_fit": true,
+      "sha256": "b83f897c9d0502c6d4ca6092d5ab846f8393f418eb9bfc5223122ca310b06c1e"
+    },
+    {
+      "velocity": 27,
+      "gain": 0.06820271804678694,
+      "shape_residual": 2.2429930772468772e-06,
+      "used_for_fit": true,
+      "sha256": "5d2b937acb98c7d739505af6e732593e81faefb5e66127f5beb6bc9f33b31d00"
+    },
+    {
+      "velocity": 28,
+      "gain": 0.07120764815433343,
+      "shape_residual": 2.237207006181257e-06,
+      "used_for_fit": true,
+      "sha256": "fb1d1b5f008d1a5ba9dcf61129e465e0fa381ab0c9ebc8b5bdd3e10b62ad8aa7"
+    },
+    {
+      "velocity": 29,
+      "gain": 0.07429952538252829,
+      "shape_residual": 2.2272885920161728e-06,
+      "used_for_fit": true,
+      "sha256": "4be06df82fc6cd3099110f7a1d726470a573764fcac7f6b8ab6c15ba28c05651"
+    },
+    {
+      "velocity": 30,
+      "gain": 0.07747963977540187,
+      "shape_residual": 2.220463687446627e-06,
+      "used_for_fit": true,
+      "sha256": "4c50b21c304becdb8e1af9a7ebe12ae86f9cea4b20911c99005907b2c0291b3f"
+    },
+    {
+      "velocity": 31,
+      "gain": 0.08074923791468235,
+      "shape_residual": 2.2149730193122282e-06,
+      "used_for_fit": true,
+      "sha256": "e2d6b3a100846193d788109640b5bb142db485cd4390958ac4f21d29a833bd00"
+    },
+    {
+      "velocity": 32,
+      "gain": 0.0841095665965496,
+      "shape_residual": 2.2060439443840103e-06,
+      "used_for_fit": true,
+      "sha256": "5b69f223d04261b35daaf00311592a810fbc50795fc781abc9ab8bf68746b07b"
+    },
+    {
+      "velocity": 33,
+      "gain": 0.08756181519399527,
+      "shape_residual": 2.200659058316223e-06,
+      "used_for_fit": true,
+      "sha256": "b070b9724cb38ca68eb34d3c003931092de5c50798faaa248334df0bbe41be4b"
+    },
+    {
+      "velocity": 34,
+      "gain": 0.09110726638900689,
+      "shape_residual": 2.192583039850268e-06,
+      "used_for_fit": true,
+      "sha256": "0e785deec7d40a2178e2856ea7cf63290b1e0ae329e0b94cc9775b5ac39282c0"
+    },
+    {
+      "velocity": 35,
+      "gain": 0.0947471544607923,
+      "shape_residual": 2.1928528639921462e-06,
+      "used_for_fit": true,
+      "sha256": "1c2607c70c7dcbcecb03ed77e8de730c92aee8f6c06757b7d4e4f09b3a11153f"
+    },
+    {
+      "velocity": 36,
+      "gain": 0.09848276321477861,
+      "shape_residual": 2.1811216055582676e-06,
+      "used_for_fit": true,
+      "sha256": "7b403ef27b7ce784bc1da169a2ec8902736db76d28671ffa940727b7f37abf7a"
+    },
+    {
+      "velocity": 37,
+      "gain": 0.1023152312754044,
+      "shape_residual": 2.1758867635394704e-06,
+      "used_for_fit": true,
+      "sha256": "ff50b76fb46e26d8051a5591b5b46aa8609edc7e6c03ac1164c5ded57c780074"
+    },
+    {
+      "velocity": 38,
+      "gain": 0.10624587456933003,
+      "shape_residual": 2.1526837521908637e-06,
+      "used_for_fit": true,
+      "sha256": "6205725ca3a4bc723cb5c6c144035ccbf460d92814955d5281b30ada027ba268"
+    },
+    {
+      "velocity": 39,
+      "gain": 0.11027592792413182,
+      "shape_residual": 2.155859426742147e-06,
+      "used_for_fit": true,
+      "sha256": "1666b1326ae5aa978b2bec59f1d737aedeb36c43c5cf752c12b547d6d034101b"
+    },
+    {
+      "velocity": 40,
+      "gain": 0.11440663366562344,
+      "shape_residual": 2.1360777918664963e-06,
+      "used_for_fit": true,
+      "sha256": "1aac441c7552bf6931d6f3d98ed489e2fe3689c7f636f46085bf460e32320174"
+    },
+    {
+      "velocity": 41,
+      "gain": 0.11863921759577158,
+      "shape_residual": 2.1284677848052696e-06,
+      "used_for_fit": true,
+      "sha256": "5a808e367df635cd4507346baf7a4e296bec19334fa0098bf0377657d7419def"
+    },
+    {
+      "velocity": 42,
+      "gain": 0.12297490639653073,
+      "shape_residual": 2.1222188126438876e-06,
+      "used_for_fit": true,
+      "sha256": "7dc4d651ec56dd80fa2ceba6b9914fab9ecdec8dd7ea0a93447269b928ddcfa4"
+    },
+    {
+      "velocity": 43,
+      "gain": 0.06764533997503284,
+      "shape_residual": 0.06358572949715555,
+      "used_for_fit": false,
+      "sha256": "d240dbc2a9c09bb0b7bf0bff2210f84fc131b5b59d6185d87902c5c2305eead8"
+    },
+    {
+      "velocity": 44,
+      "gain": 0.13196067357722607,
+      "shape_residual": 2.1039951763283425e-06,
+      "used_for_fit": true,
+      "sha256": "815549e28bc5d49fddcd31332c76468d0d0585ffbcc513af9ca680998bd7b7f0"
+    },
+    {
+      "velocity": 45,
+      "gain": 0.1366132442850521,
+      "shape_residual": 2.094539936940469e-06,
+      "used_for_fit": true,
+      "sha256": "a055dfddcdd131ce270db3e2e68f33b56b3c75012cbefc35051e6e0aa39f6748"
+    },
+    {
+      "velocity": 46,
+      "gain": 0.14137385668542857,
+      "shape_residual": 2.0721365891642427e-06,
+      "used_for_fit": true,
+      "sha256": "fb7175996a36a305e7dfe2ce739e5bf7ba57081a6409e8ae2af135a5ecbd5dda"
+    },
+    {
+      "velocity": 47,
+      "gain": 0.1462438021739878,
+      "shape_residual": 2.0777651740592465e-06,
+      "used_for_fit": true,
+      "sha256": "09f1b6cfed72c17d83544dab44e8e52188a8cc61ba206b551473dc1d0ac11338"
+    },
+    {
+      "velocity": 48,
+      "gain": 0.15122437081961096,
+      "shape_residual": 2.069099394347249e-06,
+      "used_for_fit": true,
+      "sha256": "07ee9477fe092b1aa4566cd76d8ee322c5847c48b6b1fb5d92162e23db053030"
+    },
+    {
+      "velocity": 49,
+      "gain": 0.15631662831920634,
+      "shape_residual": 2.0396215942725232e-06,
+      "used_for_fit": true,
+      "sha256": "f8b2c7bf304272a2dbcf542e06aa7c26f4658952aecc04ae404e6212eb771ea4"
+    },
+    {
+      "velocity": 50,
+      "gain": 0.1615220631714699,
+      "shape_residual": 2.0470435669763443e-06,
+      "used_for_fit": true,
+      "sha256": "4700c97e0bde9f01055b35242fae1357b99c58453f8a09609a48ed415a4b6ab5"
+    },
+    {
+      "velocity": 51,
+      "gain": 0.16684175425285108,
+      "shape_residual": 2.034206194620208e-06,
+      "used_for_fit": true,
+      "sha256": "42fe43ae367b62e6ec8d4e1e7a2333434aa64c4324d2d0360a24a6f879a1f096"
+    },
+    {
+      "velocity": 52,
+      "gain": 0.1722770107866617,
+      "shape_residual": 2.0315853024914964e-06,
+      "used_for_fit": true,
+      "sha256": "26b8f25aa7087fe01ffd17b6af022bb3f885bbe9289965c28441026aab5326bb"
+    },
+    {
+      "velocity": 53,
+      "gain": 0.1778290136951769,
+      "shape_residual": 2.022491629296651e-06,
+      "used_for_fit": true,
+      "sha256": "9e5dfc4edbd7adeacd2944880bce4e6524ef8229076b3fe6f1eabae845b73b56"
+    },
+    {
+      "velocity": 54,
+      "gain": 0.18349909395552536,
+      "shape_residual": 2.01031997462042e-06,
+      "used_for_fit": true,
+      "sha256": "44ff4bdbf6614a88cc5f21f1e1442389b61864bb58a85849af6c1926780363e6"
+    },
+    {
+      "velocity": 55,
+      "gain": 0.18928835040351882,
+      "shape_residual": 2.0028439161518592e-06,
+      "used_for_fit": true,
+      "sha256": "cf53bacd26402342168c4a6cbe41d42bf8e65b4bb69cef307ce24375365cce7b"
+    },
+    {
+      "velocity": 56,
+      "gain": 0.19519814729620938,
+      "shape_residual": 1.9805224825390047e-06,
+      "used_for_fit": true,
+      "sha256": "7c0c062286262f60dac855b071ada90c57626ed443d9ab1d65392f0a807d407b"
+    },
+    {
+      "velocity": 57,
+      "gain": 0.20122971994600652,
+      "shape_residual": 1.970450938457235e-06,
+      "used_for_fit": true,
+      "sha256": "7503b6ecc9a007c7a5e4f4369aad7b86caf81663fcb6af788f9c0bdebab088ba"
+    },
+    {
+      "velocity": 58,
+      "gain": 0.20738415690030482,
+      "shape_residual": 1.968321048587672e-06,
+      "used_for_fit": true,
+      "sha256": "4cccc75615546263606046a664a3859c63ddb686a2f1de3b67d10b7756572087"
+    },
+    {
+      "velocity": 59,
+      "gain": 0.2136629602741499,
+      "shape_residual": 1.9475229488143457e-06,
+      "used_for_fit": true,
+      "sha256": "87e663f09920ac7fb735cc95332860f18874cb04e8ff7ac0faad7ad7887dabe3"
+    },
+    {
+      "velocity": 60,
+      "gain": 0.22006717160720662,
+      "shape_residual": 1.941111721133107e-06,
+      "used_for_fit": true,
+      "sha256": "db8d0d5da53fa1c3bd7cc00a17bdcb29dba04364803ea100b1d1e1a5969a7ae1"
+    },
+    {
+      "velocity": 61,
+      "gain": 0.22659807911364224,
+      "shape_residual": 1.9486347220652116e-06,
+      "used_for_fit": true,
+      "sha256": "dafaf4b552d1549b536b730984fad8e5b75acc8f10b2ec9c423e8cc11431c3d9"
+    },
+    {
+      "velocity": 62,
+      "gain": 0.23325700085860618,
+      "shape_residual": 1.9157636907925037e-06,
+      "used_for_fit": true,
+      "sha256": "6b495e7a683fe5dc1d0473408adb9fce7807d81c306f5ca066b10ab5ad8b0347"
+    },
+    {
+      "velocity": 63,
+      "gain": 0.24004504807611352,
+      "shape_residual": 1.9108594140581977e-06,
+      "used_for_fit": true,
+      "sha256": "cef8e51c4c80c0b443cb6fb9f896019402a6cf35fe0dbea899ebdf161e337fcf"
+    },
+    {
+      "velocity": 64,
+      "gain": 0.24696352191381687,
+      "shape_residual": 1.8970013378601328e-06,
+      "used_for_fit": true,
+      "sha256": "eedd4022a2216501bd2d04127e190533ad6e48150b8abc0f469ac9aa9732d17c"
+    },
+    {
+      "velocity": 65,
+      "gain": 0.25401376619554056,
+      "shape_residual": 1.8620467468816345e-06,
+      "used_for_fit": true,
+      "sha256": "fe9618f21a8f7255ea29b9d277c7797f4d9dd60d0b8dbf23c5a9b82af1203d25"
+    },
+    {
+      "velocity": 66,
+      "gain": 0.2611967685752321,
+      "shape_residual": 1.8867518865778756e-06,
+      "used_for_fit": true,
+      "sha256": "447b56caaa76ced2c42e38b7171f7b4506517bf30791f1277e660ee4565df7b3"
+    },
+    {
+      "velocity": 67,
+      "gain": 0.2685140879085966,
+      "shape_residual": 1.8658366745379424e-06,
+      "used_for_fit": true,
+      "sha256": "87879f115bf6cfbfc9cb6ffe628436eee4a18b64058d9bd21d3188253dd8af38"
+    },
+    {
+      "velocity": 68,
+      "gain": 0.27596670212892604,
+      "shape_residual": 1.8528580586949943e-06,
+      "used_for_fit": true,
+      "sha256": "60765d3fba36ef0fdae54fc48828c38249f39d0ec7cec19001e71b1c432f2e46"
+    },
+    {
+      "velocity": 69,
+      "gain": 0.2835559750694633,
+      "shape_residual": 1.8359939942495964e-06,
+      "used_for_fit": true,
+      "sha256": "9f8f7357f3107c015db110724beec5801871bcbe4c5582f7b37d96bdcce855af"
+    },
+    {
+      "velocity": 70,
+      "gain": 0.29128317153790195,
+      "shape_residual": 1.850955022990414e-06,
+      "used_for_fit": true,
+      "sha256": "9d0744f3a62017a0f6c3872474c731a003e6a840037cdf808e1ec310eac1a641"
+    },
+    {
+      "velocity": 71,
+      "gain": 0.29914945532462284,
+      "shape_residual": 1.815056245272992e-06,
+      "used_for_fit": true,
+      "sha256": "2a80501c482d9aa20fd2832f247093bf9f66a2e399c0d169e93c2bcb185a453c"
+    },
+    {
+      "velocity": 72,
+      "gain": 0.30715617794396427,
+      "shape_residual": 1.8102940196184087e-06,
+      "used_for_fit": true,
+      "sha256": "e3e7832d6905b30cb5e369ad93cba13fc3b5e6c0cbd7f7789bc069b6fa7115c3"
+    },
+    {
+      "velocity": 73,
+      "gain": 0.3153044028777667,
+      "shape_residual": 1.7985151168819284e-06,
+      "used_for_fit": true,
+      "sha256": "bb1b4f782f2ca62eb7e520a683e9d526c43649a7c153e9d996c4d626f1196a98"
+    },
+    {
+      "velocity": 74,
+      "gain": 0.3235955472392458,
+      "shape_residual": 1.7811621196886125e-06,
+      "used_for_fit": true,
+      "sha256": "a1280d3caeee378015cbaf720da4b763b978a934e7662922486ea0e96f20c19e"
+    },
+    {
+      "velocity": 75,
+      "gain": 0.33203062753886564,
+      "shape_residual": 1.7498855425045312e-06,
+      "used_for_fit": true,
+      "sha256": "da335fdd0bb50666c05bc1e2167aa870e8a72a55543948596150a1af1b24e3c5"
+    },
+    {
+      "velocity": 76,
+      "gain": 0.340611237657366,
+      "shape_residual": 1.7976924545242807e-06,
+      "used_for_fit": true,
+      "sha256": "f0ec8f0b58eefe9d927f014bfc712702e779db32536f282a588f011e924fcdfc"
+    },
+    {
+      "velocity": 77,
+      "gain": 0.34933827289136266,
+      "shape_residual": 1.7579157838325554e-06,
+      "used_for_fit": true,
+      "sha256": "c86cd302fc86d65e8320733939c04cb035ad33f0cc0d76970c41ff002f564992"
+    },
+    {
+      "velocity": 78,
+      "gain": 0.3582131631374383,
+      "shape_residual": 1.738890222964629e-06,
+      "used_for_fit": true,
+      "sha256": "9a92d36f93463d446b9424a3616896ebfd2b7017a0243cce5d4132a27feb556d"
+    },
+    {
+      "velocity": 79,
+      "gain": 0.3672371641759333,
+      "shape_residual": 1.7295546879199159e-06,
+      "used_for_fit": true,
+      "sha256": "d6b789bf2ff3d124db549e2afcdbbbe08f2c0d4253987e65de40b5fcca7a0114"
+    },
+    {
+      "velocity": 80,
+      "gain": 0.37641136523007845,
+      "shape_residual": 1.7130117330462294e-06,
+      "used_for_fit": true,
+      "sha256": "0bd194ebb61900a6011693b544cda5ba2d32c0ba63fbf226ca322097ca082699"
+    },
+    {
+      "velocity": 81,
+      "gain": 0.38573713666485954,
+      "shape_residual": 1.6998341105141146e-06,
+      "used_for_fit": true,
+      "sha256": "5906ed06987d5e691af08d8f916df1cd37fcac300cac06c6d2b233f719448aa1"
+    },
+    {
+      "velocity": 82,
+      "gain": 0.3952157394037103,
+      "shape_residual": 1.6771388542667319e-06,
+      "used_for_fit": true,
+      "sha256": "52c004c259fcf2a41193c3c1cc56e08e46c413085c7c4f68c845fec78eeda010"
+    },
+    {
+      "velocity": 83,
+      "gain": 0.404848175963564,
+      "shape_residual": 1.6568245165820706e-06,
+      "used_for_fit": true,
+      "sha256": "ea44dbd346c32948e181557ff0d3c73a29c918e0d842f440d26ee09869e2664b"
+    },
+    {
+      "velocity": 84,
+      "gain": 0.4146360651356451,
+      "shape_residual": 1.6793136816282983e-06,
+      "used_for_fit": true,
+      "sha256": "37e354b09b0109b7a57b1341bec56d4e5d8a0586ea9d03c2c8ee4fa35d768b7f"
+    },
+    {
+      "velocity": 85,
+      "gain": 0.424580352213501,
+      "shape_residual": 1.6644008181793915e-06,
+      "used_for_fit": true,
+      "sha256": "562b903514f02c0e5bfe8080d20b2ebe9be630fc5fd3a5875286d27824d4e781"
+    },
+    {
+      "velocity": 86,
+      "gain": 0.43468240113501955,
+      "shape_residual": 1.6403073211838624e-06,
+      "used_for_fit": true,
+      "sha256": "4f0fe6a066dca8bf5e07ef87696d7a5137740213a45305e6a6879bfb4d5590ca"
+    },
+    {
+      "velocity": 87,
+      "gain": 0.4449435089428271,
+      "shape_residual": 1.626890736005638e-06,
+      "used_for_fit": true,
+      "sha256": "169289b0cac483aeb30da03195e4cf058e616e7619a4d2197af97be24f1f3b7b"
+    },
+    {
+      "velocity": 88,
+      "gain": 0.45536488843383754,
+      "shape_residual": 1.6186237919390447e-06,
+      "used_for_fit": true,
+      "sha256": "821656dc66a347e10eb454e435eb7dbbe7ece14ffb2f4ac3e93251f993391520"
+    },
+    {
+      "velocity": 89,
+      "gain": 0.4659475697293106,
+      "shape_residual": 1.6019146002107931e-06,
+      "used_for_fit": true,
+      "sha256": "350614a74a607361a141b8a9950949221327277fa4fd110da59880b04547faae"
+    },
+    {
+      "velocity": 90,
+      "gain": 0.47669300489217553,
+      "shape_residual": 1.5952955803196824e-06,
+      "used_for_fit": true,
+      "sha256": "e3dab9205f22c06868d4b6f7f08009d94d656c53be51185af63009ae6fa5f986"
+    },
+    {
+      "velocity": 91,
+      "gain": 0.487602460409804,
+      "shape_residual": 1.5807146601555726e-06,
+      "used_for_fit": true,
+      "sha256": "883fb4cd3f9bb13c11d1d338c67e4e3bd8a6382d7b84a98e5ffb67fe63b3d756"
+    },
+    {
+      "velocity": 92,
+      "gain": 0.49867700662398723,
+      "shape_residual": 1.5526774024572014e-06,
+      "used_for_fit": true,
+      "sha256": "222685eb1d92f5a46fff0803486b035ae0d1e6cf5db8a754f97392500fa6f8d3"
+    },
+    {
+      "velocity": 93,
+      "gain": 0.5099179806990467,
+      "shape_residual": 1.6626894761924445e-06,
+      "used_for_fit": true,
+      "sha256": "4d1d43aa4483bc0167d0ce4c64bd7bb19ce154ddc686ada0baaaaefddc615d73"
+    },
+    {
+      "velocity": 94,
+      "gain": 0.5213266182555252,
+      "shape_residual": 1.6148008528117467e-06,
+      "used_for_fit": true,
+      "sha256": "ebfb785d464319b40406a7041e6016e4f749ee48b3933097e6c92df28bb1d7db"
+    },
+    {
+      "velocity": 95,
+      "gain": 0.5329041615532716,
+      "shape_residual": 1.6001212782649575e-06,
+      "used_for_fit": true,
+      "sha256": "89078c903c3e3a20f9577c79d86f5553cc6b1574812c75a217cf6434dd9fe1bd"
+    },
+    {
+      "velocity": 96,
+      "gain": 0.5446520146377211,
+      "shape_residual": 1.5789468691990452e-06,
+      "used_for_fit": true,
+      "sha256": "5b2c2b8a00453f9725edd6523859b8ce63430b54a32fb73c0b6bcc87c46b8c95"
+    },
+    {
+      "velocity": 97,
+      "gain": 0.5565710922977218,
+      "shape_residual": 1.5726916373736786e-06,
+      "used_for_fit": true,
+      "sha256": "5583635375afc7c66931fc77bfd486511604a6819af5992871e069198fc27795"
+    },
+    {
+      "velocity": 98,
+      "gain": 0.5686627916208098,
+      "shape_residual": 1.5588045807764178e-06,
+      "used_for_fit": true,
+      "sha256": "959c7bb63398c00197c1aac85908ae27429e9175a48619d8aedf77be48e2d367"
+    },
+    {
+      "velocity": 99,
+      "gain": 0.580928535513951,
+      "shape_residual": 1.5270678018367512e-06,
+      "used_for_fit": true,
+      "sha256": "6b9c6b8cc59946ac0f3baef244211a23ede2926f1e95a570b122a61f5b822a00"
+    },
+    {
+      "velocity": 100,
+      "gain": 0.5933692775419191,
+      "shape_residual": 1.5395726303063958e-06,
+      "used_for_fit": true,
+      "sha256": "c5cd89eb8f4b895469a36a25f1a574c378b0cb31c5db6897bbdaf9f97c4eeb0e"
+    },
+    {
+      "velocity": 101,
+      "gain": 0.6059863877365332,
+      "shape_residual": 1.5180616117524337e-06,
+      "used_for_fit": true,
+      "sha256": "29a4a420e3b8135a8916dd3b4c2a6f683d51c62ba04500e320095d4e70d50678"
+    },
+    {
+      "velocity": 102,
+      "gain": 0.6187810654574072,
+      "shape_residual": 1.51826055412353e-06,
+      "used_for_fit": true,
+      "sha256": "c74670274fd32b194d11246a1a9f368def43a98b5f1d65c455be7992885f669c"
+    },
+    {
+      "velocity": 103,
+      "gain": 0.6317545627618557,
+      "shape_residual": 1.5135667486977564e-06,
+      "used_for_fit": true,
+      "sha256": "dfdea8e1630763ac0af6346258e3cac86fbe6a9ba2a3c059c1f4e6930ecb1fa3"
+    },
+    {
+      "velocity": 104,
+      "gain": 0.6449082910797597,
+      "shape_residual": 1.4885134095316913e-06,
+      "used_for_fit": true,
+      "sha256": "b76d4107f2582c6ff4f0e083e51ab4036c19a8044a9d969fd6f07b2592ae7e67"
+    },
+    {
+      "velocity": 105,
+      "gain": 0.6582434121159746,
+      "shape_residual": 1.4812294029988645e-06,
+      "used_for_fit": true,
+      "sha256": "f9a4a12e5eaa409cfa1e1c462b815b5f6fccfe77d29731ab4ac8fb574e0d65cb"
+    },
+    {
+      "velocity": 106,
+      "gain": 0.6717608416558427,
+      "shape_residual": 1.4698872968557902e-06,
+      "used_for_fit": true,
+      "sha256": "af9286301e1534d05173c40e53d06d0ec0a96b7ab9fc2aab2c7384d54f802bed"
+    },
+    {
+      "velocity": 107,
+      "gain": 0.6854621723469484,
+      "shape_residual": 1.5162609970436417e-06,
+      "used_for_fit": true,
+      "sha256": "13edc0a7ea7ebd2bc7a17d40546774f41e4994d839782dd030206b939a69e892"
+    },
+    {
+      "velocity": 108,
+      "gain": 0.6993486827901406,
+      "shape_residual": 1.5037276954523494e-06,
+      "used_for_fit": true,
+      "sha256": "a9b50ac5d0d6ac84a397c482d65a9484d0b791742dcd3a0e5b2039b3518f6918"
+    },
+    {
+      "velocity": 109,
+      "gain": 0.7134212822922942,
+      "shape_residual": 1.4985282302293952e-06,
+      "used_for_fit": true,
+      "sha256": "a30e43fd1b92e713e67c7014d18c4b146700cc093154ceabfd794601e49aff22"
+    },
+    {
+      "velocity": 110,
+      "gain": 0.7276815129620722,
+      "shape_residual": 1.4838708772957981e-06,
+      "used_for_fit": true,
+      "sha256": "0d2524ed5786dcbbd08edece55493b8141f958a186f6f3ec3fa3fd4eadfc373c"
+    },
+    {
+      "velocity": 111,
+      "gain": 0.7421303936824488,
+      "shape_residual": 1.4704135351502958e-06,
+      "used_for_fit": true,
+      "sha256": "f4a9d6dac57c1c5ba716c66e7a7279199b535408cb5d7a510609b8a7f5399a58"
+    },
+    {
+      "velocity": 112,
+      "gain": 0.7567693753092716,
+      "shape_residual": 1.4542241851958293e-06,
+      "used_for_fit": true,
+      "sha256": "4f259aa2d8020a77eb4ac427cc0408ec35b754cb3b084a06c5ea32a77446096d"
+    },
+    {
+      "velocity": 113,
+      "gain": 0.7715997268264007,
+      "shape_residual": 1.4709285339769793e-06,
+      "used_for_fit": true,
+      "sha256": "280038fa354b57771a32230710f0d187d660cc8a5cfa5260cf4ca34de9ad4a70"
+    },
+    {
+      "velocity": 114,
+      "gain": 0.7866224218373838,
+      "shape_residual": 1.4742842245401272e-06,
+      "used_for_fit": true,
+      "sha256": "9a442cd1318a6eb1ce6bb96e889f88bd5bbd47febd0ddbcd1f0d89250c541265"
+    },
+    {
+      "velocity": 115,
+      "gain": 0.8018388886877945,
+      "shape_residual": 1.450152930381123e-06,
+      "used_for_fit": true,
+      "sha256": "1c9e75e10ae0275cc93f739b88011ff14cb15889558174442a6c3b7c078c9582"
+    },
+    {
+      "velocity": 116,
+      "gain": 0.8172503898074451,
+      "shape_residual": 1.4675632982053515e-06,
+      "used_for_fit": true,
+      "sha256": "035135aac082400a002f160c885c24c716346267fa9906ae2500b1cd6d50fa8f"
+    },
+    {
+      "velocity": 117,
+      "gain": 0.8328581108374123,
+      "shape_residual": 1.4534906039878126e-06,
+      "used_for_fit": true,
+      "sha256": "589dba385eb10ea0f7f37b99c7d690f23aaa2ab600b4aaa99f3dd9865e0ff481"
+    },
+    {
+      "velocity": 118,
+      "gain": 0.8486631709646459,
+      "shape_residual": 1.4686798600246214e-06,
+      "used_for_fit": true,
+      "sha256": "61ce6715a946885ccaaa6a305f273709d50a49ec451dde810914aeee4ad977eb"
+    },
+    {
+      "velocity": 119,
+      "gain": 0.8646669718662162,
+      "shape_residual": 1.4516294544000832e-06,
+      "used_for_fit": true,
+      "sha256": "3dd6563627ff4df88c88534ca6d677a03bc5f4fb17e550cd55a9a54a2c31e657"
+    },
+    {
+      "velocity": 120,
+      "gain": 0.8808708481947892,
+      "shape_residual": 1.4559266425951385e-06,
+      "used_for_fit": true,
+      "sha256": "f4a7fc9ff7373435867087eeb6e6dedda3313d363e068b4288d0891dbc94a7a9"
+    },
+    {
+      "velocity": 121,
+      "gain": 0.8972757939158328,
+      "shape_residual": 1.4502504274590596e-06,
+      "used_for_fit": true,
+      "sha256": "df3b23b89025af038800c0b827af20c788408ab9a542794677eed4ccd3550634"
+    },
+    {
+      "velocity": 122,
+      "gain": 0.9138832541380372,
+      "shape_residual": 1.4548407257071995e-06,
+      "used_for_fit": true,
+      "sha256": "c463e78716eab2d1386df9ec1adb0c6c70a54d1000d5c312f2507cd89d7d78b8"
+    },
+    {
+      "velocity": 123,
+      "gain": 0.9306943300775871,
+      "shape_residual": 1.4491443169177734e-06,
+      "used_for_fit": true,
+      "sha256": "15cb2665cb7ed2f6f4e8b34c192dac649db5fab4f313e38527c743cf8b8e7ba1"
+    },
+    {
+      "velocity": 124,
+      "gain": 0.9477102668247405,
+      "shape_residual": 1.4571044719698631e-06,
+      "used_for_fit": true,
+      "sha256": "0937b53147e600374ec1655de45361c5e9c2ae96dc9d3e71824c4705a0117600"
+    },
+    {
+      "velocity": 125,
+      "gain": 0.9649324363525281,
+      "shape_residual": 1.4491743148578022e-06,
+      "used_for_fit": true,
+      "sha256": "5b1be077e91dc2da430feaee79f15fb0e59fca3feb574518e351c0db96174a24"
+    },
+    {
+      "velocity": 126,
+      "gain": 0.521541096809075,
+      "shape_residual": 0.490241768388023,
+      "used_for_fit": false,
+      "sha256": "3b60bb1b2e0f070f47d2ee673fbd6fd2f13e72e5148c11da15dc852be994ac79"
+    },
+    {
+      "velocity": 127,
+      "gain": 1.0,
+      "shape_residual": 0.0,
+      "used_for_fit": true,
+      "sha256": "1a47d00ba8f9dafb338c59a85692a371c9cff5eaae4fcea62770530e2f99d529"
+    }
+  ],
+  "native_waveform_checks": [
+    {
+      "velocity": 32,
+      "gate_frames": 2400,
+      "reference_sha256": "2c415010d4a1e12d3f8c011501d02e15d293c4634f7e5074faa6be19accc3b37",
+      "native_sha256": "cabc29ed92e4d7a7ba697391377ea01c026a1af8385ad24041d2df6d534b8236",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 5.46045652919196e-06,
+      "candidate_gain_relative_to_reference": 0.9999959601377103,
+      "gain_corrected_relative_rms_error": 3.673703606402972e-06
+    },
+    {
+      "velocity": 32,
+      "gate_frames": 24000,
+      "reference_sha256": "38387e89960342822aa904f0a984cb301b86dade2bd40fb3335ac2b062b72cbe",
+      "native_sha256": "e73544986520cddc7e58c64b8519d18556d8cee69b1695e145bdb83d5a771bf9",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 8.43193595486051e-06,
+      "candidate_gain_relative_to_reference": 0.9999959517077504,
+      "gain_corrected_relative_rms_error": 7.396544720932159e-06
+    },
+    {
+      "velocity": 32,
+      "gate_frames": 144000,
+      "reference_sha256": "5b69f223d04261b35daaf00311592a810fbc50795fc781abc9ab8bf68746b07b",
+      "native_sha256": "ab7efdafddc1e5e2ea0ad861e58e19e29879576a51ee5c8e1bc0280b8221c20b",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 8.431935789009981e-06,
+      "candidate_gain_relative_to_reference": 0.9999959517079097,
+      "gain_corrected_relative_rms_error": 7.396544619028748e-06
+    },
+    {
+      "velocity": 64,
+      "gate_frames": 2400,
+      "reference_sha256": "f0a48ce1e767a68bf95f78b8c5c2c3106b67f1b1731e38d21be9ed3beb937dae",
+      "native_sha256": "1a472e40b809e741d89df466e36b65d46fabd51916114abaff988839077708f2",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 2.384185791015625e-07,
+      "aligned_peak_error": 2.384185791015625e-07,
+      "aligned_relative_rms_error": 2.1909728175075814e-06,
+      "candidate_gain_relative_to_reference": 0.9999982587757998,
+      "gain_corrected_relative_rms_error": 1.3298496801446791e-06
+    },
+    {
+      "velocity": 64,
+      "gate_frames": 24000,
+      "reference_sha256": "3305629e3db6d17557bda533ff0339494249be4f711ae53d7891d1fe752cb2b3",
+      "native_sha256": "426e2434964bec8596f2ad1af0fe5990a529a9b43ff2746c938952436145d96a",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 2.384185791015625e-07,
+      "aligned_peak_error": 2.384185791015625e-07,
+      "aligned_relative_rms_error": 3.298326610011343e-06,
+      "candidate_gain_relative_to_reference": 0.9999982666654532,
+      "gain_corrected_relative_rms_error": 2.8061556933233455e-06
+    },
+    {
+      "velocity": 64,
+      "gate_frames": 144000,
+      "reference_sha256": "eedd4022a2216501bd2d04127e190533ad6e48150b8abc0f469ac9aa9732d17c",
+      "native_sha256": "3e422862d4c0637e217ab9ff461e771588df07b8676e1c3d4d23cb7307cd43ea",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 2.384185791015625e-07,
+      "aligned_peak_error": 2.384185791015625e-07,
+      "aligned_relative_rms_error": 3.2999581690430737e-06,
+      "candidate_gain_relative_to_reference": 0.9999982666626356,
+      "gain_corrected_relative_rms_error": 2.8080714910121404e-06
+    },
+    {
+      "velocity": 127,
+      "gate_frames": 2400,
+      "reference_sha256": "0a13a1bd2c6254c5c8bd1cbd58aea7ed6d2fb1709ae47f3806f90218e05051aa",
+      "native_sha256": "09e177246abb87a64936a5969ab21c916f832c6cf6104b7ad913f5c550c6caa7",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 4.746363355670923e-07,
+      "candidate_gain_relative_to_reference": 0.9999996523170459,
+      "gain_corrected_relative_rms_error": 3.2310403047593657e-07
+    },
+    {
+      "velocity": 127,
+      "gate_frames": 24000,
+      "reference_sha256": "61ae29ff4e07aa65846a25dd436091081299c65201157f877a13c73f54890a56",
+      "native_sha256": "408fc6d7f0cf642ebb68af84f6ef6f7ce07ad98bb2c7e202b58460321e34f5cf",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 7.439985632297296e-07,
+      "candidate_gain_relative_to_reference": 0.9999996326838313,
+      "gain_corrected_relative_rms_error": 6.470028549364488e-07
+    },
+    {
+      "velocity": 127,
+      "gate_frames": 144000,
+      "reference_sha256": "1a47d00ba8f9dafb338c59a85692a371c9cff5eaae4fcea62770530e2f99d529",
+      "native_sha256": "207e03dc4ca9031100a1269e5d67a5c5092ac0482b1892b39bc0cc76d8f91aa5",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 7.439985487550669e-07,
+      "candidate_gain_relative_to_reference": 0.9999996326838456,
+      "gain_corrected_relative_rms_error": 6.470028464064897e-07
+    }
+  ]
+}

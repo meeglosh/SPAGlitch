@@ -96,9 +96,11 @@ writer. Versions 1/2 remain readable.
   fixed output trim matching the captured dry level. Existing states retain their
   saved Output setting. Internal effect gain staging, other sample rates, pitch
   interpolation and pitch-bend range still require controlled comparisons.
-- Velocity remains linear in the native engine pending a full sweep. Reference
-  velocities 64 and 32 measure 0.24696352 and 0.08410957 relative to velocity 127,
-  so the original curve is measurably nonlinear.
+- Velocity now uses a cubic curve fitted to 124 clean 48 kHz reference takes.
+  Three corrupted takes (12/43/126) were excluded. The native 32/64/127 velocity
+  captures, at all three note gates, match within two 24-bit PCM steps.
+  Other groups/rates and new clean captures of the excluded velocities remain
+  unverified. Details and hashes: `velocity-reference-results.json`.
 - Separate LP/HP memories are implemented, but their initial physical values
   remain provisional until the original parameter mapping is measured.
 - Original graphics, parameter gestures, keyboard colours and exact animation
@@ -149,10 +151,20 @@ sample offset and maximum absolute error 1.1920928955078125e-7 (one 24-bit PCM
 step). These results cover only that sample, rate and velocity. Detailed metrics
 and WAV hashes are in `dry-reference-results.json`. No effect match is claimed.
 
-The expanded host now supports all 127 velocities at 48 kHz and full-velocity
-captures at 44.1/96 kHz. It requires a new live NKI load. Restoring the captured
-Kontakt state in a separate measurement process returned silence, so that path
-was not used as evidence and the experimental batch host was removed.
+The expanded live capture obtained all 127 velocity takes at 48 kHz before
+attempting rate changes. The repeated full-velocity take was bit-identical to
+the first reference. Three takes had large shape residuals and were excluded
+from fitting; clean gains fit a normalized cubic with maximum gain error below
+3.4e-7. Fit: cube-root gains by least squares against MIDI velocity, then normalize
+the fitted line to unity at velocity 127.
+
+Kontakt requested a restart after the sample-rate change; a subsequent capture
+was silent. ALL 44.1/96 kHz data from that session are rejected. The host now locks
+the selected rate before loading Kontakt, uses VST3 offline rendering, and never
+changes rates during capture. Each new rate requires a fresh host/NKI load. The
+revised host needs a new live capture to verify it prevents the observed glitches.
+Restoring the captured Kontakt state in a separate process also returned silence;
+that path was not used as evidence and the experimental batch host was removed.
 
 The companion `SPAGlitchRender` renders the initial nine-file matrix, and
 `scripts/compare_audio.py` reports delay, raw/aligned error, gain mismatch and
