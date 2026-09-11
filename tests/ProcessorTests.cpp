@@ -242,8 +242,8 @@ int main(int argc,char** argv)
                 require(std::abs(glitch::velocityGain(velocity/127.0f)-(double)row["gain"])<1e-6,"Velocity must agree with clean Kontakt measurements");
                 ++verified;
             }
-            require(verified==124,"Verify every clean original velocity measurement");
-            std::cout<<"PASS: 124 clean Kontakt velocity measurements\n";return 0;
+            require(verified==127,"Verify every clean original velocity measurement");
+            std::cout<<"PASS: 127 clean Kontakt velocity measurements\n";return 0;
         }
         if(argc==3 && juce::String(argv[1])=="--library")
         {

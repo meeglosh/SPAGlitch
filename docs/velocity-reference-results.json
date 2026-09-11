@@ -3,15 +3,10 @@
   "formula": "gain = (beta + alpha * MIDI_velocity / 127)^3; MIDI velocity zero remains note-off",
   "alpha": 0.7511153564878088,
   "beta": 0.24888464351219122,
-  "clean_takes": 124,
-  "excluded_corrupt_takes": [
-    12,
-    43,
-    126
-  ],
+  "clean_takes": 127,
+  "excluded_corrupt_takes": [],
   "max_clean_gain_fit_error": 3.3785584646617295e-07,
   "limitations": [
-    "Three corrupted takes excluded; new clean captures still required.",
     "Other groups and sample rates not verified.",
     "44.1/96 kHz takes invalidated by Kontakt restart warning.",
     "Internal effect gain staging and effect sound remain uncalibrated."
@@ -96,10 +91,10 @@
     },
     {
       "velocity": 12,
-      "gain": 0.01737331068376835,
-      "shape_residual": 0.016330683540543164,
-      "used_for_fit": false,
-      "sha256": "10cb7512d94c50263f58f64486873a17707ae4de21e6bdecfc40eaeefd186392"
+      "gain": 0.03272381617257931,
+      "shape_residual": 2.3489913835517734e-06,
+      "used_for_fit": true,
+      "sha256": "dc8c06bf52114e875d2f8c2c14ec764962f143ac85f0bdb4bd0a14bd93c02b7d"
     },
     {
       "velocity": 13,
@@ -313,10 +308,10 @@
     },
     {
       "velocity": 43,
-      "gain": 0.06764533997503284,
-      "shape_residual": 0.06358572949715555,
-      "used_for_fit": false,
-      "sha256": "d240dbc2a9c09bb0b7bf0bff2210f84fc131b5b59d6185d87902c5c2305eead8"
+      "gain": 0.12741497225246853,
+      "shape_residual": 2.1172224534213606e-06,
+      "used_for_fit": true,
+      "sha256": "3370a9906d46c7fe66116444776d6b741e35c63069e6f087af057cef089678d3"
     },
     {
       "velocity": 44,
@@ -894,10 +889,10 @@
     },
     {
       "velocity": 126,
-      "gain": 0.521541096809075,
-      "shape_residual": 0.490241768388023,
-      "used_for_fit": false,
-      "sha256": "3b60bb1b2e0f070f47d2ee673fbd6fd2f13e72e5148c11da15dc852be994ac79"
+      "gain": 0.9823619059560336,
+      "shape_residual": 1.4592477584125662e-06,
+      "used_for_fit": true,
+      "sha256": "60591f5b334bf427a329e9b0c1e2e4123895060034c8c75617290fa15ae777e6"
     },
     {
       "velocity": 127,
@@ -1016,5 +1011,6 @@
       "candidate_gain_relative_to_reference": 0.9999996326838456,
       "gain_corrected_relative_rms_error": 6.470028464064897e-07
     }
-  ]
+  ],
+  "validation": "Fresh fixed-rate offline capture verifies every velocity. Full-velocity waveform is bit-identical to the first reference. Original coefficients retained and verified against all 127 clean takes."
 }

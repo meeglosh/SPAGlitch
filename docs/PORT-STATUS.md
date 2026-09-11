@@ -96,11 +96,10 @@ writer. Versions 1/2 remain readable.
   fixed output trim matching the captured dry level. Existing states retain their
   saved Output setting. Internal effect gain staging, other sample rates, pitch
   interpolation and pitch-bend range still require controlled comparisons.
-- Velocity now uses a cubic curve fitted to 124 clean 48 kHz reference takes.
-  Three corrupted takes (12/43/126) were excluded. The native 32/64/127 velocity
+- Velocity now uses a cubic curve verified against all 127 clean 48 kHz
+  offline reference takes. The native 32/64/127 velocity
   captures, at all three note gates, match within two 24-bit PCM steps.
-  Other groups/rates and new clean captures of the excluded velocities remain
-  unverified. Details and hashes: `velocity-reference-results.json`.
+  Other groups/rates remain unverified. Details and hashes: `velocity-reference-results.json`.
 - Separate LP/HP memories are implemented, but their initial physical values
   remain provisional until the original parameter mapping is measured.
 - Original graphics, parameter gestures, keyboard colours and exact animation
@@ -161,8 +160,9 @@ the fitted line to unity at velocity 127.
 Kontakt requested a restart after the sample-rate change; a subsequent capture
 was silent. ALL 44.1/96 kHz data from that session are rejected. The host now locks
 the selected rate before loading Kontakt, uses VST3 offline rendering, and never
-changes rates during capture. Each new rate requires a fresh host/NKI load. The
-revised host needs a new live capture to verify it prevents the observed glitches.
+changes rates during capture. Each new rate requires a fresh host/NKI load. A fresh
+offline capture validated all 127 velocities with no shape-corrupted takes. Its
+full-velocity waveform is bit-identical to the initial reference.
 Restoring the captured Kontakt state in a separate process also returned silence;
 that path was not used as evidence and the experimental batch host was removed.
 

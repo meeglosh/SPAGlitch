@@ -15,8 +15,8 @@ inline constexpr int firstNote=12;
 // small residual trim after effects until the internal gain staging is isolated.
 inline constexpr float groupGain=0.5011872336f;
 inline constexpr float referenceOutputTrim=0.49165056986916567f/groupGain;
-// Fitted to 124 clean MIDI-velocity captures of the original instrument.
-// Three corrupted takes (12, 43, 126) are excluded from the fit.
+// Fitted to the original instrument and verified against fresh, clean offline
+// captures at all 127 MIDI velocities (48 kHz, Glitch Digital 01).
 inline float velocityGain(float velocity) noexcept
 {
     const float v=juce::jlimit(0.0f,1.0f,velocity);
