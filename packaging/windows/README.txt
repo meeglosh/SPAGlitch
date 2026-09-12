@@ -1,4 +1,4 @@
-SPAGlitch 0.1.3 - unsigned Windows x64 test build
+SPAGlitch 0.1.4 - unsigned Windows x64 test build
 
 Includes the standalone instrument and VST3 plugin. Quit SPAGlitch and your DAW
 before installation. The VST3 installs in Common Files\VST3. Select the formats

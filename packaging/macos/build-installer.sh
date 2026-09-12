@@ -6,6 +6,7 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 sample_dir=$(cd "${3:?Supply the complete sample directory}" && pwd)
 python3 "$script_dir/../validate_samples.py" "$sample_dir"
 source_dir=$(cd "${1:?Supply the bundle directory}" && pwd)
+python3 "$script_dir/validate_binaries.py" "$source_dir"
 output_dir=$(dirname "${2:?Supply the output .pkg path}")
 mkdir -p "$output_dir"
 output_path="$(cd "$output_dir" && pwd)/$(basename "$2")"
@@ -26,7 +27,7 @@ make_component() {
         /usr/libexec/PlistBuddy -c 'Set :0:BundleIsRelocatable false' "$package_work/$name.plist"
     fi
     pkgbuild --root "$root" --component-plist "$package_work/$name.plist" \
-        --identifier "com.silverplatteraudio.spaglitch.$name" --version 0.1.3 \
+        --identifier "com.silverplatteraudio.spaglitch.$name" --version 0.1.4 \
         --install-location / --ownership recommended "$package_work/packages/$name.pkg"
 }
 make_component standalone SPAGlitch.app /Applications
@@ -37,7 +38,7 @@ mkdir -p "$package_work/samples/Library/Application Support/Silverplatter Audio/
 for sample in "$sample_dir"/*.wav; do
     ditto --norsrc --noextattr "$sample" "$package_work/samples/Library/Application Support/Silverplatter Audio/SPAGlitch/Samples/$(basename "$sample")"
 done
-pkgbuild --root "$package_work/samples" --identifier com.silverplatteraudio.spaglitch.samples --version 0.1.3 --install-location / --ownership recommended "$package_work/packages/samples.pkg"
+pkgbuild --root "$package_work/samples" --identifier com.silverplatteraudio.spaglitch.samples --version 0.1.4 --install-location / --ownership recommended "$package_work/packages/samples.pkg"
 
 cat > "$package_work/resources/welcome.html" <<'HTML'
 <html><body style="font-family: -apple-system; color: #203a30">
@@ -53,7 +54,8 @@ cat > "$package_work/distribution.xml" <<'XML'
 <installer-gui-script minSpecVersion="2">
   <title>SPAGlitch</title>
   <welcome file="welcome.html"/>
-  <options customize="always" require-scripts="false" hostArchitectures="arm64"/>
+  <options customize="always" require-scripts="false" hostArchitectures="arm64,x86_64"/>
+  <volume-check><allowed-os-versions><os-version min="13.0"/></allowed-os-versions></volume-check>
   <domains enable_localSystem="true" enable_currentUserHome="false" enable_anywhere="false"/>
   <choices-outline>
     <line choice="samples"/><line choice="standalone"/><line choice="au"/><line choice="vst3"/>
@@ -62,10 +64,10 @@ cat > "$package_work/distribution.xml" <<'XML'
   <choice id="standalone" title="Standalone instrument" description="Installs SPAGlitch.app in Applications." start_selected="true"><pkg-ref id="com.silverplatteraudio.spaglitch.standalone"/></choice>
   <choice id="au" title="Audio Unit (AU)" description="Installs in /Library/Audio/Plug-Ins/Components." start_selected="true"><pkg-ref id="com.silverplatteraudio.spaglitch.au"/></choice>
   <choice id="vst3" title="VST3" description="Installs in /Library/Audio/Plug-Ins/VST3." start_selected="true"><pkg-ref id="com.silverplatteraudio.spaglitch.vst3"/></choice>
-  <pkg-ref id="com.silverplatteraudio.spaglitch.samples" version="0.1.3" onConclusion="none">samples.pkg</pkg-ref>
-  <pkg-ref id="com.silverplatteraudio.spaglitch.standalone" version="0.1.3" onConclusion="none">standalone.pkg</pkg-ref>
-  <pkg-ref id="com.silverplatteraudio.spaglitch.au" version="0.1.3" onConclusion="none">au.pkg</pkg-ref>
-  <pkg-ref id="com.silverplatteraudio.spaglitch.vst3" version="0.1.3" onConclusion="none">vst3.pkg</pkg-ref>
+  <pkg-ref id="com.silverplatteraudio.spaglitch.samples" version="0.1.4" onConclusion="none">samples.pkg</pkg-ref>
+  <pkg-ref id="com.silverplatteraudio.spaglitch.standalone" version="0.1.4" onConclusion="none">standalone.pkg</pkg-ref>
+  <pkg-ref id="com.silverplatteraudio.spaglitch.au" version="0.1.4" onConclusion="none">au.pkg</pkg-ref>
+  <pkg-ref id="com.silverplatteraudio.spaglitch.vst3" version="0.1.4" onConclusion="none">vst3.pkg</pkg-ref>
 </installer-gui-script>
 XML
 productbuild --distribution "$package_work/distribution.xml" --resources "$package_work/resources" \

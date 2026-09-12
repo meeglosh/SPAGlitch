@@ -328,3 +328,15 @@ Key range offers Kontakt keys (original start at MIDI 12). States saved before
 version 4 of the state schema retain Kontakt keys automatically, preserving old
 MIDI arrangements. Users can select Middle keys explicitly in existing projects.
 New states save the selection independently of the recovered DSP runtime state.
+
+## macOS deployment correction (0.1.4)
+
+The 0.1.3 app's LC_BUILD_VERSION recorded minos 26.0, inherited from the build
+machine, and contained only arm64. That prevents Ventura 13 from launching it.
+CMake now defaults to macOS 13.0 with arm64+x86_64; the installer advertises the
+same minimum and both architectures. Packaging checks every standalone/AU/VST3
+Mach-O slice rather than relying only on Info.plist or SDK version.
+
+An actual Ventura machine remains necessary for end-to-end Ventura runtime
+confirmation. Building against a newer SDK with a 13.0 deployment target is not
+itself evidence that the app has been run on Ventura.

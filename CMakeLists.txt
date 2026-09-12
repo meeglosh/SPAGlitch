@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
-project(SPAGlitch VERSION 0.1.3 LANGUAGES C CXX)
+# Pin deployment requirements instead of inheriting the build machine's OS.
+if(CMAKE_HOST_APPLE)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum supported macOS")
+  set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS distribution architectures")
+endif()
+project(SPAGlitch VERSION 0.1.4 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(JUCE_SOURCE_DIR "" CACHE PATH "Existing JUCE checkout (optional)")
