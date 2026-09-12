@@ -1,5 +1,8 @@
 #include "ContentLoader.h"
 #include <cmath>
+#if JUCE_MAC
+#include <sys/stat.h>
+#endif
 
 ContentLoader::ContentLoader():Thread("SPAGlitch sample loader")
 {
@@ -40,6 +43,14 @@ bool ContentLoader::waitUntilReady(int timeoutMs) const
 }
 std::unique_ptr<glitch::Sample> ContentLoader::read(const juce::File& file,juce::String& error,int64_t& memory)
 {
+#if JUCE_MAC
+    struct stat info{};
+    if(::stat(file.getFullPathName().toRawUTF8(),&info)==0 && (info.st_flags & SF_DATALESS)!=0)
+    {
+        error="Cloud-only sample: "+file.getFileName()+". Download/keep the entire folder offline in Finder, then Locate library again.";
+        return {};
+    }
+#endif
     std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(file));
     if(!reader) { error="Cannot read "+file.getFileName()+". Download the library locally, then retry."; return {}; }
     if(reader->numChannels<1 || reader->numChannels>2 || reader->sampleRate<8000 || reader->sampleRate>384000

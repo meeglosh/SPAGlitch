@@ -23,7 +23,7 @@ make_component() {
         /usr/libexec/PlistBuddy -c 'Set :0:BundleIsRelocatable false' "$package_work/$name.plist"
     fi
     pkgbuild --root "$root" --component-plist "$package_work/$name.plist" \
-        --identifier "com.silverplatteraudio.spaglitch.$name" --version 0.1.0 \
+        --identifier "com.silverplatteraudio.spaglitch.$name" --version 0.1.1 \
         --install-location / --ownership recommended "$package_work/packages/$name.pkg"
 }
 make_component standalone SPAGlitch.app /Applications
@@ -53,9 +53,9 @@ cat > "$package_work/distribution.xml" <<'XML'
   <choice id="standalone" title="Standalone instrument" description="Installs SPAGlitch.app in Applications." start_selected="true"><pkg-ref id="com.silverplatteraudio.spaglitch.standalone"/></choice>
   <choice id="au" title="Audio Unit (AU)" description="Installs in /Library/Audio/Plug-Ins/Components." start_selected="true"><pkg-ref id="com.silverplatteraudio.spaglitch.au"/></choice>
   <choice id="vst3" title="VST3" description="Installs in /Library/Audio/Plug-Ins/VST3." start_selected="true"><pkg-ref id="com.silverplatteraudio.spaglitch.vst3"/></choice>
-  <pkg-ref id="com.silverplatteraudio.spaglitch.standalone" version="0.1.0" onConclusion="none">standalone.pkg</pkg-ref>
-  <pkg-ref id="com.silverplatteraudio.spaglitch.au" version="0.1.0" onConclusion="none">au.pkg</pkg-ref>
-  <pkg-ref id="com.silverplatteraudio.spaglitch.vst3" version="0.1.0" onConclusion="none">vst3.pkg</pkg-ref>
+  <pkg-ref id="com.silverplatteraudio.spaglitch.standalone" version="0.1.1" onConclusion="none">standalone.pkg</pkg-ref>
+  <pkg-ref id="com.silverplatteraudio.spaglitch.au" version="0.1.1" onConclusion="none">au.pkg</pkg-ref>
+  <pkg-ref id="com.silverplatteraudio.spaglitch.vst3" version="0.1.1" onConclusion="none">vst3.pkg</pkg-ref>
 </installer-gui-script>
 XML
 productbuild --distribution "$package_work/distribution.xml" --resources "$package_work/resources" \

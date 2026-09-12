@@ -6,7 +6,7 @@
 [Setup]
 AppId={{68D7F995-3813-48B5-A7B4-3154D7D6067D}
 AppName=SPAGlitch
-AppVersion=0.1.0
+AppVersion=0.1.1
 AppPublisher=Silverplatter Audio
 DefaultDirName={autopf}\Silverplatter Audio\SPAGlitch
 DefaultGroupName=Silverplatter Audio
