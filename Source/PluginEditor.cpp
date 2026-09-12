@@ -53,7 +53,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     for(size_t i=0;i<electricImages.size();++i) electricImages[i]=juce::ImageCache::getFromMemory(images[i],sizes[i]);
     title.setText("SPA / GLITCH",juce::dontSendNotification);
     title.setFont(juce::Font(juce::FontOptions("Georgia",30.0f,juce::Font::plain)));
-    load.setButtonText("Locate library");audition.setButtonText("Audition WAV");panic.setButtonText("All notes off");
+    load.setButtonText("Reload sounds");audition.setButtonText("Audition WAV");panic.setButtonText("All notes off");
     motion.setToggleState(true,juce::dontSendNotification);
     motion.setTooltip("Disable animated lightning, sparks and twitching while retaining the audio-reactive x-ray glow");
     addAndMakeVisible(motion);
@@ -104,7 +104,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
               if(single) safe->processor.loadSample(fc.getResult()); else safe->processor.loadLibrary(fc.getResult());
           });
     };
-    load.onClick=[choose]{choose(false);}; audition.onClick=[choose]{choose(true);};
+    load.onClick=[this]{processor.loadInstalledLibrary();}; audition.onClick=[choose]{choose(true);};
     panic.onClick=[this]{processor.allNotesOff();};
     status.setFont(juce::Font(juce::FontOptions(11.5f)));
     status.setColour(juce::Label::textColourId,muted);

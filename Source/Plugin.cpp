@@ -18,13 +18,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout GlitchProcessor::layout()
     p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output",-60.0f,6.0f,0.0f));
     return p;
 }
-GlitchProcessor::GlitchProcessor()
+juce::File GlitchProcessor::installedLibrary()
+{
+#if JUCE_MAC
+    return juce::File("/Library/Application Support/Silverplatter Audio/SPAGlitch/Samples");
+#else
+    return juce::File::getSpecialLocation(juce::File::commonApplicationDataDirectory).getChildFile("Silverplatter Audio/SPAGlitch/Samples");
+#endif
+}
+GlitchProcessor::GlitchProcessor(juce::File factory)
  : AudioProcessor(BusesProperties().withOutput("Output",juce::AudioChannelSet::stereo(),true)),
-   parameters(*this,nullptr,"SPAGlitch",layout())
+   parameters(*this,nullptr,"SPAGlitch",layout()),factoryLibrary(std::move(factory))
 {
     const char* ids[]{"category","pitch","lofi","drive","cutoff","resonance","randomness","destroy","filter","gain"};
     for(size_t i=0;i<values.size();++i) values[i]=parameters.getRawParameterValue(ids[i]);
     publishedRuntime.write(engine.runtimeState());
+    if(factoryLibrary.isDirectory()) loadInstalledLibrary();
 }
 GlitchProcessor::~GlitchProcessor() { engine.setBank(nullptr); }
 glitch::Controls GlitchProcessor::controls() const noexcept
@@ -118,7 +127,9 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
                     runtime[i]=(int)state.getProperty("runtime"+juce::String((int)i),runtime[i]);
             pendingRuntime.write(runtime);
             const bool legacy=state.hasProperty("samplePath") && !state.hasProperty("contentPath");
-            content.request(state.getProperty(legacy?"samplePath":"contentPath").toString(),legacy || (bool)state.getProperty("singleSample",false));
+            const bool single=legacy || (bool)state.getProperty("singleSample",false);
+            if(!single && factoryLibrary.isDirectory()) loadInstalledLibrary();
+            else content.request(state.getProperty(legacy?"samplePath":"contentPath").toString(),single);
         }
 }
 juce::AudioProcessorEditor* GlitchProcessor::createEditor() { return new GlitchEditor(*this); }

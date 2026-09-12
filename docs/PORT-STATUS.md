@@ -301,3 +301,17 @@ configuration; reload the reference copy before ordinary listening.
 
 Windows x64 VST3/standalone build and all four test suites passed for DSP repair
 commit 02dc371, run 34650462927. Windows DAW/audio-device validation remains open.
+
+## Factory content installation (0.1.2)
+
+The Mac installer includes all 479 original factory samples under
+`/Library/Application Support/Silverplatter Audio/SPAGlitch/Samples`. Windows
+packaging targets `%ProgramData%/Silverplatter Audio/SPAGlitch/Samples`. New
+instances load this location automatically; non-audition project restores prefer
+installed factory content over old external paths. The primary library action
+is now Reload sounds. Single-WAV audition remains an explicit separate action.
+
+Packaging verifies sample hashes against `packaging/sample-manifest.json`.
+Raw samples remain outside git. Windows factory installer jobs are gated by
+`SPAGLITCH_FACTORY_SAMPLES_ENABLED`; enabling them requires an authorized private
+build-input source. No sample upload has been performed at this revision.

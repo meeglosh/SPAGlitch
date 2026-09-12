@@ -27,7 +27,7 @@ private:
     std::unique_ptr<glitch::Bank> load(const juce::String&,bool,uint64_t,juce::String& error);
     std::unique_ptr<glitch::Sample> read(const juce::File&,juce::String&,int64_t& memory);
     mutable juce::CriticalSection lock;
-    juce::String requestedPath, message="Choose the Glitch Bundle sample folder to begin.";
+    juce::String requestedPath, message="Factory sounds unavailable. Reinstall SPAGlitch.";
     bool audition=false;
     std::atomic<uint64_t> generation{0},readyGeneration{0};
     std::atomic<bool> loading{false};

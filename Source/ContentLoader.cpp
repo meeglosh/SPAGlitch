@@ -47,7 +47,7 @@ std::unique_ptr<glitch::Sample> ContentLoader::read(const juce::File& file,juce:
     struct stat info{};
     if(::stat(file.getFullPathName().toRawUTF8(),&info)==0 && (info.st_flags & SF_DATALESS)!=0)
     {
-        error="Cloud-only sample: "+file.getFileName()+". Download/keep the entire folder offline in Finder, then Locate library again.";
+        error="Cloud-only sample: "+file.getFileName()+". Keep the entire folder offline or reinstall factory sounds, then Reload sounds.";
         return {};
     }
 #endif
@@ -116,7 +116,7 @@ void ContentLoader::run()
           {
               if(bank)
               {
-                  message=bank->size==0 ? "Choose the Glitch Bundle sample folder to begin." : juce::String(bank->size)+" samples ready";
+                  message=bank->size==0 ? "Factory sounds unavailable. Reinstall SPAGlitch." : juce::String(bank->size)+" samples ready";
                   delete pending.exchange(bank.release(),std::memory_order_acq_rel);
                   fraction=1; readyGeneration=id;
               }

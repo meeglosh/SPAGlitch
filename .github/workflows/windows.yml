@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # Needed for draft-release inputs when factory packaging is enabled.
 
 jobs:
   windows-x64:
@@ -17,6 +17,17 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - name: Fetch factory samples for installers
+        if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release download spaglitch-factory-build-inputs --repo $env:GITHUB_REPOSITORY --pattern factory-samples.zip --dir local
+          if ($LASTEXITCODE -ne 0) { throw 'Factory sample download failed' }
+          Expand-Archive local/factory-samples.zip local/factory-samples
+          python packaging/validate_samples.py local/factory-samples
+          if ($LASTEXITCODE -ne 0) { throw 'Factory sample verification failed' }
       - name: Configure Visual Studio x64
         run: cmake --preset windows-x64
       - name: Build VST3, standalone and tests
@@ -37,6 +48,7 @@ jobs:
             }
           }
       - name: Build unsigned installer
+        if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
         shell: pwsh
         run: |
           $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
@@ -45,6 +57,7 @@ jobs:
           & $compiler "/DBuildTag=$tag" packaging/windows/SPAGlitch.iss
           if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
       - name: Smoke test installation and uninstall
+        if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
         shell: pwsh
         run: |
           $setup = (Get-ChildItem build/installer/*Setup.exe).FullName
@@ -53,6 +66,10 @@ jobs:
           $process = Start-Process $setup -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
           if (!(Test-Path "$destination/SPAGlitch.exe") -or !(Test-Path "$plugin/Contents/x86_64-win/SPAGlitch.vst3")) { throw 'Installed payload missing' }
+          python packaging/validate_samples.py "$env:ProgramData/Silverplatter Audio/SPAGlitch/Samples"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed samples invalid' }
+          & build/windows-x64/Release/SPAGlitchTests.exe --installed-library
+          if ($LASTEXITCODE -ne 0) { throw 'Automatic factory playback failed' }
           $app = Start-Process "$destination/SPAGlitch.exe" -PassThru
           Start-Sleep -Seconds 5
           if ($app.HasExited) { throw 'Installed standalone exited unexpectedly' }
@@ -61,7 +78,9 @@ jobs:
           $uninstall = Start-Process "$destination/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
           if ($uninstall.ExitCode -ne 0) { throw 'Uninstall failed' }
           if ((Test-Path "$destination/SPAGlitch.exe") -or (Test-Path "$plugin/Contents/x86_64-win/SPAGlitch.vst3")) { throw 'Uninstall left installed binaries' }
+          if (Test-Path "$env:ProgramData/Silverplatter Audio/SPAGlitch/Samples/Glitch Digital 01.wav") { throw 'Uninstall left factory samples' }
       - name: Upload unsigned Windows installer
+        if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
         uses: actions/upload-artifact@v6
         with:
           name: SPAGlitch-Windows-x64-Installer

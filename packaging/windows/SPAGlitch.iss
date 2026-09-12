@@ -6,7 +6,7 @@
 [Setup]
 AppId={{68D7F995-3813-48B5-A7B4-3154D7D6067D}
 AppName=SPAGlitch
-AppVersion=0.1.1
+AppVersion=0.1.2
 AppPublisher=Silverplatter Audio
 DefaultDirName={autopf}\Silverplatter Audio\SPAGlitch
 DefaultGroupName=Silverplatter Audio
@@ -30,6 +30,7 @@ Name: "custom"; Description: "Custom installation"; Flags: iscustom
 Name: "standalone"; Description: "Standalone instrument"; Types: full
 Name: "vst3"; Description: "VST3 plugin"; Types: full
 [Files]
+Source: "{#Root}\local\factory-samples\*.wav"; DestDir: "{commonappdata}\Silverplatter Audio\SPAGlitch\Samples"; Flags: ignoreversion
 Source: "{#Binaries}\Standalone\SPAGlitch.exe"; DestDir: "{app}"; Components: standalone; Flags: ignoreversion
 Source: "{#Binaries}\VST3\SPAGlitch.vst3\*"; DestDir: "{commoncf64}\VST3\SPAGlitch.vst3"; Components: vst3; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "README.txt"; DestDir: "{app}"; Flags: ignoreversion

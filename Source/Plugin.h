@@ -4,7 +4,9 @@
 class GlitchProcessor final : public juce::AudioProcessor
 {
 public:
-    GlitchProcessor();
+    static juce::File installedLibrary();
+    explicit GlitchProcessor(juce::File factory=installedLibrary());
+    void loadInstalledLibrary() { content.request(factoryLibrary.getFullPathName()); }
     ~GlitchProcessor() override;
     void prepareToPlay(double,int) override;
     void releaseResources() override {}
@@ -37,6 +39,7 @@ public:
     std::atomic<float> visualPeak{0};
     std::atomic<int> playingCategory{0},playingPitch{0},voiceCount{0};
 private:
+    juce::File factoryLibrary;
     // Each mailbox has one writer. Atomics make a rejected read race-free;
     // the audio thread tries once and defers a concurrent restore to next block.
     struct RuntimeMailbox

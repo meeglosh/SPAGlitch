@@ -87,7 +87,7 @@ struct Scratch
 static void processorTests(const juce::File& root)
 {
     auto file=root.getChildFile("sample.wav");
-    GlitchProcessor p; p.prepareToPlay(48000,512); juce::AudioBuffer<float> b(2,512);
+    GlitchProcessor p(juce::File{}); p.prepareToPlay(48000,512); juce::AudioBuffer<float> b(2,512);
     render(p,b); require(b.getMagnitude(0,512)==0,"Empty bank should be silent");
     p.loadSample(file); require(!p.waitForContent(),"Missing WAV must fail");
     writeWave(file);
@@ -101,7 +101,7 @@ static void processorTests(const juce::File& root)
     render(p,b);require(p.visualPeak.load()==0,"Silence must not retrigger the visual");
     parameter(p,"gain",-18); parameter(p,"pitch",7);
     juce::MemoryBlock state; p.getStateInformation(state);
-    GlitchProcessor restored; restored.prepareToPlay(48000,512);
+    GlitchProcessor restored(juce::File{}); restored.prepareToPlay(48000,512);
     restored.setStateInformation(state.getData(),(int)state.getSize());
     require(restored.waitForContent(),"State must reload its WAV");
     require(std::abs(restored.parameters.getRawParameterValue("gain")->load()+18)<0.001f,"Gain state recall");
@@ -124,7 +124,7 @@ static void processorTests(const juce::File& root)
     parameter(restored,"filter",0);render(restored,b);
     parameter(restored,"cutoff",800000);render(restored,b);
     restored.getStateInformation(state);
-    GlitchProcessor recalled;recalled.prepareToPlay(48000,512);recalled.setStateInformation(state.getData(),(int)state.getSize());
+    GlitchProcessor recalled(juce::File{});recalled.prepareToPlay(48000,512);recalled.setStateInformation(state.getData(),(int)state.getSize());
     // Saving again before the first callback must preserve the pending runtime.
     juce::MemoryBlock pending;recalled.getStateInformation(pending);
     auto saved=juce::AudioProcessor::getXmlFromBinary(pending.getData(),(int)pending.getSize());
@@ -140,7 +140,7 @@ static void libraryTests(const juce::File& root)
     for(int group=0;group<9;++group)
         for(int i=1;i<=glitch::counts[(size_t)group];++i)
             writeWave(folder.getChildFile(juce::String(glitch::categories[(size_t)group])+" "+juce::String(i).paddedLeft('0',2)+".wav"),0.05f*(group+1),960);
-    GlitchProcessor p; p.prepareToPlay(48000,512); p.loadLibrary(folder);
+    GlitchProcessor p(juce::File{}); p.prepareToPlay(48000,512); p.loadLibrary(folder);
     require(p.waitForContent(),"All 479 category samples must load");
     juce::AudioBuffer<float> b(2,512);
     for(int group=0;group<9;++group)
@@ -157,7 +157,7 @@ static void libraryTests(const juce::File& root)
     for(int i=0;i<100;++i) { p.allNotesOff(); note(p,b,106); finite(b); require(p.playingCategory.load()==2,"High note must select the only eligible category"); }
     parameter(p,"randomness",0); parameter(p,"category",0); parameter(p,"destroy",1); parameter(p,"filter",1);
     juce::MemoryBlock state; p.getStateInformation(state);
-    GlitchProcessor restored; restored.prepareToPlay(48000,512); restored.setNonRealtime(true);
+    GlitchProcessor restored(juce::File{}); restored.prepareToPlay(48000,512); restored.setNonRealtime(true);
     restored.setStateInformation(state.getData(),(int)state.getSize());
     note(restored,b,12); require(b.getMagnitude(0,512)>0,"Offline first block must await content restore");
     std::cout<<"PASS: 479 mappings, nine categories, unmapped notes, Boom safety, offline restore\n";
@@ -419,9 +419,22 @@ int main(int argc,char** argv)
             require(verified==127,"Verify every clean original velocity measurement");
             std::cout<<"PASS: 127 clean Kontakt velocity measurements\n";return 0;
         }
+        if((argc==2 && juce::String(argv[1])=="--installed-library") || (argc==3 && juce::String(argv[1])=="--factory-library"))
+        {
+            GlitchProcessor p(argc==3 ? juce::File(argv[2]) : GlitchProcessor::installedLibrary());p.prepareToPlay(48000,512);
+            require(p.waitForContent(30000),"Factory library did not auto-load");
+            juce::AudioBuffer<float> b(2,512);
+            for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,12);require(b.getMagnitude(0,512)>0,"Factory category silent"); }
+            auto empty=juce::ValueTree("SPAGlitch");empty.setProperty("contentPath","/missing/old/library",nullptr);
+            juce::MemoryBlock state;juce::AudioProcessor::copyXmlToBinary(*empty.createXml(),state);
+            p.setStateInformation(state.getData(),(int)state.getSize());
+            require(p.waitForContent(30000),"Old project must fall back to installed factory library");
+            note(p,b,12);require(b.getMagnitude(0,512)>0,"Restored factory library silent");
+            std::cout<<"PASS: automatic factory loading, all nine categories, and stale project path recovery\n";return 0;
+        }
         if(argc==3 && juce::String(argv[1])=="--library")
         {
-            GlitchProcessor p;p.prepareToPlay(48000,512);p.loadLibrary(juce::File(argv[2]));
+            GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);p.loadLibrary(juce::File(argv[2]));
             require(p.waitForContent(180000),p.contentStatus().toRawUTF8());
             juce::AudioBuffer<float> b(2,512);
             for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,12);finite(b);require(b.getMagnitude(0,512)>0,"Real library category should sound"); }
@@ -429,7 +442,7 @@ int main(int argc,char** argv)
         }
         if(argc==3 && juce::String(argv[1])=="--animation-preview")
         {
-            GlitchProcessor p;std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+            GlitchProcessor p(juce::File{});std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
             juce::File directory(argv[2]);require(directory.createDirectory().wasOk(),"Preview directory failed");
             for(int frame=0;frame<90;++frame)
             {
@@ -445,7 +458,7 @@ int main(int argc,char** argv)
         }
         if(argc==3 && (juce::String(argv[1])=="--screenshot" || juce::String(argv[1])=="--screenshot-active"))
         {
-            GlitchProcessor p; std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+            GlitchProcessor p(juce::File{}); std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
             if(juce::String(argv[1])=="--screenshot-active")
             {
                 p.visualPeak.store(.7f);
