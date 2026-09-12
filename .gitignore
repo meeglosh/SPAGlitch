@@ -11,3 +11,6 @@
 
 __pycache__/
 *.pyc
+
+# Local distribution bundles contain installers and original audio.
+/dist/

@@ -15,6 +15,15 @@ inline constexpr std::array<const char*,9> categories {
     "Glitch Heavy Long", "Glitch Heavy Short", "Glitch Rapid Modulation", "Glitch Squelchy", "Glitch Percussive" };
 inline constexpr std::array<int,9> counts {46,14,95,76,24,65,32,50,77};
 inline constexpr int firstNote=12;
+inline constexpr int bankFirstNote(int group,bool middleKeys) noexcept
+{
+    return middleKeys ? (group==2 ? 24 : 48) : firstNote;
+}
+inline constexpr bool noteInBank(int group,int note,bool middleKeys) noexcept
+{
+    return group>=0 && group<9 && note>=bankFirstNote(group,middleKeys)
+        && note<bankFirstNote(group,middleKeys)+counts[(size_t)group];
+}
 // Measured full-velocity dry level, relative to the original PCM. Keep the
 // small residual trim after effects until the internal gain staging is isolated.
 inline constexpr float groupGain=0.5f;
@@ -46,11 +55,11 @@ struct Bank
     std::unique_ptr<Sample> audition;
     uint64_t generation=0;
     int size=0;
-    const Sample* get(int group,int note) const noexcept
+    const Sample* get(int group,int note,bool middleKeys=false) const noexcept
     {
         if(audition) return audition.get();
-        if(group<0 || group>=9 || note<firstNote || note>=firstNote+counts[(size_t)group]) return nullptr;
-        return samples[(size_t)group][(size_t)(note-firstNote)].get();
+        if(!noteInBank(group,note,middleKeys)) return nullptr;
+        return samples[(size_t)group][(size_t)(note-bankFirstNote(group,middleKeys))].get();
     }
 };
 struct Controls
@@ -58,6 +67,7 @@ struct Controls
     int category=0, pitch=0, lofi=4, drive=488095, cutoff=476191, resonance=49;
     int randomness=0, destroy=1, filter=1;
     float gainDb=0;
+    bool middleKeys=false;
 };
 struct NoteSettings
 {

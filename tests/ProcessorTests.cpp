@@ -140,7 +140,7 @@ static void libraryTests(const juce::File& root)
     for(int group=0;group<9;++group)
         for(int i=1;i<=glitch::counts[(size_t)group];++i)
             writeWave(folder.getChildFile(juce::String(glitch::categories[(size_t)group])+" "+juce::String(i).paddedLeft('0',2)+".wav"),0.05f*(group+1),960);
-    GlitchProcessor p(juce::File{}); p.prepareToPlay(48000,512); p.loadLibrary(folder);
+    GlitchProcessor p(juce::File{}); p.prepareToPlay(48000,512); parameter(p,"keyRange",0); p.loadLibrary(folder);
     require(p.waitForContent(),"All 479 category samples must load");
     juce::AudioBuffer<float> b(2,512);
     for(int group=0;group<9;++group)
@@ -160,6 +160,34 @@ static void libraryTests(const juce::File& root)
     GlitchProcessor restored(juce::File{}); restored.prepareToPlay(48000,512); restored.setNonRealtime(true);
     restored.setStateInformation(state.getData(),(int)state.getSize());
     note(restored,b,12); require(b.getMagnitude(0,512)>0,"Offline first block must await content restore");
+    parameter(p,"keyRange",1);
+    glitch::Bank mappingBank;
+    for(int group=0;group<9;++group)
+    {
+        const int start=glitch::bankFirstNote(group,true);
+        require(start>=24 && start+glitch::counts[(size_t)group]<=128,"Middle mapping must fit MIDI range");
+        for(int i=0;i<glitch::counts[(size_t)group];++i)
+        {
+            mappingBank.samples[(size_t)group][(size_t)i]=std::make_unique<glitch::Sample>();
+            require(mappingBank.get(group,start+i,true)==mappingBank.get(group,12+i,false),"Remapping must preserve every sample's identity and order");
+        }
+        p.allNotesOff();parameter(p,"category",(float)group);note(p,b,start);
+        require(b.getMagnitude(0,512)>0,"Middle first key must play");
+        p.allNotesOff();note(p,b,start+glitch::counts[(size_t)group]-1);
+        require(b.getMagnitude(0,512)>0,"Middle last key must play");
+        p.allNotesOff();note(p,b,start-1);require(b.getMagnitude(0,512)==0,"Below middle mapping must be silent");
+    }
+    glitch::Controls middle;middle.middleKeys=true;middle.randomness=100;glitch::Random rng;
+    int seen=0;
+    for(int i=0;i<2000;++i) { auto selected=glitch::forNote(middle,60,rng);require(glitch::noteInBank(selected.category,60,true),"Middle Boom must pick mapped banks");seen|=1<<selected.category; }
+    require(seen==511,"Middle C must reach all nine banks in Boom mode");
+    p.getStateInformation(state);restored.setStateInformation(state.getData(),(int)state.getSize());
+    require(restored.parameters.getRawParameterValue("keyRange")->load()==1,"New projects must retain middle mapping");
+    auto old=juce::AudioProcessor::getXmlFromBinary(state.getData(),(int)state.getSize());old->setAttribute("stateVersion",3);
+    for(auto* child=old->getFirstChildElement();child!=nullptr;)
+    { auto* next=child->getNextElement();if(child->getStringAttribute("id")=="keyRange")old->removeChildElement(child,true);child=next; }
+    juce::AudioProcessor::copyXmlToBinary(*old,state);restored.setStateInformation(state.getData(),(int)state.getSize());
+    require(restored.parameters.getRawParameterValue("keyRange")->load()==0,"Old projects must retain Kontakt mapping");
     std::cout<<"PASS: 479 mappings, nine categories, unmapped notes, Boom safety, offline restore\n";
 }
 static void engineTests()
@@ -424,7 +452,7 @@ int main(int argc,char** argv)
             GlitchProcessor p(argc==3 ? juce::File(argv[2]) : GlitchProcessor::installedLibrary());p.prepareToPlay(48000,512);
             require(p.waitForContent(30000),"Factory library did not auto-load");
             juce::AudioBuffer<float> b(2,512);
-            for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,12);require(b.getMagnitude(0,512)>0,"Factory category silent"); }
+            for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,48);require(b.getMagnitude(0,512)>0,"Factory category silent"); }
             auto empty=juce::ValueTree("SPAGlitch");empty.setProperty("contentPath","/missing/old/library",nullptr);
             juce::MemoryBlock state;juce::AudioProcessor::copyXmlToBinary(*empty.createXml(),state);
             p.setStateInformation(state.getData(),(int)state.getSize());
@@ -437,7 +465,7 @@ int main(int argc,char** argv)
             GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);p.loadLibrary(juce::File(argv[2]));
             require(p.waitForContent(180000),p.contentStatus().toRawUTF8());
             juce::AudioBuffer<float> b(2,512);
-            for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,12);finite(b);require(b.getMagnitude(0,512)>0,"Real library category should sound"); }
+            for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,48);finite(b);require(b.getMagnitude(0,512)>0,"Real library category should sound"); }
             std::cout<<"PASS: original 479-sample library loaded and all nine categories render\n";return 0;
         }
         if(argc==3 && juce::String(argv[1])=="--animation-preview")

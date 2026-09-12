@@ -16,6 +16,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GlitchProcessor::layout()
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"destroy",1},"Destroy",juce::StringArray{"On","Off"},1));
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"filter",1},"Filter",juce::StringArray{"High-pass","Off","Low-pass"},1));
     p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output",-60.0f,6.0f,0.0f));
+    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"keyRange",1},"Key range",juce::StringArray{"Kontakt keys","Middle keys"},1));
     return p;
 }
 juce::File GlitchProcessor::installedLibrary()
@@ -30,7 +31,7 @@ GlitchProcessor::GlitchProcessor(juce::File factory)
  : AudioProcessor(BusesProperties().withOutput("Output",juce::AudioChannelSet::stereo(),true)),
    parameters(*this,nullptr,"SPAGlitch",layout()),factoryLibrary(std::move(factory))
 {
-    const char* ids[]{"category","pitch","lofi","drive","cutoff","resonance","randomness","destroy","filter","gain"};
+    const char* ids[]{"category","pitch","lofi","drive","cutoff","resonance","randomness","destroy","filter","gain","keyRange"};
     for(size_t i=0;i<values.size();++i) values[i]=parameters.getRawParameterValue(ids[i]);
     publishedRuntime.write(engine.runtimeState());
     if(factoryLibrary.isDirectory()) loadInstalledLibrary();
@@ -41,7 +42,7 @@ glitch::Controls GlitchProcessor::controls() const noexcept
     glitch::Controls c;
     c.category=(int)values[0]->load(); c.pitch=(int)values[1]->load(); c.lofi=(int)values[2]->load();
     c.drive=(int)values[3]->load(); c.cutoff=(int)values[4]->load(); c.resonance=(int)values[5]->load();
-    c.randomness=(int)values[6]->load(); c.destroy=(int)values[7]->load(); c.filter=(int)values[8]->load(); c.gainDb=values[9]->load();
+    c.randomness=(int)values[6]->load(); c.destroy=(int)values[7]->load(); c.filter=(int)values[8]->load(); c.gainDb=values[9]->load(); c.middleKeys=values[10]->load()>.5f;
     return c;
 }
 bool GlitchProcessor::isBusesLayoutSupported(const BusesLayout& l) const
@@ -96,7 +97,7 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
 void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)
 {
     auto state=parameters.copyState();
-    state.setProperty("stateVersion",3,nullptr);
+    state.setProperty("stateVersion",4,nullptr);
     glitch::Engine::RuntimeState runtime; uint64_t revision=0;
     while(!pendingRuntime.read(runtime,revision)) juce::Thread::yield();
     if(revision==appliedRuntime.load())
@@ -115,6 +116,13 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
         if(xml->hasTagName("SPAGlitch"))
         {
             auto state=juce::ValueTree::fromXml(*xml);
+            // Older projects keep their original MIDI/sample mapping.
+            if((int)state.getProperty("stateVersion",1)<4)
+            {
+                auto mapping=state.getChildWithProperty("id","keyRange");
+                if(!mapping.isValid()) { mapping=juce::ValueTree("PARAM");mapping.setProperty("id","keyRange",nullptr);state.addChild(mapping,-1,nullptr); }
+                mapping.setProperty("value",0,nullptr);
+            }
             parameters.replaceState(state);
             const auto seed=(uint32_t)(juce::int64)state.getProperty("randomSeed",(juce::int64)0x47544348u);
             restoredSeed=seed ? seed : 1;

@@ -57,6 +57,9 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     motion.setToggleState(true,juce::dontSendNotification);
     motion.setTooltip("Disable animated lightning, sparks and twitching while retaining the audio-reactive x-ray glow");
     addAndMakeVisible(motion);
+    keyRangeLabel.setText("KEY RANGE",juce::dontSendNotification);
+    keyRange.addItemList({"Kontakt keys","Middle keys"},1);
+    keyRangeAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"keyRange",keyRange);
     categoryLabel.setText("SAMPLE BANK",juce::dontSendNotification);
     destroyLabel.setText("DESTROY",juce::dontSendNotification);
     filterLabel.setText("FILTER",juce::dontSendNotification);
@@ -91,8 +94,8 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     knobs[1].updateText(); knobs[3].updateText();
     knobs[2].setTextValueSuffix(" st"); knobs[4].setTextValueSuffix(" %");
     knobs[5].setTextValueSuffix(" %"); knobs[6].setTextValueSuffix(" dB");
-    keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(12); keyboard.setKeyWidth(24);
-    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&destroyLabel,&filterLabel,&category,&destroy,&filter,&load,&audition,&panic,&keyboard}) addAndMakeVisible(c);
+    keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(48); keyboard.setKeyWidth(24);
+    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&destroyLabel,&filterLabel,&keyRangeLabel,&keyRange,&category,&destroy,&filter,&load,&audition,&panic,&keyboard}) addAndMakeVisible(c);
     auto choose=[this](bool single)
     {
         chooser=std::make_unique<juce::FileChooser>(single?"Choose a WAV":"Choose the Glitch Bundle or sample folder",juce::File{},single?"*.wav":"");
@@ -109,7 +112,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     status.setFont(juce::Font(juce::FontOptions(11.5f)));
     status.setColour(juce::Label::textColourId,muted);
     effective.setFont(juce::Font(juce::FontOptions(11.5f)));
-    for(auto* label:{&categoryLabel,&destroyLabel,&filterLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
+    for(auto* label:{&categoryLabel,&destroyLabel,&filterLabel,&keyRangeLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
     keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xfff8f6ef));
     keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,paper);
     keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
@@ -120,7 +123,8 @@ void GlitchEditor::resized()
 {
     title.setBounds(28,18,290,40);
     load.setBounds(800,28,134,30);audition.setBounds(944,28,148,30);
-    categoryLabel.setBounds(368,16,280,16);category.setBounds(368,36,330,32);
+    categoryLabel.setBounds(368,16,248,16);category.setBounds(368,36,248,32);
+    keyRangeLabel.setBounds(628,16,160,16);keyRange.setBounds(628,36,160,32);
     photoBounds=getLocalBounds();
     const int knobWidth=140,rowHeight=112;
     const std::array<int,3> left{0,1,2};
@@ -239,12 +243,14 @@ void GlitchEditor::timerCallback()
     int group=processor.voiceCount.load()>0 ? processor.playingCategory.load() : category.getSelectedItemIndex();
     group=juce::jlimit(0,8,group);
     effective.setText("Playing: "+juce::String(glitch::categories[(size_t)group])+"   /   Pitch: "+juce::String(processor.playingPitch.load()/100000.0,1)+" st",juce::dontSendNotification);
+    const int mapping=keyRange.getSelectedItemIndex();
+    if(mapping!=lastKeyRange) { lastKeyRange=mapping;keyboard.setLowestVisibleKey(mapping==1?48:12); }
     if(group!=highlighted)
     {
         highlighted=group;
         // The range matches the recovered per-category zone map.
-        keyboard.setMapping(group,false,0);
+        keyboard.setMapping(group,false,0,mapping==1);
     }
-    keyboard.setMapping(group,knobs[5].getValue()==100,processor.playingPitch.load()/10000);
+    keyboard.setMapping(group,knobs[5].getValue()==100,processor.playingPitch.load()/10000,mapping==1);
     repaint(photoBounds.expanded(3));repaint(190,100,740,22);
 }

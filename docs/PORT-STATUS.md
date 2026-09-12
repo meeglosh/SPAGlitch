@@ -315,3 +315,16 @@ Packaging verifies sample hashes against `packaging/sample-manifest.json`.
 Raw samples remain outside git. Windows factory installer jobs are gated by
 `SPAGLITCH_FACTORY_SAMPLES_ENABLED`; enabling them requires an authorized private
 build-input source. No sample upload has been performed at this revision.
+
+## Controller-friendly key range (0.1.3)
+
+New instances default to Middle keys. All banks start on MIDI 48 except the
+95-sample Digital Short bank, which starts on MIDI 24 to keep every sample inside
+0..127. The sample order and playback pitch are unchanged. Digital Long covers
+48..61, Heavy Long 48..71, and Rapid Modulation 48..79. MIDI 60 can select every
+bank in Boom mode. The on-screen mapping follows the selected key range.
+
+Key range offers Kontakt keys (original start at MIDI 12). States saved before
+version 4 of the state schema retain Kontakt keys automatically, preserving old
+MIDI arrangements. Users can select Middle keys explicitly in existing projects.
+New states save the selection independently of the recovered DSP runtime state.

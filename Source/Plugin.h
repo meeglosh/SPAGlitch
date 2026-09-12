@@ -65,7 +65,7 @@ private:
     ContentLoader content;
     glitch::Engine engine;
     const glitch::Bank* currentBank=nullptr;
-    std::array<std::atomic<float>*,10> values{};
+    std::array<std::atomic<float>*,11> values{};
     std::atomic<bool> panicRequested{false};
     std::atomic<uint32_t> restoredSeed{0},currentSeed{0x47544348u};
     static juce::AudioProcessorValueTreeState::ParameterLayout layout();

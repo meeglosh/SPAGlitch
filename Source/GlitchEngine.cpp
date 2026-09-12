@@ -9,11 +9,16 @@ NoteSettings forNote(const Controls& c,int note,Random& random,bool audition) no
     NoteSettings n;
     n.category=c.category; n.pitchUnits=c.pitch*100000; n.bits=c.lofi*62500+250000;
     n.drive=c.drive; n.cutoff=c.cutoff; n.resonance=c.resonance; n.destroy=c.destroy; n.filter=c.filter;
-    if(!audition && (note<12 || note>106)) { n.category=-1; return n; }
+    if(!audition)
+    {
+        bool mapped=false;
+        for(int g=0;g<9;++g) mapped|=noteInBank(g,note,c.middleKeys);
+        if(!mapped) { n.category=-1; return n; }
+    }
     if(c.randomness==100 && !audition)
     {
         std::array<int,9> eligible{}; int count=0;
-        for(int g=0;g<9;++g) if(note<12+counts[(size_t)g]) eligible[(size_t)count++]=g;
+        for(int g=0;g<9;++g) if(noteInBank(g,note,c.middleKeys)) eligible[(size_t)count++]=g;
         if(count==0) { n.category=-1; return n; }
         n.category=eligible[(size_t)random.between(0,count-1)];
     }
@@ -112,7 +117,7 @@ void Engine::noteOn(int channel,int note,float velocity) noexcept
         settings.pitchUnits=pitchKnobUsed ? controls.pitch*100000 : lastRandomTune;
     }
     selectFilterValues(); updateEffects();
-    const auto* sample=bank->get(selected.category,note);
+    const auto* sample=bank->get(selected.category,note,controls.middleKeys);
     if(!sample) return;
     Voice* target=nullptr;
     for(auto& v:voices) if(!v.sample) { target=&v; break; }
