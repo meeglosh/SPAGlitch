@@ -36,6 +36,38 @@ jobs:
               throw "Missing deliverable: $file"
             }
           }
+      - name: Build unsigned installer
+        shell: pwsh
+        run: |
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $compiler)) { throw 'Inno Setup 6 is missing from runner' }
+          $tag = $env:GITHUB_SHA.Substring(0,7)
+          & $compiler "/DBuildTag=$tag" packaging/windows/SPAGlitch.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
+      - name: Smoke test installation and uninstall
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem build/installer/*Setup.exe).FullName
+          $destination = "$env:ProgramFiles\Silverplatter Audio\SPAGlitch"
+          $plugin = "$env:CommonProgramFiles\VST3\SPAGlitch.vst3"
+          $process = Start-Process $setup -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          if (!(Test-Path "$destination/SPAGlitch.exe") -or !(Test-Path "$plugin/Contents/x86_64-win/SPAGlitch.vst3")) { throw 'Installed payload missing' }
+          $app = Start-Process "$destination/SPAGlitch.exe" -PassThru
+          Start-Sleep -Seconds 5
+          if ($app.HasExited) { throw 'Installed standalone exited unexpectedly' }
+          $null = $app.CloseMainWindow()
+          if (!$app.WaitForExit(10000)) { $app.Kill(); $app.WaitForExit() }
+          $uninstall = Start-Process "$destination/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) { throw 'Uninstall failed' }
+          if ((Test-Path "$destination/SPAGlitch.exe") -or (Test-Path "$plugin/Contents/x86_64-win/SPAGlitch.vst3")) { throw 'Uninstall left installed binaries' }
+      - name: Upload unsigned Windows installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: SPAGlitch-Windows-x64-Installer
+          path: build/installer/*Setup.exe
+          if-no-files-found: error
+          retention-days: 14
       - name: Upload unsigned Windows binaries
         uses: actions/upload-artifact@v6
         with:

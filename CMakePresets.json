@@ -9,7 +9,7 @@
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build/windows-x64",
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
-      "cacheVariables": { "BUILD_TESTING": "ON" }
+      "cacheVariables": { "BUILD_TESTING": "ON", "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>" }
     }
   ],
   "buildPresets": [

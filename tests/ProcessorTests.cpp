@@ -12,8 +12,8 @@ static void shockTests()
     BlastAnimation blast;
     auto visiblePixels=[&]()
     {
-        juce::Image image(juce::Image::ARGB,320,200,true);juce::Graphics g(image);
-        blast.draw(g,image.getBounds().toFloat(),1.f);
+        juce::Image image(juce::Image::ARGB,320,200,true);
+        { juce::Graphics g(image);blast.draw(g,image.getBounds().toFloat(),1.f); }
         int count=0;
         for(int y=0;y<200;++y) for(int x=0;x<320;++x) count+=image.getPixelAt(x,y).getAlpha()>0;
         return count;
