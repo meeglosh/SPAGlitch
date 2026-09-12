@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#223d36"/><stop offset="1" stop-color="#0c1718"/>
+    </linearGradient>
+    <linearGradient id="bolt" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#d8fff0"/><stop offset="1" stop-color="#76dfea"/>
+    </linearGradient>
+  </defs>
+  <rect x="82" y="82" width="860" height="860" rx="192" fill="url(#tile)"/>
+  <rect x="83" y="83" width="858" height="858" rx="191" fill="none" stroke="#a8caba" stroke-opacity=".25" stroke-width="2"/>
+  <!-- Split halo echoes the family's circular platter/orbit emblems. -->
+  <path d="M448 252 A268 268 0 0 0 314 692 M576 772 A268 268 0 0 0 710 332" fill="none" stroke="#dfece5" stroke-width="43" stroke-linecap="round"/>
+  <!-- A single bold electrical strike stays legible at small sizes. -->
+  <path d="M580 232 L350 549 Q344 558 356 558 L477 558 L442 785 L683 471 Q691 461 678 461 L548 461 Z" fill="url(#bolt)"/>
+  <circle cx="319" cy="306" r="17" fill="#89e4e9"/>
+  <circle cx="705" cy="718" r="17" fill="#89e4e9"/>
+</svg>
