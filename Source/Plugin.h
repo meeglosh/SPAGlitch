@@ -56,6 +56,11 @@ public:
     // rendered yet. Message thread; the ring is written on the audio thread.
     static constexpr int scopeSize = 2048;
     bool readScope (float* dest, int numSamples) const;
+
+    // Whether each editor drawer is folded away. Editor-only state, so these
+    // are plain flags rather than parameters, but they travel with the saved
+    // state so a reopened project looks the way it was left.
+    std::atomic<bool> fxCollapsed { false }, keyboardCollapsed { false };
     std::atomic<float> leftPeak{0},rightPeak{0};
     // Held until the editor reads it, so short audio hits aren't missed between UI frames.
     std::atomic<float> visualPeak{0};

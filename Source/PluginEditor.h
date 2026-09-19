@@ -3,6 +3,7 @@
 #include "ShockAnimation.h"
 #include "BlastAnimation.h"
 #include "fx/FXSection.h"
+#include "Drawer.h"
 class SpaLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
@@ -34,9 +35,48 @@ public:
     ~GlitchEditor() override;
     void paint(juce::Graphics&) override;
     void resized() override;
+
+    // The faceplate is laid out at a fixed design size and the whole thing is
+    // scaled to whatever the window is, so every pixel position below stays a
+    // plain constant and the photograph can never be re-proportioned.
+    static constexpr int designWidth=1120;
+    // The faceplate keeps its original proportions; the drawers are added
+    // beneath it, so the photograph is never re-cropped or covered.
+    static constexpr int faceplateHeight=780;
+    static constexpr int keyboardHeight=64;
+    // Full size is taller than a 14" laptop screen, so the window has to be
+    // able to scale well below 100%.
+    static constexpr float minScale=0.5f, maxScale=1.5f;
+    int designHeight() const;
+
+    // Both drawers fold to their header bar. Exposed so the processor can
+    // restore them with the rest of the editor state.
+    void setFxCollapsed(bool);
+    void setKeyboardCollapsed(bool);
+    bool isFxCollapsed() const { return fxSection.isCollapsed(); }
+    bool isKeyboardCollapsed() const { return keyboardHeader.isCollapsed(); }
+
 private:
+    // Everything lives on this canvas, which is always exactly designWidth x
+    // designHeight() and carries the scale transform.
+    class Canvas final : public juce::Component
+    {
+    public:
+        explicit Canvas(GlitchEditor& e):editor(e) { setInterceptsMouseClicks(false,true); }
+        void paint(juce::Graphics& g) override { editor.paintCanvas(g); }
+    private:
+        GlitchEditor& editor;
+    };
+
     void timerCallback() override;
+    void paintCanvas(juce::Graphics&);
+    void layoutCanvas();
+    void applyDrawerHeights();   // re-fit the window after a drawer folds
+    float scale() const { return (float)getWidth()/(float)designWidth; }
+
     GlitchProcessor& processor;
+    Canvas canvas{*this};
+    juce::ComponentBoundsConstrainer constrainer;
     SpaLookAndFeel look;
     juce::Label title,status,effective,categoryLabel,destroyLabel,filterLabel,keyRangeLabel;
     juce::TextButton load{"Locate library..."},audition{"Audition WAV..."},panic{"All notes off"};
@@ -51,6 +91,7 @@ private:
     std::array<juce::Label,7> labels;
     MappedKeyboard keyboard;
     glitch::fx::ui::FXSection fxSection;
+    glitch::ui::DrawerHeader keyboardHeader{"04","KEYBOARD","click keys or play your MIDI controller"};
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,7> attachments;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,destroyAttachment,filterAttachment,keyRangeAttachment;
     std::unique_ptr<juce::FileChooser> chooser;
@@ -58,8 +99,7 @@ private:
     float energy=0;
     int animationFrame=0;
     int highlighted=-1,lastKeyRange=-1;
-    // The faceplate keeps its original proportions; the FX band is added
-    // beneath it, so the photograph is never re-cropped or covered.
-    static constexpr int faceplateHeight=780;
-    static constexpr int fxHeight=290;
+
+    int keyboardStripHeight() const
+    { return glitch::ui::DrawerHeader::height+(isKeyboardCollapsed() ? 0 : keyboardHeight+12); }
 };

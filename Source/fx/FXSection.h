@@ -3,6 +3,7 @@
 #include "FXControls.h"
 #include "FXDisplays.h"
 #include "EqEditor.h"
+#include "../Drawer.h"
 
 namespace glitch::fx::ui
 {
@@ -96,6 +97,15 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    // Folded away, only the header bar remains; the chain keeps processing.
+    static constexpr int collapsedHeight = glitch::ui::DrawerHeader::height;
+    static constexpr int expandedHeight = 290;
+    int preferredHeight() const { return header.isCollapsed() ? collapsedHeight : expandedHeight; }
+
+    void setCollapsed (bool);
+    bool isCollapsed() const { return header.isCollapsed(); }
+    std::function<void()> onCollapsedChanged;
+
     // The chain order as module ids, and a setter for restoring saved state.
     juce::Array<int> currentOrder() const { return tabs.currentOrder(); }
     void applyOrder (const juce::Array<int>& ids) { tabs.applyOrder (ids); }
@@ -110,6 +120,7 @@ private:
     void handleAsyncUpdate() override;
 
     juce::AudioProcessorValueTreeState& apvts;
+    glitch::ui::DrawerHeader header { "03", "CHAIN", "drag tabs to reorder the chain" };
     DraggableTabs tabs;
     juce::StringArray watchedEnables;
 };

@@ -120,6 +120,8 @@ void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)
     auto state=parameters.copyState();
     state.setProperty("stateVersion",5,nullptr);
     state.setProperty("fxOrder",(juce::int64)fxOrderPacked.load(std::memory_order_relaxed),nullptr);
+    state.setProperty("fxCollapsed",fxCollapsed.load(),nullptr);
+    state.setProperty("keyboardCollapsed",keyboardCollapsed.load(),nullptr);
     glitch::Engine::RuntimeState runtime; uint64_t revision=0;
     while(!pendingRuntime.read(runtime,revision)) juce::Thread::yield();
     if(revision==appliedRuntime.load())
@@ -151,6 +153,8 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
             fxOrderPacked.store((juce::uint64)(juce::int64)state.getProperty(
                 "fxOrder",(juce::int64)glitch::fx::FXChain::defaultOrderPacked()),
                 std::memory_order_relaxed);
+            fxCollapsed.store((bool)state.getProperty("fxCollapsed",false));
+            keyboardCollapsed.store((bool)state.getProperty("keyboardCollapsed",false));
             const auto seed=(uint32_t)(juce::int64)state.getProperty("randomSeed",(juce::int64)0x47544348u);
             restoredSeed=seed ? seed : 1;
             // Legacy states reconstruct their effective settings from controls;

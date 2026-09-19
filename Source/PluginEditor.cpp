@@ -61,7 +61,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     load.setButtonText("Reload sounds");audition.setButtonText("Audition WAV");panic.setButtonText("All notes off");
     motion.setToggleState(true,juce::dontSendNotification);
     motion.setTooltip("Disable animated lightning, sparks and twitching while retaining the audio-reactive x-ray glow");
-    addAndMakeVisible(motion);
+    canvas.addAndMakeVisible(motion);
     keyRangeLabel.setText("KEY RANGE",juce::dontSendNotification);
     keyRange.addItemList({"Kontakt keys","Middle keys"},1);
     keyRangeAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"keyRange",keyRange);
@@ -88,7 +88,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
         labels[i].setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
         knob.setTitle(names[i]); labels[i].setText(names[i],juce::dontSendNotification);
         labels[i].setJustificationType(juce::Justification::centred);
-        addAndMakeVisible(knob); addAndMakeVisible(labels[i]);
+        canvas.addAndMakeVisible(knob); canvas.addAndMakeVisible(labels[i]);
         attachments[i]=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.parameters,ids[i],knob);
     }
     for(int i:{1,3})
@@ -100,7 +100,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     knobs[2].setTextValueSuffix(" st"); knobs[4].setTextValueSuffix(" %");
     knobs[5].setTextValueSuffix(" %"); knobs[6].setTextValueSuffix(" dB");
     keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(48); keyboard.setKeyWidth(24);
-    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&destroyLabel,&filterLabel,&keyRangeLabel,&keyRange,&category,&destroy,&filter,&load,&audition,&panic,&keyboard}) addAndMakeVisible(c);
+    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&destroyLabel,&filterLabel,&keyRangeLabel,&keyRange,&category,&destroy,&filter,&load,&audition,&panic,&keyboard}) canvas.addAndMakeVisible(c);
     auto choose=[this](bool single)
     {
         chooser=std::make_unique<juce::FileChooser>(single?"Choose a WAV":"Choose the Glitch Bundle or sample folder",juce::File{},single?"*.wav":"");
@@ -123,17 +123,89 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
     fxSection.applyOrder(processor.getFxOrder());
     fxSection.onOrderChanged=[this](const juce::Array<int>& order){ processor.setFxOrder(order); };
-    addAndMakeVisible(fxSection);
-    setSize(1120,faceplateHeight+fxHeight); startTimerHz(30); timerCallback();
+    fxSection.onCollapsedChanged=[this]
+    { processor.fxCollapsed=fxSection.isCollapsed(); applyDrawerHeights(); };
+    canvas.addAndMakeVisible(fxSection);
+
+    keyboardHeader.onToggle=[this]{ setKeyboardCollapsed(!isKeyboardCollapsed()); };
+    canvas.addAndMakeVisible(keyboardHeader);
+
+    // Restore however the drawers were left, before the first sizing pass.
+    fxSection.setCollapsed(processor.fxCollapsed);
+    keyboardHeader.setCollapsed(processor.keyboardCollapsed);
+    keyboard.setVisible(!processor.keyboardCollapsed);
+
+    addAndMakeVisible(canvas);
+
+    // A pure scale: the constrainer pins the aspect ratio so the faceplate can
+    // never be stretched, and the window is only ever a zoom of the design.
+    setResizable(true,true);
+    constrainer.setFixedAspectRatio((double)designWidth/(double)designHeight());
+    constrainer.setSizeLimits((int)(designWidth*minScale),(int)(designHeight()*minScale),
+                              (int)(designWidth*maxScale),(int)(designHeight()*maxScale));
+    setConstrainer(&constrainer);
+
+    // Open at 100% when the display can take it, otherwise at the largest
+    // whole-instrument scale that fits -- at full size this is taller than a
+    // 14" laptop's screen.
+    float initial=1.0f;
+    if(auto* display=juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+    {
+        const auto area=display->userArea;
+        initial=juce::jlimit(minScale,1.0f,
+                             std::min((float)area.getWidth()*0.95f/(float)designWidth,
+                                      (float)area.getHeight()*0.92f/(float)designHeight()));
+    }
+    setSize((int)(designWidth*initial),(int)(designHeight()*initial));
+    startTimerHz(30); timerCallback();
 }
 GlitchEditor::~GlitchEditor() { stopTimer(); setLookAndFeel(nullptr); }
+int GlitchEditor::designHeight() const
+{
+    return faceplateHeight+fxSection.preferredHeight()+keyboardStripHeight();
+}
+void GlitchEditor::setFxCollapsed(bool shouldBeCollapsed)
+{
+    fxSection.setCollapsed(shouldBeCollapsed);   // fires onCollapsedChanged
+}
+void GlitchEditor::setKeyboardCollapsed(bool shouldBeCollapsed)
+{
+    if(isKeyboardCollapsed()==shouldBeCollapsed) return;
+    keyboardHeader.setCollapsed(shouldBeCollapsed);
+    keyboard.setVisible(!shouldBeCollapsed);
+    processor.keyboardCollapsed=shouldBeCollapsed;
+    applyDrawerHeights();
+}
+void GlitchEditor::applyDrawerHeights()
+{
+    // Folding a drawer changes the design's aspect ratio, so the constrainer
+    // has to be told before the window is re-fitted at the current scale.
+    const auto height=designHeight();
+    constrainer.setFixedAspectRatio((double)designWidth/(double)height);
+    constrainer.setSizeLimits((int)(designWidth*minScale),(int)(height*minScale),
+                              (int)(designWidth*maxScale),(int)(height*maxScale));
+    setSize(getWidth(),juce::roundToInt((float)height*scale()));
+    resized();
+}
 void GlitchEditor::resized()
+{
+    // Width drives the scale; the constrainer keeps the height in step.
+    canvas.setTransform(juce::AffineTransform::scale(scale()));
+    canvas.setBounds(0,0,designWidth,designHeight());
+    layoutCanvas();
+}
+void GlitchEditor::paint(juce::Graphics& g)
+{
+    // Only ever visible as a hairline from rounding the scaled canvas.
+    g.fillAll(juce::Colour(0xff10241f));
+}
+void GlitchEditor::layoutCanvas()
 {
     title.setBounds(28,18,290,40);
     load.setBounds(800,28,134,30);audition.setBounds(944,28,148,30);
     categoryLabel.setBounds(368,16,248,16);category.setBounds(368,36,248,32);
     keyRangeLabel.setBounds(628,16,160,16);keyRange.setBounds(628,36,160,32);
-    photoBounds=getLocalBounds().withHeight(faceplateHeight);
+    photoBounds=juce::Rectangle<int>(0,0,designWidth,faceplateHeight);
     const int knobWidth=140,rowHeight=112;
     const std::array<int,3> left{0,1,2};
     const std::array<int,4> right{3,4,5,6};
@@ -152,10 +224,15 @@ void GlitchEditor::resized()
     motion.setBounds(952,586,130,26);
     effective.setBounds(196,625,500,22);panic.setBounds(784,625,140,26);
     status.setBounds(28,656,1064,24);
-    keyboard.setBounds(28,694,1064,64);
-    fxSection.setBounds(0,faceplateHeight,getWidth(),getHeight()-faceplateHeight);
+
+    fxSection.setBounds(0,faceplateHeight,designWidth,fxSection.preferredHeight());
+
+    auto strip=juce::Rectangle<int>(0,fxSection.getBottom(),designWidth,keyboardStripHeight());
+    keyboardHeader.setBounds(strip.removeFromTop(glitch::ui::DrawerHeader::height));
+    if(!isKeyboardCollapsed())
+        keyboard.setBounds(strip.reduced(28,0).withTrimmedBottom(12));
 }
-void GlitchEditor::paint(juce::Graphics& g)
+void GlitchEditor::paintCanvas(juce::Graphics& g)
 {
     {
         juce::Graphics::ScopedSaveState saved(g);
@@ -189,8 +266,8 @@ void GlitchEditor::paint(juce::Graphics& g)
                     {
                         const float phase=std::fmod(animationFrame/24.f+layer*.5f,1.f);
                         const float fade=std::sin(phase*juce::MathConstants<float>::pi);
-                        const float scale=1.f+phase*.045f;
-                        auto moving=bounds.withSizeKeepingCentre(bounds.getWidth()*scale,bounds.getHeight()*scale);
+                        const float drift=1.f+phase*.045f;
+                        auto moving=bounds.withSizeKeepingCentre(bounds.getWidth()*drift,bounds.getHeight()*drift);
                         g.setOpacity(glow*fade*.48f);
                         g.drawImage(electricImage,moving,juce::RectanglePlacement::stretchToFit);
                     }
@@ -205,7 +282,7 @@ void GlitchEditor::paint(juce::Graphics& g)
     }
 
     // Stable contrast over both the warm photograph and the brightest blast.
-    g.setColour(paper.withAlpha(.82f));g.fillRect(0,0,getWidth(),90);
+    g.setColour(paper.withAlpha(.82f));g.fillRect(0,0,designWidth,90);
     g.setColour(paper.withAlpha(.76f));
     g.fillRoundedRectangle(18,100,160,520,16);
     g.fillRoundedRectangle(942,100,160,520,16);
@@ -222,10 +299,12 @@ void GlitchEditor::paint(juce::Graphics& g)
         const auto value=knobs[i].getBounds().toFloat().removeFromBottom(20).reduced(21,0);
         g.setColour(sage.withAlpha(.10f));g.fillRoundedRectangle(value,5);
     }
-    g.setColour(paper.withAlpha(.86f));g.fillRect(0,620,getWidth(),160);
+    // The scrim stops at the status row: the keyboard has moved to its own
+    // drawer below, so the bottom of the photograph is no longer covered.
+    g.setColour(paper.withAlpha(.86f));g.fillRect(0,620,designWidth,68);
     g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
     g.drawText("S I L V E R P L A T T E R   A U D I O",32,64,290,18,juce::Justification::left);
-    g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(90,0,getWidth());
+    g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(90,0,(float)designWidth);
     g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
     g.drawText("01  /  SOUND",32,108,140,18,juce::Justification::left);
     g.drawText("02  /  ALTER",956,108,140,18,juce::Justification::left);
@@ -233,6 +312,11 @@ void GlitchEditor::paint(juce::Graphics& g)
     g.setColour(energy>.03f ? electric : muted);
     g.drawText(energy>.03f ? "SIGNAL ACTIVE" : "AT REST",214,105,108,18,juce::Justification::left);
     g.fillEllipse(202,111,5,5);
+    // The keyboard drawer sits on the bare faceplate colour, so it needs the
+    // same hairline the FX drawer paints for itself.
+    g.setColour(sage.withAlpha(.35f));
+    g.drawHorizontalLine(fxSection.getBottom(),0.f,(float)designWidth);
+
     g.setColour(sage.withAlpha(.25f));g.fillRect(32,631,132,3);g.fillRect(32,639,132,3);
     g.setColour(electric);g.fillRect(32.f,631.f,132*std::min(1.f,meterLeft),3.f);
     g.fillRect(32.f,639.f,132*std::min(1.f,meterRight),3.f);
@@ -261,5 +345,5 @@ void GlitchEditor::timerCallback()
         keyboard.setMapping(group,false,0,mapping==1);
     }
     keyboard.setMapping(group,knobs[5].getValue()==100,processor.playingPitch.load()/10000,mapping==1);
-    repaint(photoBounds.expanded(3));repaint(190,100,740,22);
+    canvas.repaint(photoBounds.expanded(3));canvas.repaint(190,100,740,22);
 }

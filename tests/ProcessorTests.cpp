@@ -3,6 +3,7 @@
 #include "../Source/BlastAnimation.h"
 #include "../Source/fx/FXParameters.h"
 #include "../Source/fx/FXSection.h"
+#include "../Source/PluginEditor.h"
 #include <cmath>
 #include <complex>
 #include <iostream>
@@ -595,8 +596,10 @@ static juce::TabbedButtonBar* findTabBar(juce::Component& parent)
 static void fxDragReorderTest()
 {
     GlitchProcessor p(juce::File{});
-    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
-    editor->setBounds(0,0,1120,1070);
+    auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+    require(editor!=nullptr,"The processor must build its own editor");
+    std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+    editor->setSize(GlitchEditor::designWidth,editor->designHeight());   // 1:1 scale
 
     auto* bar=findTabBar(*editor);
     require(bar!=nullptr,"The editor must contain the FX tab strip");
@@ -631,6 +634,108 @@ static void fxDragReorderTest()
     require(shown==after,"The visible tab order must match the processor's chain order");
 
     std::cout<<"PASS: tab drag reorders the strip and publishes the chain order\n";
+}
+
+static MappedKeyboard* findKeyboard(juce::Component& parent)
+{
+    for(auto* child:parent.getChildren())
+    {
+        if(auto* keys=dynamic_cast<MappedKeyboard*>(child)) return keys;
+        if(auto* found=findKeyboard(*child)) return found;
+    }
+    return nullptr;
+}
+
+// The editor is a fixed design scaled to the window, with two drawers that
+// fold to their header bars and a keyboard that must stay at the very bottom.
+static void editorLayoutTests(GlitchProcessor& p)
+{
+    auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+    require(editor!=nullptr,"The processor must build its own editor");
+    std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+    editor->setSize(GlitchEditor::designWidth,editor->designHeight());
+
+    auto* bar=findTabBar(*editor);require(bar!=nullptr,"No FX tab strip");
+    auto* keys=findKeyboard(*editor);require(keys!=nullptr,"No on-screen keyboard");
+
+    auto topIn=[editor](juce::Component& c){ return editor->getLocalPoint(&c,juce::Point<int>(0,0)).y; };
+
+    // The keyboard belongs below the FX drawer, not inside the faceplate.
+    require(topIn(*keys)>topIn(*bar),"The keyboard must sit below the FX drawer");
+    require(topIn(*keys)>GlitchEditor::faceplateHeight,"The keyboard must sit below the faceplate");
+    require(keys->getBottom()<=editor->designHeight(),"The keyboard must fit inside the window");
+
+    // Resizable, and pinned to the design's aspect ratio so a host (or a drag
+    // on the corner) can only ever zoom the instrument, never stretch it.
+    require(editor->isResizable(),"The editor must be resizable");
+    auto* constrainer=editor->getConstrainer();
+    require(constrainer!=nullptr,"A resizable editor needs a constrainer");
+    const int expanded=editor->designHeight();
+    require(std::abs(constrainer->getFixedAspectRatio()
+                     -(double)GlitchEditor::designWidth/(double)expanded)<1e-9,
+            "The aspect ratio must be pinned to the design size");
+
+    editor->setFxCollapsed(true);
+    const int withoutFx=editor->designHeight();
+    require(editor->isFxCollapsed(),"The FX drawer must report itself collapsed");
+    require(withoutFx<expanded,"Collapsing the FX drawer must shorten the window");
+    require(editor->getHeight()==withoutFx,"Folding a drawer must re-fit the window at the same scale");
+    require(std::abs(constrainer->getFixedAspectRatio()
+                     -(double)GlitchEditor::designWidth/(double)withoutFx)<1e-9,
+            "Folding a drawer must update the pinned aspect ratio");
+    // The bar's own visible flag stays set; it is its parent TabbedComponent
+    // that the drawer hides.
+    auto* tabs=dynamic_cast<juce::TabbedComponent*>(bar->getParentComponent());
+    require(tabs!=nullptr,"The tab strip must live in a TabbedComponent");
+    require(!tabs->isVisible(),"A collapsed FX drawer must hide its tabs");
+    require(findKeyboard(*editor)!=nullptr && keys->isVisible(),
+            "Collapsing the FX drawer must not touch the keyboard");
+
+    editor->setKeyboardCollapsed(true);
+    const int both=editor->designHeight();
+    require(both<withoutFx,"Collapsing the keyboard must shorten the window further");
+    require(!keys->isVisible(),"A collapsed keyboard drawer must hide its keys");
+    // Both folded away leaves the faceplate plus the two header bars.
+    require(both==GlitchEditor::faceplateHeight+2*glitch::ui::DrawerHeader::height,
+            "Both drawers folded must leave exactly the faceplate and two headers");
+
+    editor->setFxCollapsed(false);editor->setKeyboardCollapsed(false);
+    require(editor->designHeight()==expanded,"Re-opening both drawers must restore the height");
+    require(keys->isVisible(),"Re-opening the keyboard drawer must show its keys");
+
+    // Resizing is a pure scale: children keep their position as a fraction of
+    // the window, so the faceplate can never be stretched out of proportion.
+    const auto fullHeight=editor->designHeight();
+    const auto keysAtFull=topIn(*keys);
+    editor->setSize(GlitchEditor::designWidth/2,fullHeight/2);
+    require(std::abs(topIn(*keys)-keysAtFull/2)<=2,"Halving the window must halve child positions");
+    editor->setSize(GlitchEditor::designWidth,fullHeight);
+    require(std::abs(topIn(*keys)-keysAtFull)<=2,"Restoring the size must restore the layout");
+
+    std::cout<<"PASS: keyboard below the FX drawer, both drawers fold, and the window scales\n";
+}
+
+// Drawer states are editor-only, but they travel with the saved state.
+static void drawerStateTests()
+{
+    GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+    {
+        std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+        dynamic_cast<GlitchEditor*>(editor.get())->setFxCollapsed(true);
+    }
+    require(p.fxCollapsed.load(),"Folding a drawer must reach the processor");
+
+    juce::MemoryBlock state;p.getStateInformation(state);
+    GlitchProcessor restored(juce::File{});restored.prepareToPlay(48000,512);
+    restored.setStateInformation(state.getData(),(int)state.getSize());
+    require(restored.fxCollapsed.load(),"Drawer state must survive a state round trip");
+    require(!restored.keyboardCollapsed.load(),"An un-folded drawer must stay un-folded");
+
+    std::unique_ptr<juce::AudioProcessorEditor> editor(restored.createEditor());
+    auto* glitchEditor=dynamic_cast<GlitchEditor*>(editor.get());
+    require(glitchEditor->isFxCollapsed(),"A reopened editor must restore its drawers");
+
+    std::cout<<"PASS: drawer state reaches the processor, survives a round trip and is restored\n";
 }
 
 int main(int argc,char** argv)
@@ -732,13 +837,40 @@ int main(int argc,char** argv)
         }
         // Renders each FX tab with its effect switched on, for eyeballing the
         // band's layout and its lit-tab state without a host.
+        // Renders the whole instrument in each drawer state, at 1:1.
+        if(argc==3 && juce::String(argv[1])=="--layout-screenshots")
+        {
+            GlitchProcessor p(juce::File{});
+            juce::File directory(argv[2]);require(directory.createDirectory().wasOk(),"Layout dir failed");
+            const struct { bool fx,keys; const char* name; } states[]{
+                {false,false,"expanded"},{true,false,"fx-collapsed"},
+                {false,true,"keys-collapsed"},{true,true,"both-collapsed"}};
+            for(const auto& want:states)
+            {
+                auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+                require(editor!=nullptr,"No editor");
+                std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+                editor->setSize(GlitchEditor::designWidth,editor->designHeight());
+                editor->setFxCollapsed(want.fx);
+                editor->setKeyboardCollapsed(want.keys);
+                juce::Timer::callPendingTimersSynchronously();
+                auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
+                juce::PNGImageFormat format;
+                auto output=directory.getChildFile(juce::String(want.name)+".png").createOutputStream();
+                require(output!=nullptr,"Layout shot open failed");output->setPosition(0);output->truncate();
+                require(format.writeImageToStream(shot,*output),"Layout shot write failed");
+            }
+            return 0;
+        }
         if(argc==3 && juce::String(argv[1])=="--fx-screenshots")
         {
             namespace fxp=glitch::fx::params;
             GlitchProcessor p(juce::File{});
             juce::File directory(argv[2]);require(directory.createDirectory().wasOk(),"FX shot directory failed");
-            std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
-            editor->setBounds(0,0,1120,1070);
+            auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+            require(editor!=nullptr,"The processor must build its own editor");
+            std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+            editor->setSize(GlitchEditor::designWidth,editor->designHeight());   // 1:1 scale
 
             auto* bar=findTabBar(*editor);require(bar!=nullptr,"No FX tab strip");
             for(int i=0;i<fxp::numSections;++i)
@@ -757,7 +889,8 @@ int main(int argc,char** argv)
             {
                 bar->setCurrentTabIndex(tab);
                 juce::Timer::callPendingTimersSynchronously();
-                auto shot=editor->createComponentSnapshot(editor->getLocalBounds().withTrimmedTop(780));
+                auto shot=editor->createComponentSnapshot(
+                    editor->getLocalBounds().withTrimmedTop(GlitchEditor::faceplateHeight));
                 juce::PNGImageFormat format;
                 auto output=directory.getChildFile(bar->getTabNames()[tab].replace("/","-")+".png").createOutputStream();
                 require(output!=nullptr,"FX shot open failed");output->setPosition(0);output->truncate();
@@ -781,7 +914,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

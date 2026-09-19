@@ -8,7 +8,7 @@ namespace pid = params::id;
 namespace
 {
 constexpr int tabBarHeight = 30;
-constexpr int headerHeight = 26;
+constexpr int headerHeight = 26;   // the title row inside a tab, not the drawer header
 } // namespace
 
 // -------------------------------------------------- DraggableTabButton -----
@@ -286,7 +286,18 @@ FXSection::FXSection (juce::AudioProcessorValueTreeState& state,
                 apvts.addParameterListener (id, this);
             }
 
+    header.onToggle = [this] { setCollapsed (! header.isCollapsed()); };
+    addAndMakeVisible (header);
     addAndMakeVisible (tabs);
+}
+
+void FXSection::setCollapsed (bool shouldBeCollapsed)
+{
+    if (header.isCollapsed() == shouldBeCollapsed) return;
+    header.setCollapsed (shouldBeCollapsed);
+    tabs.setVisible (! shouldBeCollapsed);
+    resized();
+    if (onCollapsedChanged) onCollapsedChanged();
 }
 
 FXSection::~FXSection()
@@ -300,30 +311,20 @@ void FXSection::handleAsyncUpdate() { tabs.getTabbedButtonBar().repaint(); }
 
 void FXSection::paint (juce::Graphics& g)
 {
-    auto bounds = getLocalBounds();
-
     g.setColour (paper);
-    g.fillRect (bounds);
+    g.fillRect (getLocalBounds());
 
     // A hairline above the band, matching the rule under the faceplate header.
     g.setColour (sage.withAlpha (0.35f));
     g.drawHorizontalLine (0, 0.0f, (float) getWidth());
-
-    g.setColour (muted);
-    g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
-    g.drawText ("03  /  CHAIN", 32, 10, 140, 18, juce::Justification::left);
-
-    g.setColour (muted.withAlpha (0.5f));
-    g.setFont (juce::Font (juce::FontOptions (9.5f)));
-    g.drawText ("drag tabs to reorder the chain", bounds.withTrimmedRight (32).removeFromTop (28),
-                juce::Justification::centredRight);
 }
 
 void FXSection::resized()
 {
     auto area = getLocalBounds();
-    area.removeFromTop (headerHeight);
-    tabs.setBounds (area.reduced (24, 0).withTrimmedBottom (10));
+    header.setBounds (area.removeFromTop (glitch::ui::DrawerHeader::height));
+    if (! header.isCollapsed())
+        tabs.setBounds (area.reduced (24, 0).withTrimmedBottom (10));
 }
 
 } // namespace glitch::fx::ui
