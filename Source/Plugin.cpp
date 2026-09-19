@@ -17,6 +17,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GlitchProcessor::layout()
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"filter",1},"Filter",juce::StringArray{"High-pass","Off","Low-pass"},1));
     p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output",-60.0f,6.0f,0.0f));
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"keyRange",1},"Key range",juce::StringArray{"Kontakt keys","Middle keys"},1));
+    glitch::fx::params::addToLayout(p);
     return p;
 }
 juce::File GlitchProcessor::installedLibrary()
@@ -34,6 +35,8 @@ GlitchProcessor::GlitchProcessor(juce::File factory)
     const char* ids[]{"category","pitch","lofi","drive","cutoff","resonance","randomness","destroy","filter","gain","keyRange"};
     for(size_t i=0;i<values.size();++i) values[i]=parameters.getRawParameterValue(ids[i]);
     publishedRuntime.write(engine.runtimeState());
+    fxSnapshot.bind(parameters);
+    startTimer(200);
     if(factoryLibrary.isDirectory()) loadInstalledLibrary();
 }
 GlitchProcessor::~GlitchProcessor() { engine.setBank(nullptr); }
@@ -49,10 +52,13 @@ bool GlitchProcessor::isBusesLayoutSupported(const BusesLayout& l) const
 {
     return l.getMainInputChannelSet().isDisabled() && (l.getMainOutputChannelSet()==juce::AudioChannelSet::stereo() || l.getMainOutputChannelSet()==juce::AudioChannelSet::mono());
 }
-void GlitchProcessor::prepareToPlay(double rate,int)
+void GlitchProcessor::prepareToPlay(double rate,int blockSize)
 {
     visualPeak.store(0,std::memory_order_relaxed);
     engine.setControls(controls()); engine.prepare(rate); keyboard.reset();
+    fxChain.prepare(rate,juce::jmax(1,blockSize));
+    for(auto& sample:scope) sample.store(0,std::memory_order_relaxed);
+    scopeWrite.store(0,std::memory_order_relaxed); scopeFilled.store(false,std::memory_order_relaxed);
 }
 void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer& midi)
 {
@@ -84,6 +90,21 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
     currentSeed=engine.seed(); playingCategory=engine.effective().category; playingPitch=engine.effective().pitchUnits;
     voiceCount=engine.activeVoices();
     publishedRuntime.write(engine.runtimeState());
+
+    // The ported SPASynth chain runs on the engine's stereo output. Every
+    // module defaults to off, so the measured Kontakt path is untouched until
+    // an effect is switched on.
+    double bpm=120;
+    if(auto* head=getPlayHead())
+        if(auto info=head->getPosition())
+            if(auto hostBpm=info->getBpm())
+                bpm=*hostBpm;
+    glitch::fx::FXChain::Params fx;
+    fxSnapshot.read(fx,bpm,fxOrderPacked.load(std::memory_order_relaxed));
+    fxChain.process(b,fx);
+    publishTailAndLatency(fx);
+    pushScope(b);
+
     if(b.getNumSamples()>0)
     {
         leftPeak=b.getMagnitude(0,0,b.getNumSamples());
@@ -97,7 +118,8 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
 void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)
 {
     auto state=parameters.copyState();
-    state.setProperty("stateVersion",4,nullptr);
+    state.setProperty("stateVersion",5,nullptr);
+    state.setProperty("fxOrder",(juce::int64)fxOrderPacked.load(std::memory_order_relaxed),nullptr);
     glitch::Engine::RuntimeState runtime; uint64_t revision=0;
     while(!pendingRuntime.read(runtime,revision)) juce::Thread::yield();
     if(revision==appliedRuntime.load())
@@ -124,6 +146,11 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
                 mapping.setProperty("value",0,nullptr);
             }
             parameters.replaceState(state);
+            // Absent in pre-v5 states; unpackOrder falls back to the natural
+            // order if the stored permutation is ever invalid.
+            fxOrderPacked.store((juce::uint64)(juce::int64)state.getProperty(
+                "fxOrder",(juce::int64)glitch::fx::FXChain::defaultOrderPacked()),
+                std::memory_order_relaxed);
             const auto seed=(uint32_t)(juce::int64)state.getProperty("randomSeed",(juce::int64)0x47544348u);
             restoredSeed=seed ? seed : 1;
             // Legacy states reconstruct their effective settings from controls;
@@ -139,6 +166,67 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
             if(!single && factoryLibrary.isDirectory()) loadInstalledLibrary();
             else content.request(state.getProperty(legacy?"samplePath":"contentPath").toString(),single);
         }
+}
+void GlitchProcessor::setFxOrder(const juce::Array<int>& moduleIds)
+{
+    if(moduleIds.size()!=glitch::fx::FXChain::numModules) return;
+    // Must be a full permutation. A duplicate would pack into a value that
+    // unpackOrder rejects, and the audio thread would then silently fall back
+    // to the natural order -- quietly rearranging the chain rather than
+    // leaving the existing one alone.
+    bool seen[glitch::fx::FXChain::numModules]={};
+    glitch::fx::FXChain::Module order[glitch::fx::FXChain::numModules];
+    for(int i=0;i<glitch::fx::FXChain::numModules;++i)
+    {
+        const int id=moduleIds[i];
+        if(!juce::isPositiveAndBelow(id,glitch::fx::FXChain::numModules) || seen[id]) return;
+        seen[id]=true;
+        order[i]=(glitch::fx::FXChain::Module)id;
+    }
+    fxOrderPacked.store(glitch::fx::FXChain::packOrder(order),std::memory_order_relaxed);
+}
+juce::Array<int> GlitchProcessor::getFxOrder() const
+{
+    glitch::fx::FXChain::Module order[glitch::fx::FXChain::numModules];
+    glitch::fx::FXChain::unpackOrder(fxOrderPacked.load(std::memory_order_relaxed),order);
+    juce::Array<int> ids;
+    for(auto module:order) ids.add((int)module);
+    return ids;
+}
+void GlitchProcessor::publishTailAndLatency(const glitch::fx::FXChain::Params& fx)
+{
+    // Lookahead limiting is the only latency the chain adds. Only publish it
+    // here; the timer applies it, since setLatencySamples notifies the host.
+    desiredLatency.store(fxChain.limiterLatencySamples(fx),std::memory_order_relaxed);
+    fxTailSeconds.store(fxChain.tailSeconds(fx),std::memory_order_relaxed);
+}
+void GlitchProcessor::timerCallback()
+{
+    const int latency=desiredLatency.load(std::memory_order_relaxed);
+    if(latency!=reportedLatency) { reportedLatency=latency; setLatencySamples(latency); }
+}
+void GlitchProcessor::pushScope(const juce::AudioBuffer<float>& b)
+{
+    const int n=b.getNumSamples();
+    if(n<=0 || b.getNumChannels()<=0) return;
+    const auto* left=b.getReadPointer(0);
+    const auto* right=b.getNumChannels()>1 ? b.getReadPointer(1) : left;
+    int w=scopeWrite.load(std::memory_order_relaxed);
+    for(int i=0;i<n;++i)
+    {
+        scope[(size_t)w].store(0.5f*(left[i]+right[i]),std::memory_order_relaxed);
+        w=(w+1)&(scopeSize-1);
+    }
+    scopeWrite.store(w,std::memory_order_release);
+    scopeFilled.store(true,std::memory_order_relaxed);
+}
+bool GlitchProcessor::readScope(float* dest,int numSamples) const
+{
+    if(dest==nullptr || numSamples!=scopeSize || !scopeFilled.load(std::memory_order_relaxed)) return false;
+    const int w=scopeWrite.load(std::memory_order_acquire);
+    for(int i=0;i<numSamples;++i)
+        dest[i]=scope[(size_t)((w+i)&(scopeSize-1))].load(std::memory_order_relaxed);   // oldest -> newest
+    return true;
 }
 juce::AudioProcessorEditor* GlitchProcessor::createEditor() { return new GlitchEditor(*this); }
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new GlitchProcessor(); }

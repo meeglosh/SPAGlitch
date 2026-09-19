@@ -1,6 +1,8 @@
 #include "../Source/Plugin.h"
 #include "../Source/ShockAnimation.h"
 #include "../Source/BlastAnimation.h"
+#include "../Source/fx/FXParameters.h"
+#include "../Source/fx/FXSection.h"
 #include <cmath>
 #include <complex>
 #include <iostream>
@@ -52,7 +54,7 @@ static void shockTests()
     shock.advance(0,false);
     require(shock.energy()==0,"Motion off must retain the instant stop");
 }
-static void parameter(GlitchProcessor& p,const char* id,float value)
+static void parameter(GlitchProcessor& p,const juce::String& id,float value)
 {
     auto* param=p.parameters.getParameter(id);
     param->setValueNotifyingHost(param->convertTo0to1(value));
@@ -387,6 +389,250 @@ static void adaptiveFilterTests()
         }
     std::cout<<"PASS: adaptive filter overload, stereo isolation, reset and five rates\n";
 }
+
+// --- FX chain -------------------------------------------------------------
+// Every module defaults to off, so these switch one on at a time, confirm it
+// actually changes the audio, and confirm the chain order is honoured, saved
+// and restored.
+static void fxChainTests(const juce::File& root)
+{
+    namespace fxp=glitch::fx::params;
+    using Chain=glitch::fx::FXChain;
+
+    auto file=root.getChildFile("fx-source.wav");
+    writeWave(file);
+
+    auto renderNote=[&file](std::function<void(GlitchProcessor&)> configure)
+    {
+        GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+        p.loadSample(file);require(p.waitForContent(),"FX fixture must load");
+        configure(p);
+        juce::AudioBuffer<float> out(2,512);
+        note(p,out);
+        finite(out);
+        return out;
+    };
+
+    const auto dry=renderNote([](GlitchProcessor&){});
+    require(dry.getMagnitude(0,512)>0,"FX baseline must sound");
+
+    auto differsFromDry=[&dry](const juce::AudioBuffer<float>& wet)
+    {
+        for(int ch=0;ch<2;++ch)
+            for(int i=0;i<512;++i)
+                if(std::abs(wet.getSample(ch,i)-dry.getSample(ch,i))>1e-6f) return true;
+        return false;
+    };
+
+    // Each module, switched on alone, must audibly change the output. A few
+    // need help to do anything inside a single 512-sample block: at the
+    // default synced 1/4 the first echo lands ~24000 samples away, and the
+    // limiter is transparent until it has something to clamp.
+    using Setup=std::function<void(GlitchProcessor&)>;
+    const struct { const char* enableID; const char* name; Setup extra; } modules[]{
+        {fxp::id::distEnable,"Distortion",{}},
+        {fxp::id::chorusEnable,"Chorus",{}},
+        {fxp::id::delayEnable,"Delay",[](GlitchProcessor& p)
+            { parameter(p,fxp::id::delaySync,0.f);parameter(p,fxp::id::delayTime,4.f);
+              parameter(p,fxp::id::delayMix,0.9f); }},
+        {fxp::id::reverbEnable,"Reverb",{}},
+        {fxp::id::modEnable,"Mod",{}},
+        {fxp::id::tremEnable,"Tremolo",{}},
+        {fxp::id::vibEnable,"Vibrato",{}},
+        {fxp::id::limEnable,"Limiter",[](GlitchProcessor& p)
+            { parameter(p,fxp::id::limDrive,18.f);parameter(p,fxp::id::limCeiling,-6.f); }}};
+    for(const auto& module:modules)
+    {
+        const auto wet=renderNote([&module](GlitchProcessor& p)
+        {
+            parameter(p,module.enableID,1.f);
+            if(module.extra) module.extra(p);
+        });
+        require(differsFromDry(wet),(juce::String(module.name)+" must change the output when enabled").toRawUTF8());
+    }
+
+    // EQ only does anything once a band is enabled, so it is checked apart
+    // from the tab toggles above.
+    {
+        const auto wet=renderNote([](GlitchProcessor& p)
+        {
+            parameter(p,fxp::id::eqEnable,1.f);
+            parameter(p,fxp::id::eqBand(0,fxp::id::eqband::enable),1.f);
+            parameter(p,fxp::id::eqBand(0,fxp::id::eqband::gain),18.f);
+        });
+        require(differsFromDry(wet),"EQ must change the output when a band is enabled");
+    }
+
+    // Order matters: distortion into a delay is not the same signal as a delay
+    // into distortion, so reordering must reach the audio thread.
+    {
+        auto configure=[](GlitchProcessor& p)
+        {
+            parameter(p,fxp::id::distEnable,1.f);parameter(p,fxp::id::distDrive,0.9f);
+            parameter(p,fxp::id::delayEnable,1.f);parameter(p,fxp::id::delaySync,0.f);
+            parameter(p,fxp::id::delayTime,4.f);parameter(p,fxp::id::delayFeedback,0.7f);
+            parameter(p,fxp::id::delayMix,0.9f);
+        };
+        const auto distFirst=renderNote([&configure](GlitchProcessor& p)
+        {
+            configure(p);
+            p.setFxOrder({(int)Chain::Module::distortion,(int)Chain::Module::delay,
+                          (int)Chain::Module::chorus,(int)Chain::Module::reverb,
+                          (int)Chain::Module::eq,(int)Chain::Module::mod,
+                          (int)Chain::Module::tremVib,(int)Chain::Module::limiter});
+        });
+        const auto delayFirst=renderNote([&configure](GlitchProcessor& p)
+        {
+            configure(p);
+            p.setFxOrder({(int)Chain::Module::delay,(int)Chain::Module::distortion,
+                          (int)Chain::Module::chorus,(int)Chain::Module::reverb,
+                          (int)Chain::Module::eq,(int)Chain::Module::mod,
+                          (int)Chain::Module::tremVib,(int)Chain::Module::limiter});
+        });
+        bool different=false;
+        for(int i=0;i<512 && !different;++i)
+            different=std::abs(distFirst.getSample(0,i)-delayFirst.getSample(0,i))>1e-6f;
+        require(different,"Reordering the chain must change the rendered audio");
+    }
+
+    // An invalid permutation must be rejected rather than leaving the audio
+    // thread with a chain that skips or repeats a module.
+    {
+        GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+        const auto before=p.getFxOrder();
+        p.setFxOrder({0,0,0,0,0,0,0,0});                       // duplicates
+        require(p.getFxOrder()==before,"A duplicate chain order must be rejected");
+        p.setFxOrder({0,1,2,3,4,5,6});                         // too short
+        require(p.getFxOrder()==before,"A short chain order must be rejected");
+        p.setFxOrder({0,1,2,3,4,5,6,99});                      // out of range
+        require(p.getFxOrder()==before,"An out-of-range chain order must be rejected");
+    }
+
+    // Chain order and FX parameters survive a save/restore round trip.
+    {
+        GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+        const juce::Array<int> custom{(int)Chain::Module::limiter,(int)Chain::Module::eq,
+                                      (int)Chain::Module::tremVib,(int)Chain::Module::mod,
+                                      (int)Chain::Module::reverb,(int)Chain::Module::delay,
+                                      (int)Chain::Module::chorus,(int)Chain::Module::distortion};
+        p.setFxOrder(custom);
+        parameter(p,fxp::id::reverbMix,0.77f);
+        juce::MemoryBlock state;p.getStateInformation(state);
+
+        GlitchProcessor restored(juce::File{});restored.prepareToPlay(48000,512);
+        restored.setStateInformation(state.getData(),(int)state.getSize());
+        require(restored.getFxOrder()==custom,"Chain order must survive a state round trip");
+        require(std::abs(restored.parameters.getRawParameterValue(fxp::id::reverbMix)->load()-0.77f)<1e-4f,
+                "FX parameters must survive a state round trip");
+    }
+
+    // A pre-v5 project has no stored order and must fall back to the default.
+    {
+        GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+        auto legacy=juce::ValueTree("SPAGlitch");legacy.setProperty("stateVersion",4,nullptr);
+        juce::MemoryBlock state;juce::AudioProcessor::copyXmlToBinary(*legacy.createXml(),state);
+        p.setStateInformation(state.getData(),(int)state.getSize());
+        juce::Array<int> expected;
+        glitch::fx::FXChain::Module order[glitch::fx::FXChain::numModules];
+        glitch::fx::FXChain::unpackOrder(glitch::fx::FXChain::defaultOrderPacked(),order);
+        for(auto module:order) expected.add((int)module);
+        require(p.getFxOrder()==expected,"A pre-v5 project must fall back to the default chain order");
+    }
+
+    // Lookahead limiting is the only latency the chain introduces, and the
+    // host has to be told about it.
+    {
+        GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+        juce::AudioBuffer<float> b(2,512);render(p,b);
+        // processBlock only publishes the figure; the processor's timer is what
+        // calls setLatencySamples (doing that from a render callback would
+        // notify the host from the audio thread).
+        auto pumpTimers=[]{ juce::Thread::sleep(250);juce::Timer::callPendingTimersSynchronously(); };
+        pumpTimers();
+        require(p.getLatencySamples()==0,"An idle chain must report no latency");
+        parameter(p,fxp::id::limEnable,1.f);parameter(p,fxp::id::limLookahead,1.f);
+        render(p,b);
+        require(p.getLatencySamples()==0,"Latency must not be applied from the audio thread");
+        pumpTimers();
+        require(p.getLatencySamples()>0,"Lookahead limiting must report its latency to the host");
+    }
+
+    // The EQ tab's spectrum analyser reads the post-FX output ring.
+    {
+        GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+        p.loadSample(file);require(p.waitForContent(),"Analyser fixture must load");
+        std::vector<float> samples((size_t)GlitchProcessor::scopeSize,0.f);
+        require(!p.readScope(samples.data(),GlitchProcessor::scopeSize),
+                "The analyser must report no data before anything is rendered");
+        require(!p.readScope(samples.data(),64),"A wrong-sized analyser read must be refused");
+
+        juce::AudioBuffer<float> b(2,512);
+        note(p,b);
+        for(int i=0;i<8;++i) render(p,b);
+        require(p.readScope(samples.data(),GlitchProcessor::scopeSize),"The analyser must see rendered audio");
+        float peak=0;for(auto v:samples) peak=std::max(peak,std::abs(v));
+        require(peak>0,"The analyser ring must carry the rendered signal");
+    }
+
+    std::cout<<"PASS: eight FX modules, EQ bands, chain reordering, order validation, state recall, limiter latency and the analyser feed\n";
+}
+
+// Finds the FX tab strip inside the editor. The band is built from plain
+// components with no IDs, so the search is by type.
+static juce::TabbedButtonBar* findTabBar(juce::Component& parent)
+{
+    for(auto* child:parent.getChildren())
+    {
+        if(auto* bar=dynamic_cast<juce::TabbedButtonBar*>(child)) return bar;
+        if(auto* found=findTabBar(*child)) return found;
+    }
+    return nullptr;
+}
+
+// The end-to-end drag: a real mouseDrag on a tab button must reorder the strip
+// AND publish the new order to the processor. The unit tests above cover
+// setFxOrder itself; this covers the wiring between the two.
+static void fxDragReorderTest()
+{
+    GlitchProcessor p(juce::File{});
+    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+    editor->setBounds(0,0,1120,1070);
+
+    auto* bar=findTabBar(*editor);
+    require(bar!=nullptr,"The editor must contain the FX tab strip");
+    require(bar->getNumTabs()==glitch::fx::FXChain::numModules,"The strip must hold every FX module");
+
+    const auto before=p.getFxOrder();
+    const auto firstName=bar->getTabNames()[0];
+
+    // Drag tab 0 far enough right to land inside tab 2's slot.
+    // The cast also asserts the strip is built from draggable buttons.
+    auto* dragged=dynamic_cast<glitch::fx::ui::DraggableTabButton*>(bar->getTabButton(0));
+    auto* target=bar->getTabButton(2);
+    require(dragged!=nullptr,"Tabs must use the draggable button");
+    require(target!=nullptr,"Tabs must have buttons");
+    const auto drop=dragged->getLocalPoint(bar,juce::Point<int>(target->getBounds().getCentreX(),
+                                                               target->getBounds().getCentreY()));
+    const juce::MouseEvent drag(juce::Desktop::getInstance().getMainMouseSource(),
+                                drop.toFloat(),juce::ModifierKeys::leftButtonModifier,
+                                1.0f,0.0f,0.0f,0.0f,0.0f,dragged,dragged,
+                                juce::Time::getCurrentTime(),drop.toFloat(),
+                                juce::Time::getCurrentTime(),1,true);
+    dragged->mouseDrag(drag);
+
+    require(bar->getTabNames()[0]!=firstName,"Dragging a tab must reorder the strip");
+    const auto after=p.getFxOrder();
+    require(after!=before,"A tab drag must publish the new chain order to the processor");
+
+    // What the strip shows and what the audio thread runs must agree.
+    juce::Array<int> shown;
+    for(const auto& name:bar->getTabNames())
+        shown.add(glitch::fx::params::sectionTabNames().indexOf(name));
+    require(shown==after,"The visible tab order must match the processor's chain order");
+
+    std::cout<<"PASS: tab drag reorders the strip and publishes the chain order\n";
+}
+
 int main(int argc,char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
@@ -484,6 +730,41 @@ int main(int argc,char** argv)
             }
             return 0;
         }
+        // Renders each FX tab with its effect switched on, for eyeballing the
+        // band's layout and its lit-tab state without a host.
+        if(argc==3 && juce::String(argv[1])=="--fx-screenshots")
+        {
+            namespace fxp=glitch::fx::params;
+            GlitchProcessor p(juce::File{});
+            juce::File directory(argv[2]);require(directory.createDirectory().wasOk(),"FX shot directory failed");
+            std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+            editor->setBounds(0,0,1120,1070);
+
+            auto* bar=findTabBar(*editor);require(bar!=nullptr,"No FX tab strip");
+            for(int i=0;i<fxp::numSections;++i)
+            {
+                const auto section=(fxp::Section)i;
+                if(const auto* on=fxp::enableID(section)) parameter(p,on,1.f);
+                if(const auto* second=fxp::secondEnableID(section)) parameter(p,second,1.f);
+            }
+            // EQ is flat until a band exists; give it a visible curve.
+            parameter(p,fxp::id::eqBand(0,fxp::id::eqband::enable),1.f);
+            parameter(p,fxp::id::eqBand(0,fxp::id::eqband::gain),12.f);
+            parameter(p,fxp::id::eqBand(3,fxp::id::eqband::enable),1.f);
+            parameter(p,fxp::id::eqBand(3,fxp::id::eqband::gain),-9.f);
+
+            for(int tab=0;tab<bar->getNumTabs();++tab)
+            {
+                bar->setCurrentTabIndex(tab);
+                juce::Timer::callPendingTimersSynchronously();
+                auto shot=editor->createComponentSnapshot(editor->getLocalBounds().withTrimmedTop(780));
+                juce::PNGImageFormat format;
+                auto output=directory.getChildFile(bar->getTabNames()[tab].replace("/","-")+".png").createOutputStream();
+                require(output!=nullptr,"FX shot open failed");output->setPosition(0);output->truncate();
+                require(format.writeImageToStream(shot,*output),"FX shot write failed");
+            }
+            return 0;
+        }
         if(argc==3 && (juce::String(argv[1])=="--screenshot" || juce::String(argv[1])=="--screenshot-active"))
         {
             GlitchProcessor p(juce::File{}); std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
@@ -500,7 +781,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

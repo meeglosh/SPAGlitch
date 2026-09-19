@@ -27,7 +27,12 @@ void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,in
 }
 
 GlitchEditor::GlitchEditor(GlitchProcessor& p)
- :AudioProcessorEditor(p),processor(p),keyboard(p.keyboard)
+ :AudioProcessorEditor(p),processor(p),keyboard(p.keyboard),
+  fxSection(p.parameters,
+            [&p](float* dest,int n){ return p.readScope(dest,n); },
+            [&p]{ return p.getSampleRate(); },
+            [&p]{ return p.limiterGainReductionDb(); },
+            [&p]{ return p.limiterOutputPeak(); })
 {
     processor.visualPeak.store(0,std::memory_order_relaxed);
     look.setColour(juce::Label::textColourId,ink);
@@ -116,7 +121,10 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xfff8f6ef));
     keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,paper);
     keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
-    setSize(1120,780); startTimerHz(30); timerCallback();
+    fxSection.applyOrder(processor.getFxOrder());
+    fxSection.onOrderChanged=[this](const juce::Array<int>& order){ processor.setFxOrder(order); };
+    addAndMakeVisible(fxSection);
+    setSize(1120,faceplateHeight+fxHeight); startTimerHz(30); timerCallback();
 }
 GlitchEditor::~GlitchEditor() { stopTimer(); setLookAndFeel(nullptr); }
 void GlitchEditor::resized()
@@ -125,7 +133,7 @@ void GlitchEditor::resized()
     load.setBounds(800,28,134,30);audition.setBounds(944,28,148,30);
     categoryLabel.setBounds(368,16,248,16);category.setBounds(368,36,248,32);
     keyRangeLabel.setBounds(628,16,160,16);keyRange.setBounds(628,36,160,32);
-    photoBounds=getLocalBounds();
+    photoBounds=getLocalBounds().withHeight(faceplateHeight);
     const int knobWidth=140,rowHeight=112;
     const std::array<int,3> left{0,1,2};
     const std::array<int,4> right{3,4,5,6};
@@ -145,6 +153,7 @@ void GlitchEditor::resized()
     effective.setBounds(196,625,500,22);panic.setBounds(784,625,140,26);
     status.setBounds(28,656,1064,24);
     keyboard.setBounds(28,694,1064,64);
+    fxSection.setBounds(0,faceplateHeight,getWidth(),getHeight()-faceplateHeight);
 }
 void GlitchEditor::paint(juce::Graphics& g)
 {

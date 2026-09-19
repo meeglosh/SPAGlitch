@@ -1,7 +1,10 @@
 #pragma once
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "ContentLoader.h"
-class GlitchProcessor final : public juce::AudioProcessor
+#include "fx/FXChain.h"
+#include "fx/FXParamSnapshot.h"
+class GlitchProcessor final : public juce::AudioProcessor,
+                             private juce::Timer
 {
 public:
     static juce::File installedLibrary();
@@ -17,7 +20,10 @@ public:
     const juce::String getName() const override { return "SPAGlitch"; }
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
-    double getTailLengthSeconds() const override { return 0.1; }
+    // The engine's own 0.1 s release plus whatever the FX chain is ringing
+    // out, so hosts don't truncate a reverb or delay tail on bounce.
+    double getTailLengthSeconds() const override
+    { return 0.1 + fxTailSeconds.load(std::memory_order_relaxed); }
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
     void setCurrentProgram(int) override {}
@@ -34,6 +40,22 @@ public:
     float loadProgress() const { return content.progress(); }
     juce::AudioProcessorValueTreeState parameters;
     juce::MidiKeyboardState keyboard;
+
+    // --- FX chain -------------------------------------------------------
+    // The chain order is a single packed uint64 so the UI can publish a
+    // reorder with one atomic store and the audio thread never sees a
+    // half-written permutation (see FXChain::packOrder).
+    void setFxOrder (const juce::Array<int>& moduleIds);
+    juce::Array<int> getFxOrder() const;
+
+    float limiterGainReductionDb() const { return fxChain.limiterGainReductionDb(); }
+    float limiterOutputPeak() const { return fxChain.limiterOutputPeak(); }
+
+    // Fills `dest` with the most recent `numSamples` output samples, oldest
+    // first, for the EQ tab's spectrum analyser. False when nothing has been
+    // rendered yet. Message thread; the ring is written on the audio thread.
+    static constexpr int scopeSize = 2048;
+    bool readScope (float* dest, int numSamples) const;
     std::atomic<float> leftPeak{0},rightPeak{0};
     // Held until the editor reads it, so short audio hits aren't missed between UI frames.
     std::atomic<float> visualPeak{0};
@@ -64,6 +86,26 @@ private:
     std::atomic<uint64_t> appliedRuntime{0};
     ContentLoader content;
     glitch::Engine engine;
+    glitch::fx::FXChain fxChain;
+    glitch::fx::params::Snapshot fxSnapshot;
+    std::atomic<juce::uint64> fxOrderPacked { glitch::fx::FXChain::defaultOrderPacked() };
+    int reportedLatency = 0;
+
+    // Post-FX output ring feeding the EQ analyser. Single audio-thread writer,
+    // message-thread reader; a torn read only costs one analyser frame.
+    std::array<std::atomic<float>, scopeSize> scope {};
+    std::atomic<int> scopeWrite { 0 };
+    std::atomic<bool> scopeFilled { false };
+    std::atomic<double> fxTailSeconds { 0.0 };
+
+    // Lookahead-limiter latency: computed on the audio thread, applied via
+    // setLatencySamples on the timer. setLatencySamples notifies the host and
+    // its listeners, which is not safe to do from a render callback.
+    std::atomic<int> desiredLatency { 0 };
+    void timerCallback() override;
+
+    void publishTailAndLatency(const glitch::fx::FXChain::Params&);
+    void pushScope(const juce::AudioBuffer<float>&);
     const glitch::Bank* currentBank=nullptr;
     std::array<std::atomic<float>*,11> values{};
     std::atomic<bool> panicRequested{false};

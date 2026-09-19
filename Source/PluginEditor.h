@@ -2,6 +2,7 @@
 #include "Plugin.h"
 #include "ShockAnimation.h"
 #include "BlastAnimation.h"
+#include "fx/FXSection.h"
 class SpaLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
@@ -49,6 +50,7 @@ private:
     std::array<juce::Slider,7> knobs;
     std::array<juce::Label,7> labels;
     MappedKeyboard keyboard;
+    glitch::fx::ui::FXSection fxSection;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,7> attachments;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,destroyAttachment,filterAttachment,keyRangeAttachment;
     std::unique_ptr<juce::FileChooser> chooser;
@@ -56,4 +58,8 @@ private:
     float energy=0;
     int animationFrame=0;
     int highlighted=-1,lastKeyRange=-1;
+    // The faceplate keeps its original proportions; the FX band is added
+    // beneath it, so the photograph is never re-cropped or covered.
+    static constexpr int faceplateHeight=780;
+    static constexpr int fxHeight=290;
 };
