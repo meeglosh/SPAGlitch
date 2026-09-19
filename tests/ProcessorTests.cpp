@@ -58,6 +58,7 @@ static void shockTests()
 static void parameter(GlitchProcessor& p,const juce::String& id,float value)
 {
     auto* param=p.parameters.getParameter(id);
+    require(param!=nullptr,("No such parameter: "+id).toRawUTF8());
     param->setValueNotifyingHost(param->convertTo0to1(value));
 }
 static void writeWave(const juce::File& file,float amplitude=0.25f,int frames=4800)
@@ -158,7 +159,7 @@ static void libraryTests(const juce::File& root)
     parameter(p,"randomness",100); p.allNotesOff(); note(p,b,127);
     require(b.getMagnitude(0,512)==0,"Boom mode must terminate on unmapped high notes");
     for(int i=0;i<100;++i) { p.allNotesOff(); note(p,b,106); finite(b); require(p.playingCategory.load()==2,"High note must select the only eligible category"); }
-    parameter(p,"randomness",0); parameter(p,"category",0); parameter(p,"destroy",1); parameter(p,"filter",1);
+    parameter(p,"randomness",0); parameter(p,"category",0); parameter(p,"filter",1);
     juce::MemoryBlock state; p.getStateInformation(state);
     GlitchProcessor restored(juce::File{}); restored.prepareToPlay(48000,512); restored.setNonRealtime(true);
     restored.setStateInformation(state.getData(),(int)state.getSize());
@@ -578,6 +579,50 @@ static void fxChainTests(const juce::File& root)
     std::cout<<"PASS: eight FX modules, EQ bands, chain reordering, order validation, state recall, limiter latency and the analyser feed\n";
 }
 
+// The Kontakt lo-fi + tube stage (BITS / CRUNCH, gated by DESTROY) has been
+// retired from the front panel now that the FX chain carries the distortion.
+// The DSP stays in the engine as a calibration asset, but nothing may switch
+// it on behind the user's back.
+static void destroyStageRetirementTests()
+{
+    GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+    for(const char* gone:{"destroy","lofi","drive"})
+        require(p.parameters.getParameter(gone)==nullptr,
+                (juce::String("Retired parameter still present: ")+gone).toRawUTF8());
+
+    // Boom randomises every insert; it must no longer reach the destroy stage.
+    {
+        glitch::Controls c;c.randomness=100;
+        glitch::Random random(42);
+        for(int i=0;i<2000;++i)
+            require(glitch::forNote(c,60,random).destroy==1,
+                    "Boom must not switch the destroy stage on");
+    }
+
+    // A project saved while the stage was on must not resurrect it.
+    {
+        glitch::Engine seed;glitch::Controls on;on.destroy=0;seed.setControls(on);
+        const auto enabled=seed.runtimeState();
+        require(enabled[4]==0 && enabled[24]==0,"Fixture must have the stage switched on");
+
+        auto legacy=juce::ValueTree("SPAGlitch");legacy.setProperty("stateVersion",5,nullptr);
+        for(size_t i=0;i<enabled.size();++i)
+            legacy.setProperty("runtime"+juce::String((int)i),enabled[i],nullptr);
+        juce::MemoryBlock block;juce::AudioProcessor::copyXmlToBinary(*legacy.createXml(),block);
+        p.setStateInformation(block.getData(),(int)block.getSize());
+
+        juce::AudioBuffer<float> b(2,512);render(p,b);
+        juce::MemoryBlock out;p.getStateInformation(out);
+        auto xml=juce::AudioProcessor::getXmlFromBinary(out.getData(),(int)out.getSize());
+        require(xml!=nullptr,"State must round trip");
+        auto tree=juce::ValueTree::fromXml(*xml);
+        require((int)tree.getProperty("runtime4")==1 && (int)tree.getProperty("runtime24")==1,
+                "An old project must not restore the retired destroy stage");
+    }
+
+    std::cout<<"PASS: the destroy stage is retired, Boom cannot reach it and old projects cannot restore it\n";
+}
+
 // Finds the FX tab strip inside the editor. The band is built from plain
 // components with no IDs, so the search is by type.
 static juce::TabbedButtonBar* findTabBar(juce::Component& parent)
@@ -914,7 +959,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

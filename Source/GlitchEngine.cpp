@@ -32,7 +32,15 @@ NoteSettings forNote(const Controls& c,int note,Random& random,bool audition) no
         n.bits=std::max(250000,c.lofi*62500+250000+lo*2300);
         n.cutoff=std::clamp(c.cutoff+cut*1700,0,1000000);
         n.resonance=std::clamp(c.resonance+rez/2,0,100);
-        if(amount==100) { n.destroy=random.between(0,1); n.filter=random.between(0,2); }
+        if(amount==100)
+        {
+            // The destroy stage has no front-panel controls any more, so Boom
+            // must not switch it on. The draw is still made and discarded so
+            // the filter randomisation below consumes exactly the KSP random
+            // sequence it always did.
+            random.between(0,1);
+            n.filter=random.between(0,2);
+        }
     }
     return n;
 }

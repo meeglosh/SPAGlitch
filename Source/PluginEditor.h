@@ -83,7 +83,7 @@ private:
     Canvas canvas{*this};
     juce::ComponentBoundsConstrainer constrainer;
     SpaLookAndFeel look;
-    juce::Label title,status,effective,categoryLabel,destroyLabel,filterLabel,keyRangeLabel;
+    juce::Label title,status,effective,categoryLabel,filterLabel,keyRangeLabel;
     juce::TextButton load{"Locate library..."},audition{"Audition WAV..."},panic{"All notes off"};
     juce::ToggleButton motion{"Motion"};
     juce::Image calmImage;
@@ -91,14 +91,18 @@ private:
     ShockAnimation shock;
     BlastAnimation blast;
     juce::Rectangle<int> photoBounds;
-    juce::ComboBox category,destroy,filter,keyRange;
-    std::array<juce::Slider,7> knobs;
-    std::array<juce::Label,7> labels;
+    juce::ComboBox category,filter,keyRange;
+    // PITCH, RANDOMNESS | CUTOFF, RESONANCE, OUTPUT. BITS and CRUNCH drove the
+    // Kontakt lo-fi/tube stage, which the FX chain's Distortion (Soft/Hard/
+    // Fold/Crush) now covers.
+    static constexpr int numKnobs=5;
+    std::array<juce::Slider,numKnobs> knobs;
+    std::array<juce::Label,numKnobs> labels;
     MappedKeyboard keyboard;
     glitch::fx::ui::FXSection fxSection;
     glitch::ui::DrawerHeader keyboardHeader{"04","KEYBOARD","click keys or play your MIDI controller"};
-    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,7> attachments;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,destroyAttachment,filterAttachment,keyRangeAttachment;
+    std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,numKnobs> attachments;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,filterAttachment,keyRangeAttachment;
     std::unique_ptr<juce::FileChooser> chooser;
     float meterLeft=0,meterRight=0;
     float energy=0;

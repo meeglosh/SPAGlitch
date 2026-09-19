@@ -7,13 +7,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout GlitchProcessor::layout()
     juce::StringArray groups; for(auto name:glitch::categories) groups.add(name);
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"category",1},"Category",groups,0));
     p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"pitch",1},"Pitch",-12,12,0));
-    p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"lofi",1},"Lo-Fi",0,8,4));
-    p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"drive",1},"Distortion",0,1000000,488095));
     p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"cutoff",1},"Cutoff",0,1000000,476191));
     p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"resonance",1},"Resonance",0,100,49));
     p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"randomness",1},"Randomness",0,100,0));
-    // 0 enables effects and 1 bypasses, matching the original UI callback.
-    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"destroy",1},"Destroy",juce::StringArray{"On","Off"},1));
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"filter",1},"Filter",juce::StringArray{"High-pass","Off","Low-pass"},1));
     p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output",-60.0f,6.0f,0.0f));
     p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"keyRange",1},"Key range",juce::StringArray{"Kontakt keys","Middle keys"},1));
@@ -32,7 +28,7 @@ GlitchProcessor::GlitchProcessor(juce::File factory)
  : AudioProcessor(BusesProperties().withOutput("Output",juce::AudioChannelSet::stereo(),true)),
    parameters(*this,nullptr,"SPAGlitch",layout()),factoryLibrary(std::move(factory))
 {
-    const char* ids[]{"category","pitch","lofi","drive","cutoff","resonance","randomness","destroy","filter","gain","keyRange"};
+    const char* ids[]{"category","pitch","cutoff","resonance","randomness","filter","gain","keyRange"};
     for(size_t i=0;i<values.size();++i) values[i]=parameters.getRawParameterValue(ids[i]);
     publishedRuntime.write(engine.runtimeState());
     fxSnapshot.bind(parameters);
@@ -43,9 +39,14 @@ GlitchProcessor::~GlitchProcessor() { engine.setBank(nullptr); }
 glitch::Controls GlitchProcessor::controls() const noexcept
 {
     glitch::Controls c;
-    c.category=(int)values[0]->load(); c.pitch=(int)values[1]->load(); c.lofi=(int)values[2]->load();
-    c.drive=(int)values[3]->load(); c.cutoff=(int)values[4]->load(); c.resonance=(int)values[5]->load();
-    c.randomness=(int)values[6]->load(); c.destroy=(int)values[7]->load(); c.filter=(int)values[8]->load(); c.gainDb=values[9]->load(); c.middleKeys=values[10]->load()>.5f;
+    c.category=(int)values[0]->load(); c.pitch=(int)values[1]->load();
+    c.cutoff=(int)values[2]->load(); c.resonance=(int)values[3]->load();
+    c.randomness=(int)values[4]->load(); c.filter=(int)values[5]->load();
+    c.gainDb=values[6]->load(); c.middleKeys=values[7]->load()>.5f;
+    // lofi / drive / destroy keep their Controls defaults. The destroy stage
+    // (the measured Kontakt lo-fi + tube path) has no front-panel controls any
+    // more, and Controls::destroy defaults to 1 = bypassed, which is exactly
+    // what it defaulted to when the DESTROY menu still existed.
     return c;
 }
 bool GlitchProcessor::isBusesLayoutSupported(const BusesLayout& l) const
@@ -118,7 +119,7 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
 void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)
 {
     auto state=parameters.copyState();
-    state.setProperty("stateVersion",5,nullptr);
+    state.setProperty("stateVersion",6,nullptr);
     state.setProperty("fxOrder",(juce::int64)fxOrderPacked.load(std::memory_order_relaxed),nullptr);
     state.setProperty("fxCollapsed",fxCollapsed.load(),nullptr);
     state.setProperty("keyboardCollapsed",keyboardCollapsed.load(),nullptr);
@@ -164,6 +165,12 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
             if((int)state.getProperty("stateVersion",1)>=3)
                 for(size_t i=0;i<runtime.size();++i)
                     runtime[i]=(int)state.getProperty("runtime"+juce::String((int)i),runtime[i]);
+            // The destroy stage is gone from the front panel, so a project saved
+            // while it was switched on (by the DESTROY menu, or by Boom
+            // randomising it) must not resurrect an effect the user can no
+            // longer see or turn off. Indices 4 and 24 are settings.destroy and
+            // controls.destroy; 1 is bypassed.
+            runtime[4]=1; runtime[24]=1;
             pendingRuntime.write(runtime);
             const bool legacy=state.hasProperty("samplePath") && !state.hasProperty("contentPath");
             const bool single=legacy || (bool)state.getProperty("singleSample",false);

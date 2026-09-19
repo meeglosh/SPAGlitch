@@ -112,7 +112,7 @@ private:
     void publishTailAndLatency(const glitch::fx::FXChain::Params&);
     void pushScope(const juce::AudioBuffer<float>&);
     const glitch::Bank* currentBank=nullptr;
-    std::array<std::atomic<float>*,11> values{};
+    std::array<std::atomic<float>*,8> values{};
     std::atomic<bool> panicRequested{false};
     std::atomic<uint32_t> restoredSeed{0},currentSeed{0x47544348u};
     static juce::AudioProcessorValueTreeState::ParameterLayout layout();

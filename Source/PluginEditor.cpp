@@ -66,15 +66,13 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     keyRange.addItemList({"Kontakt keys","Middle keys"},1);
     keyRangeAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"keyRange",keyRange);
     categoryLabel.setText("SAMPLE BANK",juce::dontSendNotification);
-    destroyLabel.setText("DESTROY",juce::dontSendNotification);
     filterLabel.setText("FILTER",juce::dontSendNotification);
     for(int i=0;i<9;++i) category.addItem(glitch::categories[(size_t)i],i+1);
-    destroy.addItemList({"On","Off"},1); filter.addItemList({"High-pass","Off","Low-pass"},1);
+    filter.addItemList({"High-pass","Off","Low-pass"},1);
     categoryAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"category",category);
-    destroyAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"destroy",destroy);
     filterAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"filter",filter);
-    const char* ids[]{"lofi","drive","pitch","cutoff","resonance","randomness","gain"};
-    const char* names[]{"BITS","CRUNCH","PITCH","CUTOFF","RESONANCE","RANDOMNESS","OUTPUT"};
+    const char* ids[]{"pitch","randomness","cutoff","resonance","gain"};
+    const char* names[]{"PITCH","RANDOMNESS","CUTOFF","RESONANCE","OUTPUT"};
     for(size_t i=0;i<knobs.size();++i)
     {
         auto& knob=knobs[i];
@@ -91,16 +89,14 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
         canvas.addAndMakeVisible(knob); canvas.addAndMakeVisible(labels[i]);
         attachments[i]=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.parameters,ids[i],knob);
     }
-    for(int i:{1,3})
-    {
-        knobs[(size_t)i].textFromValueFunction=[](double v){return juce::String(v/10000.0,1)+" %";};
-        knobs[(size_t)i].valueFromTextFunction=[](const juce::String& v){return v.getDoubleValue()*10000.0;};
-    }
-    knobs[1].updateText(); knobs[3].updateText();
-    knobs[2].setTextValueSuffix(" st"); knobs[4].setTextValueSuffix(" %");
-    knobs[5].setTextValueSuffix(" %"); knobs[6].setTextValueSuffix(" dB");
+    // CUTOFF is stored in KSP units (0..1000000) but reads as a percentage.
+    knobs[2].textFromValueFunction=[](double v){return juce::String(v/10000.0,1)+" %";};
+    knobs[2].valueFromTextFunction=[](const juce::String& v){return v.getDoubleValue()*10000.0;};
+    knobs[2].updateText();
+    knobs[0].setTextValueSuffix(" st"); knobs[1].setTextValueSuffix(" %");
+    knobs[3].setTextValueSuffix(" %"); knobs[4].setTextValueSuffix(" dB");
     keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(48); keyboard.setKeyWidth(24);
-    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&destroyLabel,&filterLabel,&keyRangeLabel,&keyRange,&category,&destroy,&filter,&load,&audition,&panic,&keyboard}) canvas.addAndMakeVisible(c);
+    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&filterLabel,&keyRangeLabel,&keyRange,&category,&filter,&load,&audition,&panic,&keyboard}) canvas.addAndMakeVisible(c);
     auto choose=[this](bool single)
     {
         chooser=std::make_unique<juce::FileChooser>(single?"Choose a WAV":"Choose the Glitch Bundle or sample folder",juce::File{},single?"*.wav":"");
@@ -117,7 +113,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     status.setFont(juce::Font(juce::FontOptions(11.5f)));
     status.setColour(juce::Label::textColourId,muted);
     effective.setFont(juce::Font(juce::FontOptions(11.5f)));
-    for(auto* label:{&categoryLabel,&destroyLabel,&filterLabel,&keyRangeLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
+    for(auto* label:{&categoryLabel,&filterLabel,&keyRangeLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
     keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xfff8f6ef));
     keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,paper);
     keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
@@ -207,8 +203,10 @@ void GlitchEditor::layoutCanvas()
     keyRangeLabel.setBounds(628,16,160,16);keyRange.setBounds(628,36,160,32);
     photoBounds=juce::Rectangle<int>(0,0,designWidth,faceplateHeight);
     const int knobWidth=140,rowHeight=112;
-    const std::array<int,3> left{0,1,2};
-    const std::array<int,4> right{3,4,5,6};
+    // Two even columns: PITCH + RANDOMNESS and the FILTER menu on the left,
+    // CUTOFF + RESONANCE + OUTPUT on the right.
+    const std::array<int,2> left{0,1};
+    const std::array<int,3> right{2,3,4};
     for(size_t row=0;row<left.size();++row)
     {
         const auto i=(size_t)left[row];const int y=133+(int)row*rowHeight;
@@ -219,9 +217,11 @@ void GlitchEditor::layoutCanvas()
         const auto i=(size_t)right[row];const int y=133+(int)row*rowHeight;
         labels[i].setBounds(952,y+4,knobWidth,18);knobs[i].setBounds(952,y+22,knobWidth,80);
     }
-    destroyLabel.setBounds(32,487,132,18);destroy.setBounds(32,511,132,30);
-    filterLabel.setBounds(32,554,132,18);filter.setBounds(32,578,132,30);
-    motion.setBounds(952,586,130,26);
+    filterLabel.setBounds(32,361,132,18);filter.setBounds(32,385,132,30);
+    // Motion used to sit inside the tall right-hand card. That card now ends
+    // above it, so it moves into the left column's spare row rather than
+    // floating unbacked over the photograph, where its label was unreadable.
+    motion.setBounds(32,430,132,26);
     effective.setBounds(196,625,500,22);panic.setBounds(784,625,140,26);
     status.setBounds(28,656,1064,24);
 
@@ -284,11 +284,11 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     // Stable contrast over both the warm photograph and the brightest blast.
     g.setColour(paper.withAlpha(.82f));g.fillRect(0,0,designWidth,90);
     g.setColour(paper.withAlpha(.76f));
-    g.fillRoundedRectangle(18,100,160,520,16);
-    g.fillRoundedRectangle(942,100,160,520,16);
+    g.fillRoundedRectangle(18,100,160,370,16);
+    g.fillRoundedRectangle(942,100,160,370,16);
     g.setColour(sage.withAlpha(.3f));
-    g.drawRoundedRectangle(18,100,160,520,16,1);
-    g.drawRoundedRectangle(942,100,160,520,16,1);
+    g.drawRoundedRectangle(18,100,160,370,16,1);
+    g.drawRoundedRectangle(942,100,160,370,16,1);
     // Enclose each label, dial and readout in one visual group.
     for(size_t i=0;i<knobs.size();++i)
     {
@@ -344,6 +344,6 @@ void GlitchEditor::timerCallback()
         // The range matches the recovered per-category zone map.
         keyboard.setMapping(group,false,0,mapping==1);
     }
-    keyboard.setMapping(group,knobs[5].getValue()==100,processor.playingPitch.load()/10000,mapping==1);
+    keyboard.setMapping(group,knobs[1].getValue()==100,processor.playingPitch.load()/10000,mapping==1);
     canvas.repaint(photoBounds.expanded(3));canvas.repaint(190,100,740,22);
 }
