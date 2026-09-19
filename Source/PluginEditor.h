@@ -40,9 +40,14 @@ public:
     // scaled to whatever the window is, so every pixel position below stays a
     // plain constant and the photograph can never be re-proportioned.
     static constexpr int designWidth=1120;
-    // The faceplate keeps its original proportions; the drawers are added
-    // beneath it, so the photograph is never re-cropped or covered.
-    static constexpr int faceplateHeight=780;
+    // The faceplate ends immediately below the status row. It was 780 while the
+    // keyboard lived inside it; once the keyboard moved to its own drawer that
+    // left ~90px of photograph exposed below the status bar and nothing else,
+    // so the drawers now start here instead and the whole instrument is that
+    // much shorter. The artwork is 3:2, so this framing shows its full width
+    // (780 cropped 50px off the sides) and trims ~29px top and bottom, most of
+    // it behind the header scrim.
+    static constexpr int faceplateHeight=688;
     static constexpr int keyboardHeight=64;
     // Full size is taller than a 14" laptop screen, so the window has to be
     // able to scale well below 100%.
