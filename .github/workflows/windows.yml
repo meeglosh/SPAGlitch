@@ -89,8 +89,14 @@ jobs:
           # Windows artifacts are tens of MB each and the free storage quota is
           # shared with releases, so every run clears the ones it supersedes
           # rather than waiting out the retention window.
+          #
+          # Only artifacts older than this run are touched. Excluding just this
+          # run's own would let concurrent runs delete each other's uploads --
+          # two runs overlapped the first time this ran, and the later one ate
+          # the earlier one's installer.
+          $started = (gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --jq ".run_started_at")
           $artifacts = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?per_page=100" `
-            --jq ".artifacts[] | select(.expired==false) | select(.workflow_run.id != $env:GITHUB_RUN_ID) | .id"
+            --jq ".artifacts[] | select(.expired==false) | select(.created_at < \"$started\") | .id"
           foreach ($id in $artifacts) {
             if ($id) { gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$id" | Out-Null }
           }

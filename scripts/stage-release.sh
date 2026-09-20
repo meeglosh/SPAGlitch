@@ -32,10 +32,15 @@ sed -e "s/@VERSION@/$version/g" -e "s/@DATE@/$(date '+%-d %B %Y')/g" \
 cp "$docs/QUICKSTART.md" "$docs/EULA.txt" "$out/"
 
 if [ -n "$mac_pkg" ]; then
-    cp "$mac_pkg" "$out/macOS/SPAGlitch-$version.pkg"
+    staged_pkg="$out/macOS/SPAGlitch-$version.pkg"
+    # Re-staging to add the other platform is normal, and the source is then
+    # the file already in place; copying it over itself is an error.
+    if [ "$(cd "$(dirname "$mac_pkg")" && pwd)/$(basename "$mac_pkg")" != "$staged_pkg" ]; then
+        cp "$mac_pkg" "$staged_pkg"
+    fi
     # State the Gatekeeper verdict here rather than trusting that signing ran:
     # an unnotarized pkg looks identical until a tester downloads it.
-    if spctl -a -vv -t install "$out/macOS/SPAGlitch-$version.pkg" 2>&1 | grep -q 'source=Notarized Developer ID'; then
+    if spctl -a -vv -t install "$staged_pkg" 2>&1 | grep -q 'source=Notarized Developer ID'; then
         echo "macOS: signed and notarized"
     else
         echo "macOS: WARNING - not notarized; testers will be blocked by Gatekeeper" >&2
@@ -47,6 +52,7 @@ else
 fi
 
 if [ -n "$windows_dir" ]; then
+    rm -f "$out/Windows/PENDING.txt"
     ditto "$windows_dir" "$out/Windows"
     cat > "$out/Windows/README-WINDOWS.txt" <<'TXT'
 Windows x64 build.
