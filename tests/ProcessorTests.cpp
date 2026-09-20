@@ -1373,12 +1373,19 @@ int main(int argc,char** argv)
             GlitchProcessor p(argc==3 ? juce::File(argv[2]) : GlitchProcessor::installedLibrary());p.prepareToPlay(48000,512);
             require(p.waitForContent(30000),"Factory library did not auto-load");
             juce::AudioBuffer<float> b(2,512);
+            // 48 is in range for every bank under the middle-key mapping
+            // (bank 2 starts at 24 and spans 95 keys; the rest start at 48).
             for(int g=0;g<9;++g) { p.allNotesOff();parameter(p,"category",(float)g);note(p,b,48);require(b.getMagnitude(0,512)>0,"Factory category silent"); }
             auto empty=juce::ValueTree("SPAGlitch");empty.setProperty("contentPath","/missing/old/library",nullptr);
             juce::MemoryBlock state;juce::AudioProcessor::copyXmlToBinary(*empty.createXml(),state);
             p.setStateInformation(state.getData(),(int)state.getSize());
             require(p.waitForContent(30000),"Old project must fall back to installed factory library");
-            note(p,b,12);require(b.getMagnitude(0,512)>0,"Restored factory library silent");
+            // Note 12 was the old Kontakt-keys mapping. The key-range menu is
+            // gone and the instrument is always on middle keys now, so this
+            // has to ask where the selected bank actually starts.
+            const int bank=juce::jlimit(0,8,(int)p.parameters.getRawParameterValue("category")->load());
+            note(p,b,glitch::bankFirstNote(bank,true));
+            require(b.getMagnitude(0,512)>0,"Restored factory library silent");
             std::cout<<"PASS: automatic factory loading, all nine categories, and stale project path recovery\n";return 0;
         }
         if(argc==3 && juce::String(argv[1])=="--library")
