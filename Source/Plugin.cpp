@@ -10,9 +10,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout GlitchProcessor::layout()
     p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"cutoff",1},"Cutoff",0,1000000,476191));
     p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"resonance",1},"Resonance",0,100,49));
     p.add(std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"randomness",1},"Randomness",0,100,0));
-    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"filter",1},"Filter",juce::StringArray{"High-pass","Off","Low-pass"},1));
+    // Bypass is its own switch now, so the menu is purely a type list.
+    p.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"filterEnable",1},"Filter On",false));
+    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"filterType",1},"Filter Type",
+        juce::StringArray{"Low Pass","High Pass","Band Pass","Notch","Peak"},0));
     p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"gain",1},"Output",-60.0f,6.0f,0.0f));
-    p.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"keyRange",1},"Key range",juce::StringArray{"Kontakt keys","Middle keys"},1));
     glitch::fx::params::addToLayout(p);
     return p;
 }
@@ -28,7 +30,7 @@ GlitchProcessor::GlitchProcessor(juce::File factory)
  : AudioProcessor(BusesProperties().withOutput("Output",juce::AudioChannelSet::stereo(),true)),
    parameters(*this,nullptr,"SPAGlitch",layout()),factoryLibrary(std::move(factory))
 {
-    const char* ids[]{"category","pitch","cutoff","resonance","randomness","filter","gain","keyRange"};
+    const char* ids[]{"category","pitch","cutoff","resonance","randomness","filterEnable","filterType","gain"};
     for(size_t i=0;i<values.size();++i) values[i]=parameters.getRawParameterValue(ids[i]);
     publishedRuntime.write(engine.runtimeState());
     fxSnapshot.bind(parameters);
@@ -41,8 +43,15 @@ glitch::Controls GlitchProcessor::controls() const noexcept
     glitch::Controls c;
     c.category=(int)values[0]->load(); c.pitch=(int)values[1]->load();
     c.cutoff=(int)values[2]->load(); c.resonance=(int)values[3]->load();
-    c.randomness=(int)values[4]->load(); c.filter=(int)values[5]->load();
-    c.gainDb=values[6]->load(); c.middleKeys=values[7]->load()>.5f;
+    c.randomness=(int)values[4]->load(); c.gainDb=values[7]->load();
+    // The menu lists types only; bypass is the separate switch beside it.
+    static constexpr int engineFilter[]{glitch::filterLowPass,glitch::filterHighPass,
+                                        glitch::filterBandPass,glitch::filterNotch,glitch::filterPeak};
+    const int type=juce::jlimit(0,(int)std::size(engineFilter)-1,(int)values[6]->load());
+    c.filter=values[5]->load()>.5f ? engineFilter[type] : glitch::filterOff;
+    // The key-range menu is gone; the instrument always uses the middle-key
+    // mapping, which is what that menu defaulted to.
+    c.middleKeys=true;
     // lofi / drive / destroy keep their Controls defaults. The destroy stage
     // (the measured Kontakt lo-fi + tube path) has no front-panel controls any
     // more, and Controls::destroy defaults to 1 = bypassed, which is exactly
@@ -126,7 +135,7 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
 void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)
 {
     auto state=parameters.copyState();
-    state.setProperty("stateVersion",6,nullptr);
+    state.setProperty("stateVersion",7,nullptr);
     state.setProperty("fxOrder",(juce::int64)fxOrderPacked.load(std::memory_order_relaxed),nullptr);
     state.setProperty("fxCollapsed",fxCollapsed.load(),nullptr);
     state.setProperty("keyboardCollapsed",keyboardCollapsed.load(),nullptr);
@@ -148,14 +157,22 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
         if(xml->hasTagName("SPAGlitch"))
         {
             auto state=juce::ValueTree::fromXml(*xml);
-            // Older projects keep their original MIDI/sample mapping.
-            if((int)state.getProperty("stateVersion",1)<4)
-            {
-                auto mapping=state.getChildWithProperty("id","keyRange");
-                if(!mapping.isValid()) { mapping=juce::ValueTree("PARAM");mapping.setProperty("id","keyRange",nullptr);state.addChild(mapping,-1,nullptr); }
-                mapping.setProperty("value",0,nullptr);
-            }
+            // Pre-v7 projects carried one three-way filter menu (High-pass /
+            // Off / Low-pass). Read it before replaceState drops it, then
+            // split it across the new bypass switch and type list.
+            int legacyFilter=-1;
+            if((int)state.getProperty("stateVersion",1)<7)
+                if(auto legacy=state.getChildWithProperty("id","filter"); legacy.isValid())
+                    legacyFilter=(int)legacy.getProperty("value",glitch::filterOff);
             parameters.replaceState(state);
+            if(legacyFilter>=0)
+            {
+                if(auto* on=parameters.getParameter("filterEnable"))
+                    on->setValueNotifyingHost(legacyFilter!=glitch::filterOff ? 1.f : 0.f);
+                if(auto* type=parameters.getParameter("filterType"))
+                    type->setValueNotifyingHost(type->convertTo0to1(
+                        legacyFilter==glitch::filterHighPass ? 1.f : 0.f));
+            }
             // Absent in pre-v5 states; unpackOrder falls back to the natural
             // order if the stored permutation is ever invalid.
             fxOrderPacked.store((juce::uint64)(juce::int64)state.getProperty(

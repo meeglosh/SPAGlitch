@@ -123,9 +123,10 @@ static void processorTests(const juce::File& root)
     restored.loadSample(root.getChildFile("missing.wav")); restored.loadSample(file);
     require(restored.waitForContent(),"Newest load request must win");
     note(restored,b); require(b.getMagnitude(0,512)>0,"Newest bank should be active");
-    parameter(restored,"filter",2);render(restored,b);
+    parameter(restored,"filterEnable",1);
+    parameter(restored,"filterType",0);render(restored,b);   // Low Pass
     parameter(restored,"cutoff",200000);render(restored,b);
-    parameter(restored,"filter",0);render(restored,b);
+    parameter(restored,"filterType",1);render(restored,b);   // High Pass
     parameter(restored,"cutoff",800000);render(restored,b);
     restored.getStateInformation(state);
     GlitchProcessor recalled(juce::File{});recalled.prepareToPlay(48000,512);recalled.setStateInformation(state.getData(),(int)state.getSize());
@@ -144,27 +145,34 @@ static void libraryTests(const juce::File& root)
     for(int group=0;group<9;++group)
         for(int i=1;i<=glitch::counts[(size_t)group];++i)
             writeWave(folder.getChildFile(juce::String(glitch::categories[(size_t)group])+" "+juce::String(i).paddedLeft('0',2)+".wav"),0.05f*(group+1),960);
-    GlitchProcessor p(juce::File{}); p.prepareToPlay(48000,512); parameter(p,"keyRange",0); p.loadLibrary(folder);
+    // The key-range menu is gone: the processor always uses the middle-key
+    // mapping. Both mappings still exist in the engine, and the identity check
+    // below still covers the Kontakt one.
+    GlitchProcessor p(juce::File{}); p.prepareToPlay(48000,512); p.loadLibrary(folder);
     require(p.waitForContent(),"All 479 category samples must load");
     juce::AudioBuffer<float> b(2,512);
     for(int group=0;group<9;++group)
     {
-        p.allNotesOff(); parameter(p,"category",(float)group); note(p,b,12);
+        const int start=glitch::bankFirstNote(group,true);
+        p.allNotesOff(); parameter(p,"category",(float)group); note(p,b,start);
         require(b.getMagnitude(0,512)>0,"First key in each group must play");
-        p.allNotesOff(); note(p,b,11+glitch::counts[(size_t)group]);
+        p.allNotesOff(); note(p,b,start+glitch::counts[(size_t)group]-1);
         require(b.getMagnitude(0,512)>0,"Last key in each group must play");
-        p.allNotesOff(); note(p,b,12+glitch::counts[(size_t)group]);
+        p.allNotesOff(); note(p,b,start+glitch::counts[(size_t)group]);
         require(b.getMagnitude(0,512)==0,"Key beyond selected group must be silent");
+        p.allNotesOff(); note(p,b,start-1);
+        require(b.getMagnitude(0,512)==0,"Key below selected group must be silent");
     }
     parameter(p,"randomness",100); p.allNotesOff(); note(p,b,127);
     require(b.getMagnitude(0,512)==0,"Boom mode must terminate on unmapped high notes");
-    for(int i=0;i<100;++i) { p.allNotesOff(); note(p,b,106); finite(b); require(p.playingCategory.load()==2,"High note must select the only eligible category"); }
-    parameter(p,"randomness",0); parameter(p,"category",0); parameter(p,"filter",1);
+    // Only bank 2 reaches below 48 in the middle mapping.
+    for(int i=0;i<100;++i) { p.allNotesOff(); note(p,b,30); finite(b); require(p.playingCategory.load()==2,"Low note must select the only eligible category"); }
+    parameter(p,"randomness",0); parameter(p,"category",0); parameter(p,"filterEnable",0);
     juce::MemoryBlock state; p.getStateInformation(state);
     GlitchProcessor restored(juce::File{}); restored.prepareToPlay(48000,512); restored.setNonRealtime(true);
     restored.setStateInformation(state.getData(),(int)state.getSize());
-    note(restored,b,12); require(b.getMagnitude(0,512)>0,"Offline first block must await content restore");
-    parameter(p,"keyRange",1);
+    note(restored,b,glitch::bankFirstNote(0,true));
+    require(b.getMagnitude(0,512)>0,"Offline first block must await content restore");
     glitch::Bank mappingBank;
     for(int group=0;group<9;++group)
     {
@@ -185,13 +193,24 @@ static void libraryTests(const juce::File& root)
     int seen=0;
     for(int i=0;i<2000;++i) { auto selected=glitch::forNote(middle,60,rng);require(glitch::noteInBank(selected.category,60,true),"Middle Boom must pick mapped banks");seen|=1<<selected.category; }
     require(seen==511,"Middle C must reach all nine banks in Boom mode");
-    p.getStateInformation(state);restored.setStateInformation(state.getData(),(int)state.getSize());
-    require(restored.parameters.getRawParameterValue("keyRange")->load()==1,"New projects must retain middle mapping");
-    auto old=juce::AudioProcessor::getXmlFromBinary(state.getData(),(int)state.getSize());old->setAttribute("stateVersion",3);
-    for(auto* child=old->getFirstChildElement();child!=nullptr;)
-    { auto* next=child->getNextElement();if(child->getStringAttribute("id")=="keyRange")old->removeChildElement(child,true);child=next; }
-    juce::AudioProcessor::copyXmlToBinary(*old,state);restored.setStateInformation(state.getData(),(int)state.getSize());
-    require(restored.parameters.getRawParameterValue("keyRange")->load()==0,"Old projects must retain Kontakt mapping");
+    // A project saved back when the key-range menu existed -- on either
+    // setting -- must come back on the middle mapping, since that is now the
+    // only one the instrument has.
+    p.getStateInformation(state);
+    for(int legacyRange:{0,1})
+    {
+        auto old=juce::AudioProcessor::getXmlFromBinary(state.getData(),(int)state.getSize());
+        old->setAttribute("stateVersion",3);
+        auto* range=new juce::XmlElement("PARAM");
+        range->setAttribute("id","keyRange");range->setAttribute("value",legacyRange);
+        old->addChildElement(range);
+        juce::MemoryBlock legacy;juce::AudioProcessor::copyXmlToBinary(*old,legacy);
+        restored.setStateInformation(legacy.getData(),(int)legacy.getSize());
+        require(restored.waitForContent(),"Legacy project must reload");
+        restored.allNotesOff();parameter(restored,"category",2);
+        note(restored,b,glitch::bankFirstNote(2,true));
+        require(b.getMagnitude(0,512)>0,"A legacy project must play on the middle mapping");
+    }
     std::cout<<"PASS: 479 mappings, nine categories, unmapped notes, Boom safety, offline restore\n";
 }
 static void engineTests()
@@ -372,8 +391,11 @@ static void tubeStabilityTest()
 }
 static void adaptiveFilterTests()
 {
+    using Mode=glitch::AdaptiveFilter::Mode;
     for(double rate:{44100.,48000.,88200.,96000.,192000.})
-        for(bool lowPass:{false,true})
+        // Every mode, not just the two Kontakt had: band-pass, notch and peak
+        // tap the same stages and must stay just as bounded under overload.
+        for(Mode mode:{Mode::lowPass,Mode::highPass,Mode::bandPass,Mode::notch,Mode::peak})
         {
             glitch::AdaptiveFilter filter;filter.prepare(rate);
             for(int cutoff:{0,500000,1000000})
@@ -381,15 +403,15 @@ static void adaptiveFilterTests()
                 filter.setParameters(cutoff,100);
                 for(int i=0;i<12000;++i)
                 {
-                    auto y=filter.process({i<6000 ? 4*std::sin(i*.35) : 0.,0.},lowPass);
+                    auto y=filter.process({i<6000 ? 4*std::sin(i*.35) : 0.,0.},mode);
                     require(std::isfinite(y[0]) && std::abs(y[0])<100,"Adaptive filter overload and parameter changes must remain bounded");
                     require(y[1]==0,"Linked resonance must not leak audio into a silent channel");
                 }
             }
-            filter.reset();auto y=filter.process({0,0},lowPass);
+            filter.reset();auto y=filter.process({0,0},mode);
             require(y[0]==0 && y[1]==0,"Adaptive filter reset must clear both stages");
         }
-    std::cout<<"PASS: adaptive filter overload, stereo isolation, reset and five rates\n";
+    std::cout<<"PASS: adaptive filter overload, stereo isolation, reset, five rates and all five modes\n";
 }
 
 // --- FX chain -------------------------------------------------------------
@@ -577,6 +599,55 @@ static void fxChainTests(const juce::File& root)
     }
 
     std::cout<<"PASS: eight FX modules, EQ bands, chain reordering, order validation, state recall, limiter latency and the analyser feed\n";
+}
+
+// The filter menu lists types only; bypass is its own switch. Every type must
+// reach the engine and render differently from the others.
+static void filterTypeTests(const juce::File& root)
+{
+    auto file=root.getChildFile("filter.wav");writeWave(file);
+    auto render5=[&file](int type,bool enabled)
+    {
+        GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+        p.loadSample(file);require(p.waitForContent(),"Filter fixture must load");
+        parameter(p,"filterEnable",enabled ? 1.f : 0.f);
+        parameter(p,"filterType",(float)type);
+        parameter(p,"cutoff",500000);parameter(p,"resonance",60);
+        juce::AudioBuffer<float> out(2,512);
+        note(p,out);finite(out);
+        return out;
+    };
+
+    const auto bypassed=render5(0,false);
+    require(bypassed.getMagnitude(0,512)>0,"Filter baseline must sound");
+
+    std::vector<juce::AudioBuffer<float>> rendered;
+    for(int type=0;type<5;++type) rendered.push_back(render5(type,true));
+
+    auto differs=[](const juce::AudioBuffer<float>& a,const juce::AudioBuffer<float>& b)
+    {
+        for(int i=0;i<512;++i) if(std::abs(a.getSample(0,i)-b.getSample(0,i))>1e-6f) return true;
+        return false;
+    };
+
+    const char* names[]{"Low Pass","High Pass","Band Pass","Notch","Peak"};
+    for(int type=0;type<5;++type)
+    {
+        require(rendered[(size_t)type].getMagnitude(0,512)>0,
+                (juce::String(names[type])+" must still pass audio").toRawUTF8());
+        require(differs(rendered[(size_t)type],bypassed),
+                (juce::String(names[type])+" must change the output").toRawUTF8());
+        for(int other=0;other<type;++other)
+            require(differs(rendered[(size_t)type],rendered[(size_t)other]),
+                    (juce::String(names[type])+" must differ from "+names[other]).toRawUTF8());
+    }
+
+    // Switching the filter off must restore the dry signal exactly, whatever
+    // type is selected.
+    for(int type=0;type<5;++type)
+        require(!differs(render5(type,false),bypassed),"A bypassed filter must not colour the signal");
+
+    std::cout<<"PASS: five filter types, each distinct, with a clean bypass\n";
 }
 
 // The x-ray zap is tied to the instrument's notes, not to whatever is coming
@@ -837,11 +908,13 @@ int main(int argc,char** argv)
                 const Complex expected=std::pow(10.,-2.4*r/20.)*
                     ((lowPass ? t*t : q*q)*den+2*r*t*t*q*q)/(den*den);
                 glitch::AdaptiveFilter filter;filter.setParameters(500000,resonance);filter.prepare(48000);
+                const auto mode=lowPass ? glitch::AdaptiveFilter::Mode::lowPass
+                                        : glitch::AdaptiveFilter::Mode::highPass;
                 Complex measured=0;
                 for(int i=0;i<96000;++i)
                 {
                     const double phase=omega*i;
-                    const auto output=filter.process({1e-5*std::sin(phase),0.},lowPass);
+                    const auto output=filter.process({1e-5*std::sin(phase),0.},mode);
                     if(i>=48000) measured+=output[0]*std::exp(-imaginary*phase);
                 }
                 measured*=2.*imaginary/(48000.*1e-5);
@@ -1033,7 +1106,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

@@ -75,12 +75,12 @@ void Engine::setControls(const Controls& c) noexcept
     {
         if(controls.randomness==100) selectedCategory=c.category;
         settings.filter=c.filter;
-        if(settings.filter!=1)
-            filterValues[settings.filter==2 ? 1 : 0]={lastRandomCutoff,lastRandomResonance};
+        if(settings.filter!=filterOff)
+            filterValues[(size_t)filterSlot(settings.filter)]={lastRandomCutoff,lastRandomResonance};
     }
-    if(settings.filter!=1)
+    if(settings.filter!=filterOff)
     {
-        auto& values=filterValues[settings.filter==2 ? 1 : 0];
+        auto& values=filterValues[(size_t)filterSlot(settings.filter)];
         if(c.cutoff!=controls.cutoff) values[0]=c.cutoff;
         if(c.resonance!=controls.resonance) values[1]=c.resonance;
     }
@@ -89,8 +89,8 @@ void Engine::setControls(const Controls& c) noexcept
 }
 void Engine::selectFilterValues() noexcept
 {
-    if(settings.filter==1) return;
-    const auto& values=filterValues[settings.filter==2 ? 1 : 0];
+    if(settings.filter==filterOff) return;
+    const auto& values=filterValues[(size_t)filterSlot(settings.filter)];
     settings.cutoff=values[0]; settings.resonance=values[1];
 }
 void Engine::updateEffects() noexcept
@@ -116,8 +116,8 @@ void Engine::noteOn(int channel,int note,float velocity) noexcept
         lastRandomCutoff=selected.cutoff; lastRandomResonance=selected.resonance;
         pitchKnobUsed=false;
         if(controls.randomness==100 && selected.category>=0) selectedCategory=selected.category;
-        if(settings.filter!=1)
-            filterValues[settings.filter==2 ? 1 : 0]={settings.cutoff,settings.resonance};
+        if(settings.filter!=filterOff)
+            filterValues[(size_t)filterSlot(settings.filter)]={settings.cutoff,settings.resonance};
     }
     else
     {
@@ -203,9 +203,9 @@ void Engine::render(juce::AudioBuffer<float>& out,int start,int length) noexcept
         }
         const float gain=outputGain.getNextValue()*referenceOutputTrim;
         std::array<double,2> effected{processEffect(mixed[0],0),processEffect(mixed[1],1)};
-        if(settings.filter!=1)
-            effected=filters[settings.filter==2 ? 1 : 0].process(effected,settings.filter==2);
-        if(settings.destroy==0 || settings.filter!=1)
+        if(settings.filter!=filterOff)
+            effected=filters[(size_t)filterSlot(settings.filter)].process(effected,adaptiveMode(settings.filter));
+        if(settings.destroy==0 || settings.filter!=filterOff)
             effectBlockPeak=std::max(effectBlockPeak,std::max(std::abs(effected[0]),std::abs(effected[1])));
         const float left=std::isfinite(effected[0]) ? (float)effected[0]*gain : 0;
         const float right=std::isfinite(effected[1]) ? (float)effected[1]*gain : 0;
@@ -226,7 +226,7 @@ void Engine::restoreRuntimeState(const RuntimeState& s) noexcept
 {
     settings.bits=std::clamp(s[0],250000,1000000); settings.drive=std::clamp(s[1],0,1000000);
     settings.cutoff=std::clamp(s[2],0,1000000); settings.resonance=std::clamp(s[3],0,100);
-    settings.destroy=std::clamp(s[4],0,1);settings.filter=std::clamp(s[5],0,2);
+    settings.destroy=std::clamp(s[4],0,1);settings.filter=std::clamp(s[5],0,filterCount-1);
     settings.category=std::clamp(s[6],-1,8);settings.pitchUnits=std::clamp(s[7],-2200000,2200000);
     filterValues[0]={std::clamp(s[8],0,1000000),std::clamp(s[9],0,100)};
     filterValues[1]={std::clamp(s[10],0,1000000),std::clamp(s[11],0,100)};
@@ -234,7 +234,7 @@ void Engine::restoreRuntimeState(const RuntimeState& s) noexcept
     pitchKnobUsed=s[14]!=0;lastRandomCutoff=std::clamp(s[15],0,1000000);lastRandomResonance=std::clamp(s[16],0,100);
     controls.category=std::clamp(s[17],0,8);controls.pitch=std::clamp(s[18],-12,12);controls.lofi=std::clamp(s[19],0,8);
     controls.drive=std::clamp(s[20],0,1000000);controls.cutoff=std::clamp(s[21],0,1000000);controls.resonance=std::clamp(s[22],0,100);
-    controls.randomness=std::clamp(s[23],0,100);controls.destroy=std::clamp(s[24],0,1);controls.filter=std::clamp(s[25],0,2);
+    controls.randomness=std::clamp(s[23],0,100);controls.destroy=std::clamp(s[24],0,1);controls.filter=std::clamp(s[25],0,filterCount-1);
     selectFilterValues();updateEffects();
 }
 }

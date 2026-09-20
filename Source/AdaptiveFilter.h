@@ -10,6 +10,12 @@ namespace glitch
 class AdaptiveFilter
 {
 public:
+    // The topology is a two-stage TPT state-variable filter, so every one of
+    // these is a different tap off the same measured Kontakt response rather
+    // than a separate filter. Low/High are the two Kontakt itself had and are
+    // untouched; the rest were added on top.
+    enum class Mode { lowPass, highPass, bandPass, notch, peak };
+
     void prepare(double rate) noexcept
     {
         sampleRate=std::max(8000.0,rate);
@@ -33,7 +39,7 @@ public:
         baseDamping=std::min(2.0,floor+(2.0-floor)*std::pow(10.0,0.3-r));
         feedback=(2.0-baseDamping)/(baseDamping-floor);
     }
-    std::array<double,2> process(std::array<double,2> input,bool lowPass) noexcept
+    std::array<double,2> process(std::array<double,2> input,Mode mode) noexcept
     {
         // Detector units are before the engine's reference output trim.
         constexpr double threshold=0.452844742/(0.49165056986916567/0.5);
@@ -46,7 +52,21 @@ public:
         {
             const auto first=stages[channel][0].process(input[channel],g,damping);
             const auto second=stages[channel][1].process(first.band,g,damping);
-            output[channel]=gain*((lowPass ? first.low : first.high)+2*r*second.band);
+            // Kontakt's resonance is a second-stage band injection on top of
+            // the selected tap. Notch is the one mode that must not get it:
+            // the band is exactly what the notch removes, so adding it back
+            // would fill in the null. Peak is that same notch WITH the
+            // injection, which is what makes it a peak.
+            double selected=0,bandMix=2*r;
+            switch(mode)
+            {
+                case Mode::lowPass:  selected=first.low; break;
+                case Mode::highPass: selected=first.high; break;
+                case Mode::bandPass: selected=first.band; break;
+                case Mode::notch:    selected=first.low+first.high; bandMix=0; break;
+                case Mode::peak:     selected=first.low+first.high; break;
+            }
+            output[channel]=gain*(selected+bandMix*second.band);
             detector+=std::abs(second.band);
         }
         envelope=std::max(detector,envelope*decay);

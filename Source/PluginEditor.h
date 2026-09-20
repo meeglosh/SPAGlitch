@@ -28,6 +28,16 @@ private:
     void drawBlackNote(int note,juce::Graphics& g,juce::Rectangle<float> area,bool down,bool over,juce::Colour colour) override
     { MidiKeyboardComponent::drawBlackNote(note,g,area,down,over,colour);g.setColour(stripe(note));g.fillRect(area.removeFromBottom(4).reduced(1,0)); }
 };
+// Icon-only MIDI panic: a slashed circle, the same "kill everything" glyph a
+// mute button uses. Labelled by tooltip, since the header has no room for text.
+class PanicButton final : public juce::Button
+{
+public:
+    PanicButton():juce::Button("All notes off")
+    { setTooltip("All notes off"); setMouseClickGrabsKeyboardFocus(false); }
+private:
+    void paintButton(juce::Graphics&,bool over,bool down) override;
+};
 class GlitchEditor final : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
@@ -40,14 +50,11 @@ public:
     // scaled to whatever the window is, so every pixel position below stays a
     // plain constant and the photograph can never be re-proportioned.
     static constexpr int designWidth=1120;
-    // The faceplate ends immediately below the status row. It was 780 while the
-    // keyboard lived inside it; once the keyboard moved to its own drawer that
-    // left ~90px of photograph exposed below the status bar and nothing else,
-    // so the drawers now start here instead and the whole instrument is that
-    // much shorter. The artwork is 3:2, so this framing shows its full width
-    // (780 cropped 50px off the sides) and trims ~29px top and bottom, most of
-    // it behind the header scrim.
-    static constexpr int faceplateHeight=688;
+    // The faceplate ends where the control cards do. It was 780 with the
+    // keyboard inside it, then 688 once that moved to its own drawer; the
+    // status/meter/panic strip that occupied 620..688 has since moved into the
+    // header, so the drawers start here and the instrument is shorter again.
+    static constexpr int faceplateHeight=620;
     static constexpr int keyboardHeight=64;
     // Full size is taller than a 14" laptop screen, so the window has to be
     // able to scale well below 100%.
@@ -83,18 +90,19 @@ private:
     Canvas canvas{*this};
     juce::ComponentBoundsConstrainer constrainer;
     SpaLookAndFeel look;
-    juce::Label title,status,effective,categoryLabel,filterLabel,keyRangeLabel;
-    juce::TextButton load{"Locate library..."},audition{"Audition WAV..."},panic{"All notes off"};
+    juce::Label title,status,effective,categoryLabel,filterLabel;
+    PanicButton panic;
+    juce::TooltipWindow tooltips{this,600};
     juce::ToggleButton motion{"Motion"};
     juce::Image calmImage;
     std::array<juce::Image,5> electricImages;
     ShockAnimation shock;
     BlastAnimation blast;
     juce::Rectangle<int> photoBounds;
-    juce::ComboBox category,filter,keyRange;
-    // PITCH, RANDOMNESS | CUTOFF, RESONANCE, OUTPUT. BITS and CRUNCH drove the
-    // Kontakt lo-fi/tube stage, which the FX chain's Distortion (Soft/Hard/
-    // Fold/Crush) now covers.
+    juce::ComboBox category,filter;
+    std::unique_ptr<glitch::fx::ui::PowerButton> filterPower;
+    // PITCH, RANDOMNESS, OUTPUT | CUTOFF, RESONANCE. The filter menu and its
+    // bypass switch sit above the two knobs they drive.
     static constexpr int numKnobs=5;
     std::array<juce::Slider,numKnobs> knobs;
     std::array<juce::Label,numKnobs> labels;
@@ -102,8 +110,7 @@ private:
     glitch::fx::ui::FXSection fxSection;
     glitch::ui::DrawerHeader keyboardHeader{"04","KEYBOARD","click keys or play your MIDI controller"};
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,numKnobs> attachments;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,filterAttachment,keyRangeAttachment;
-    std::unique_ptr<juce::FileChooser> chooser;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,filterAttachment;
     float meterLeft=0,meterRight=0;
     float energy=0;
     int animationFrame=0;

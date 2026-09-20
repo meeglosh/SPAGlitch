@@ -26,6 +26,23 @@ void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,in
     g.setColour(ink);g.drawLine(centre.x+dx*body*.4f,centre.y+dy*body*.4f,centre.x+dx*body*.82f,centre.y+dy*body*.82f,2.5f);
 }
 
+void PanicButton::paintButton(juce::Graphics& g,bool over,bool down)
+{
+    const juce::Colour ink(0xfff3f5e9),muted(0xffbdcfc1),sage(0xff9abea3),paper(0xff10241f);
+    auto body=getLocalBounds().toFloat().reduced(2.f);
+    g.setColour(paper.withAlpha(down ? .95f : .8f));
+    g.fillRoundedRectangle(body,body.getWidth()*.5f);
+    g.setColour(sage.withAlpha(over||down ? .55f : .3f));
+    g.drawRoundedRectangle(body,body.getWidth()*.5f,1.f);
+
+    // Slashed circle: the usual "kill everything" glyph.
+    const auto c=body.getCentre();
+    const float r=body.getWidth()*.26f;
+    g.setColour(over||down ? ink : muted);
+    g.drawEllipse(c.x-r,c.y-r,r*2.f,r*2.f,1.6f);
+    const float d=r*0.707f;
+    g.drawLine(c.x-d,c.y+d,c.x+d,c.y-d,1.6f);
+}
 GlitchEditor::GlitchEditor(GlitchProcessor& p)
  :AudioProcessorEditor(p),processor(p),keyboard(p.keyboard),
   fxSection(p.parameters,
@@ -58,21 +75,19 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     for(size_t i=0;i<electricImages.size();++i) electricImages[i]=juce::ImageCache::getFromMemory(images[i],sizes[i]);
     title.setText("SPA / GLITCH",juce::dontSendNotification);
     title.setFont(juce::Font(juce::FontOptions("Georgia",30.0f,juce::Font::plain)));
-    load.setButtonText("Reload sounds");audition.setButtonText("Audition WAV");panic.setButtonText("All notes off");
     motion.setToggleState(true,juce::dontSendNotification);
     motion.setTooltip("Disable animated lightning, sparks and twitching while retaining the audio-reactive x-ray glow");
     canvas.addAndMakeVisible(motion);
-    keyRangeLabel.setText("KEY RANGE",juce::dontSendNotification);
-    keyRange.addItemList({"Kontakt keys","Middle keys"},1);
-    keyRangeAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"keyRange",keyRange);
     categoryLabel.setText("SAMPLE BANK",juce::dontSendNotification);
     filterLabel.setText("FILTER",juce::dontSendNotification);
     for(int i=0;i<9;++i) category.addItem(glitch::categories[(size_t)i],i+1);
-    filter.addItemList({"High-pass","Off","Low-pass"},1);
+    filter.addItemList({"Low Pass","High Pass","Band Pass","Notch","Peak"},1);
     categoryAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"category",category);
-    filterAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"filter",filter);
-    const char* ids[]{"pitch","randomness","cutoff","resonance","gain"};
-    const char* names[]{"PITCH","RANDOMNESS","CUTOFF","RESONANCE","OUTPUT"};
+    filterAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"filterType",filter);
+    filterPower=std::make_unique<glitch::fx::ui::PowerButton>(p.parameters,"filterEnable","ON");
+    canvas.addAndMakeVisible(*filterPower);
+    const char* ids[]{"pitch","randomness","gain","cutoff","resonance"};
+    const char* names[]{"PITCH","RANDOMNESS","OUTPUT","CUTOFF","RESONANCE"};
     for(size_t i=0;i<knobs.size();++i)
     {
         auto& knob=knobs[i];
@@ -90,30 +105,20 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
         attachments[i]=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.parameters,ids[i],knob);
     }
     // CUTOFF is stored in KSP units (0..1000000) but reads as a percentage.
-    knobs[2].textFromValueFunction=[](double v){return juce::String(v/10000.0,1)+" %";};
-    knobs[2].valueFromTextFunction=[](const juce::String& v){return v.getDoubleValue()*10000.0;};
-    knobs[2].updateText();
+    knobs[3].textFromValueFunction=[](double v){return juce::String(v/10000.0,1)+" %";};
+    knobs[3].valueFromTextFunction=[](const juce::String& v){return v.getDoubleValue()*10000.0;};
+    knobs[3].updateText();
     knobs[0].setTextValueSuffix(" st"); knobs[1].setTextValueSuffix(" %");
-    knobs[3].setTextValueSuffix(" %"); knobs[4].setTextValueSuffix(" dB");
+    knobs[2].setTextValueSuffix(" dB"); knobs[4].setTextValueSuffix(" %");
     keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(48); keyboard.setKeyWidth(24);
-    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&filterLabel,&keyRangeLabel,&keyRange,&category,&filter,&load,&audition,&panic,&keyboard}) canvas.addAndMakeVisible(c);
-    auto choose=[this](bool single)
-    {
-        chooser=std::make_unique<juce::FileChooser>(single?"Choose a WAV":"Choose the Glitch Bundle or sample folder",juce::File{},single?"*.wav":"");
-        const auto safe=juce::Component::SafePointer<GlitchEditor>(this);
-        chooser->launchAsync(juce::FileBrowserComponent::openMode|(single?juce::FileBrowserComponent::canSelectFiles:juce::FileBrowserComponent::canSelectDirectories),
-          [safe,single](const juce::FileChooser& fc)
-          {
-              if(!safe || fc.getResult()==juce::File{}) return;
-              if(single) safe->processor.loadSample(fc.getResult()); else safe->processor.loadLibrary(fc.getResult());
-          });
-    };
-    load.onClick=[this]{processor.loadInstalledLibrary();}; audition.onClick=[choose]{choose(true);};
+    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&filterLabel,&category,&filter,&panic,&keyboard}) canvas.addAndMakeVisible(c);
     panic.onClick=[this]{processor.allNotesOff();};
     status.setFont(juce::Font(juce::FontOptions(11.5f)));
     status.setColour(juce::Label::textColourId,muted);
+    status.setJustificationType(juce::Justification::centredRight);
     effective.setFont(juce::Font(juce::FontOptions(11.5f)));
-    for(auto* label:{&categoryLabel,&filterLabel,&keyRangeLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
+    effective.setJustificationType(juce::Justification::centredRight);
+    for(auto* label:{&categoryLabel,&filterLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
     keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xfff8f6ef));
     keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,paper);
     keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
@@ -198,32 +203,38 @@ void GlitchEditor::paint(juce::Graphics& g)
 void GlitchEditor::layoutCanvas()
 {
     title.setBounds(28,18,290,40);
-    load.setBounds(800,28,134,30);audition.setBounds(944,28,148,30);
-    categoryLabel.setBounds(368,16,248,16);category.setBounds(368,36,248,32);
-    keyRangeLabel.setBounds(628,16,160,16);keyRange.setBounds(628,36,160,32);
+
+    // Header: title left, the one remaining menu centred, and everything that
+    // reports state -- what is playing, the meters, the load status and panic
+    // -- gathered top right where the transport controls used to be.
+    categoryLabel.setBounds((designWidth-248)/2,16,248,16);
+    category.setBounds((designWidth-248)/2,36,248,32);
+    panic.setBounds(1046,25,42,42);
+    effective.setBounds(646,12,382,18);
+    status.setBounds(646,56,382,18);
     photoBounds=juce::Rectangle<int>(0,0,designWidth,faceplateHeight);
     const int knobWidth=140,rowHeight=112;
     // Two even columns: PITCH + RANDOMNESS and the FILTER menu on the left,
     // CUTOFF + RESONANCE + OUTPUT on the right.
-    const std::array<int,2> left{0,1};
-    const std::array<int,3> right{2,3,4};
+    const std::array<int,3> left{0,1,2};
+    const std::array<int,2> right{3,4};
     for(size_t row=0;row<left.size();++row)
     {
         const auto i=(size_t)left[row];const int y=133+(int)row*rowHeight;
         labels[i].setBounds(28,y+4,knobWidth,18);knobs[i].setBounds(28,y+22,knobWidth,80);
     }
+    // The right column starts lower, under the filter menu.
     for(size_t row=0;row<right.size();++row)
     {
-        const auto i=(size_t)right[row];const int y=133+(int)row*rowHeight;
+        const auto i=(size_t)right[row];const int y=194+(int)row*rowHeight;
         labels[i].setBounds(952,y+4,knobWidth,18);knobs[i].setBounds(952,y+22,knobWidth,80);
     }
-    filterLabel.setBounds(32,361,132,18);filter.setBounds(32,385,132,30);
-    // Motion used to sit inside the tall right-hand card. That card now ends
-    // above it, so it moves into the left column's spare row rather than
-    // floating unbacked over the photograph, where its label was unreadable.
-    motion.setBounds(32,430,132,26);
-    effective.setBounds(196,625,500,22);panic.setBounds(784,625,140,26);
-    status.setBounds(28,656,1064,24);
+    // The filter menu and its bypass switch sit directly above CUTOFF and
+    // RESONANCE, the two knobs they drive.
+    filterLabel.setBounds(956,128,60,18);
+    filterPower->setBounds(1022,126,62,22);
+    filter.setBounds(956,152,132,30);
+    motion.setBounds(956,420,132,26);
 
     fxSection.setBounds(0,faceplateHeight,designWidth,fxSection.preferredHeight());
 
@@ -301,7 +312,6 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     }
     // The scrim stops at the status row: the keyboard has moved to its own
     // drawer below, so the bottom of the photograph is no longer covered.
-    g.setColour(paper.withAlpha(.86f));g.fillRect(0,620,designWidth,68);
     g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
     g.drawText("S I L V E R P L A T T E R   A U D I O",32,64,290,18,juce::Justification::left);
     g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(90,0,(float)designWidth);
@@ -317,9 +327,14 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     g.setColour(sage.withAlpha(.35f));
     g.drawHorizontalLine(fxSection.getBottom(),0.f,(float)designWidth);
 
-    g.setColour(sage.withAlpha(.25f));g.fillRect(32,631,132,3);g.fillRect(32,639,132,3);
-    g.setColour(electric);g.fillRect(32.f,631.f,132*std::min(1.f,meterLeft),3.f);
-    g.fillRect(32.f,639.f,132*std::min(1.f,meterRight),3.f);
+    // Output meters, right-aligned in the header between the "playing" line
+    // and the load status.
+    constexpr float meterX=896.f,meterW=132.f;
+    g.setColour(sage.withAlpha(.25f));
+    g.fillRect(meterX,38.f,meterW,3.f);g.fillRect(meterX,46.f,meterW,3.f);
+    g.setColour(electric);
+    g.fillRect(meterX,38.f,meterW*std::min(1.f,meterLeft),3.f);
+    g.fillRect(meterX,46.f,meterW*std::min(1.f,meterRight),3.f);
 
 }
 void GlitchEditor::timerCallback()
@@ -336,14 +351,15 @@ void GlitchEditor::timerCallback()
     int group=processor.voiceCount.load()>0 ? processor.playingCategory.load() : category.getSelectedItemIndex();
     group=juce::jlimit(0,8,group);
     effective.setText("Playing: "+juce::String(glitch::categories[(size_t)group])+"   /   Pitch: "+juce::String(processor.playingPitch.load()/100000.0,1)+" st",juce::dontSendNotification);
-    const int mapping=keyRange.getSelectedItemIndex();
-    if(mapping!=lastKeyRange) { lastKeyRange=mapping;keyboard.setLowestVisibleKey(mapping==1?48:12); }
+    // The key-range menu is gone; the instrument always uses the middle-key
+    // mapping, which is what that menu defaulted to.
+    if(lastKeyRange!=1) { lastKeyRange=1;keyboard.setLowestVisibleKey(48); }
     if(group!=highlighted)
     {
         highlighted=group;
         // The range matches the recovered per-category zone map.
-        keyboard.setMapping(group,false,0,mapping==1);
+        keyboard.setMapping(group,false,0,true);
     }
-    keyboard.setMapping(group,knobs[1].getValue()==100,processor.playingPitch.load()/10000,mapping==1);
+    keyboard.setMapping(group,knobs[1].getValue()==100,processor.playingPitch.load()/10000,true);
     canvas.repaint(photoBounds.expanded(3));canvas.repaint(190,100,740,22);
 }

@@ -19,6 +19,29 @@ inline constexpr int bankFirstNote(int group,bool middleKeys) noexcept
 {
     return middleKeys ? (group==2 ? 24 : 48) : firstNote;
 }
+// Filter selection, as stored in Controls/NoteSettings and the runtime state.
+// 0/1/2 are Kontakt's own and must keep those indices; the rest were added on
+// top and continue the list.
+enum Filter { filterHighPass=0, filterOff=1, filterLowPass=2,
+              filterBandPass=3, filterNotch=4, filterPeak=5 };
+inline constexpr int filterCount=6;
+inline constexpr AdaptiveFilter::Mode adaptiveMode(int filter) noexcept
+{
+    switch(filter)
+    {
+        case filterHighPass: return AdaptiveFilter::Mode::highPass;
+        case filterBandPass: return AdaptiveFilter::Mode::bandPass;
+        case filterNotch:    return AdaptiveFilter::Mode::notch;
+        case filterPeak:     return AdaptiveFilter::Mode::peak;
+        default:             return AdaptiveFilter::Mode::lowPass;
+    }
+}
+// Kontakt kept a separate cutoff/resonance memory per filter mode, and the
+// callback-parity tests pin that behaviour for its two. The modes added since
+// share the low-pass memory: the quirk is Kontakt's, and only its originals
+// have to reproduce it.
+inline constexpr int filterSlot(int filter) noexcept { return filter==filterHighPass ? 0 : 1; }
+
 inline constexpr bool noteInBank(int group,int note,bool middleKeys) noexcept
 {
     return group>=0 && group<9 && note>=bankFirstNote(group,middleKeys)
@@ -111,8 +134,8 @@ public:
     uint32_t seed() const noexcept { return random.state; }
     const NoteSettings& effective() const noexcept { return settings; }
     int activeVoices() const noexcept;
-    int filterCutoff(int mode) const noexcept { return filterValues[mode==2 ? 1 : 0][0]; }
-    int filterResonance(int mode) const noexcept { return filterValues[mode==2 ? 1 : 0][1]; }
+    int filterCutoff(int mode) const noexcept { return filterValues[(size_t)filterSlot(mode)][0]; }
+    int filterResonance(int mode) const noexcept { return filterValues[(size_t)filterSlot(mode)][1]; }
 private:
     struct Voice
     {
