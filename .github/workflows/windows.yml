@@ -79,6 +79,21 @@ jobs:
           if ($uninstall.ExitCode -ne 0) { throw 'Uninstall failed' }
           if ((Test-Path "$destination/SPAGlitch.exe") -or (Test-Path "$plugin/Contents/x86_64-win/SPAGlitch.vst3")) { throw 'Uninstall left installed binaries' }
           if (Test-Path "$env:ProgramData/Silverplatter Audio/SPAGlitch/Samples/Glitch Digital 01.wav") { throw 'Uninstall left factory samples' }
+      - name: Prune superseded artifacts
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        continue-on-error: true   # housekeeping must never fail a build
+        run: |
+          # Windows artifacts are tens of MB each and the free storage quota is
+          # shared with releases, so every run clears the ones it supersedes
+          # rather than waiting out the retention window.
+          $artifacts = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?per_page=100" `
+            --jq ".artifacts[] | select(.expired==false) | select(.workflow_run.id != $env:GITHUB_RUN_ID) | .id"
+          foreach ($id in $artifacts) {
+            if ($id) { gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$id" | Out-Null }
+          }
       - name: Upload unsigned Windows installer
         if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
         uses: actions/upload-artifact@v6
@@ -86,7 +101,7 @@ jobs:
           name: SPAGlitch-Windows-x64-Installer
           path: build/installer/*Setup.exe
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 5
       - name: Upload unsigned Windows binaries
         uses: actions/upload-artifact@v6
         with:
@@ -95,4 +110,4 @@ jobs:
             build/windows-x64/SPAGlitch_artefacts/Release/Standalone/SPAGlitch.exe
             build/windows-x64/SPAGlitch_artefacts/Release/VST3/SPAGlitch.vst3/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 5
