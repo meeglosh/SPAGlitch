@@ -21,6 +21,13 @@ public:
     // A ComboBox rebuilds this Label whenever the look-and-feel changes, so
     // the flag has to be cleared here rather than only in the editor's sweep.
     juce::Label* createComboBoxTextBox(juce::ComboBox&) override;
+
+    // JUCE's defaults (15pt buttons, 17pt menu items) are set for a stock UI.
+    // This faceplate runs on 9.5-11.5pt captions, so the stock sizes read as
+    // oversized next to everything around them.
+    juce::Font getTextButtonFont(juce::TextButton&,int buttonHeight) override;
+    juce::Font getComboBoxFont(juce::ComboBox&) override;
+    juce::Font getPopupMenuFont() override;
     void drawButtonText(juce::Graphics&,juce::TextButton&,bool,bool) override;
 
     void setGlitch(float energy,int frame) { energyValue=energy; frameValue=frame; }

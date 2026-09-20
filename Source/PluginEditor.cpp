@@ -43,6 +43,20 @@ void SpaLookAndFeel::drawLabel(juce::Graphics& g,juce::Label& label)
     g.setColour(label.findColour(juce::Label::outlineColourId));
     g.drawRect(label.getLocalBounds());
 }
+juce::Font SpaLookAndFeel::getTextButtonFont(juce::TextButton&,int buttonHeight)
+{
+    return juce::Font(juce::FontOptions(juce::jmin(12.5f,(float)buttonHeight*0.55f)));
+}
+juce::Font SpaLookAndFeel::getComboBoxFont(juce::ComboBox& box)
+{
+    return juce::Font(juce::FontOptions(juce::jmin(12.5f,(float)box.getHeight()*0.6f)));
+}
+juce::Font SpaLookAndFeel::getPopupMenuFont()
+{
+    // A touch above the closed box: a menu item is a click target, and the
+    // popup floats away from the faceplate's own type.
+    return juce::Font(juce::FontOptions(13.0f));
+}
 juce::Label* SpaLookAndFeel::createComboBoxTextBox(juce::ComboBox& box)
 {
     auto* label=juce::LookAndFeel_V4::createComboBoxTextBox(box);
