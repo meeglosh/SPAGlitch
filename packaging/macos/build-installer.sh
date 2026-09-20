@@ -2,6 +2,18 @@
 set -euo pipefail
 
 # Usage: build-installer.sh <folder containing the three bundles> <output.pkg> <sample-directory>
+#
+# Signing is opt-in through the environment, so a local test build needs no
+# certificates and a distribution build needs no separate script:
+#
+#   SPAGLITCH_CODESIGN_IDENTITY   "Developer ID Application: ..." — signs each
+#                                 bundle with the hardened runtime and a secure
+#                                 timestamp, both of which notarization requires.
+#   SPAGLITCH_INSTALLER_IDENTITY  "Developer ID Installer: ..." — signs the pkg.
+#
+# Unset, the bundles are ad-hoc signed (enough to run locally on Apple silicon,
+# not enough to survive Gatekeeper after a download) and the pkg is unsigned.
+# Notarization is a separate step: scripts/notarize.sh <pkg>.
 script_dir=$(cd "$(dirname "$0")" && pwd)
 sample_dir=$(cd "${3:?Supply the complete sample directory}" && pwd)
 python3 "$script_dir/../validate_samples.py" "$sample_dir"
@@ -20,7 +32,12 @@ make_component() {
     mkdir -p "$root$destination"
     # Package clean copies; do not carry cloud-provider/Finder metadata.
     ditto --norsrc --noextattr "$source_dir/$bundle" "$root$destination/$bundle"
-    codesign --force --deep --sign - "$root$destination/$bundle"
+    if [ -n "${SPAGLITCH_CODESIGN_IDENTITY:-}" ]; then
+        codesign --force --deep --options runtime --timestamp \
+            --sign "$SPAGLITCH_CODESIGN_IDENTITY" "$root$destination/$bundle"
+    else
+        codesign --force --deep --sign - "$root$destination/$bundle"
+    fi
     codesign --verify --deep --strict "$root$destination/$bundle"
     pkgbuild --analyze --root "$root" "$package_work/$name.plist"
     if [ "$name" = standalone ]; then
@@ -40,13 +57,18 @@ for sample in "$sample_dir"/*.wav; do
 done
 pkgbuild --root "$package_work/samples" --identifier com.silverplatteraudio.spaglitch.samples --version 0.1.4 --install-location / --ownership recommended "$package_work/packages/samples.pkg"
 
-cat > "$package_work/resources/welcome.html" <<'HTML'
+if [ -n "${SPAGLITCH_INSTALLER_IDENTITY:-}" ]; then
+    signing_note="Signed by Kenzora Games Inc. and notarized by Apple."
+else
+    signing_note="This development installer is not Developer ID signed or notarized."
+fi
+cat > "$package_work/resources/welcome.html" <<HTML
 <html><body style="font-family: -apple-system; color: #203a30">
 <h1>SPA / GLITCH</h1><p>Silverplatter Audio · Development test build</p>
 <p>Install the standalone instrument, Audio Unit, and VST3 plugin.</p>
 <p>Quit SPAGlitch and your DAW before continuing. Use Customize to choose formats.</p>
 <p>All 479 factory sounds are included and load automatically in every format.</p>
-<p>This development installer is not Developer ID signed or notarized.</p>
+<p>$signing_note</p>
 </body></html>
 HTML
 cat > "$package_work/distribution.xml" <<'XML'
@@ -70,5 +92,13 @@ cat > "$package_work/distribution.xml" <<'XML'
   <pkg-ref id="com.silverplatteraudio.spaglitch.vst3" version="0.1.4" onConclusion="none">vst3.pkg</pkg-ref>
 </installer-gui-script>
 XML
-productbuild --distribution "$package_work/distribution.xml" --resources "$package_work/resources" \
-    --package-path "$package_work/packages" "$output_path"
+if [ -n "${SPAGLITCH_INSTALLER_IDENTITY:-}" ]; then
+    productbuild --distribution "$package_work/distribution.xml" --resources "$package_work/resources" \
+        --package-path "$package_work/packages" "$package_work/unsigned.pkg"
+    productsign --sign "$SPAGLITCH_INSTALLER_IDENTITY" "$package_work/unsigned.pkg" "$output_path"
+    pkgutil --check-signature "$output_path" | sed -n '1,3p'
+else
+    productbuild --distribution "$package_work/distribution.xml" --resources "$package_work/resources" \
+        --package-path "$package_work/packages" "$output_path"
+    echo "note: unsigned pkg (set SPAGLITCH_INSTALLER_IDENTITY to sign)"
+fi
