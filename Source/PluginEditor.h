@@ -5,6 +5,8 @@
 #include "fx/FXSection.h"
 #include "Drawer.h"
 #include "MidiLearnMenu.h"
+#include "PresetBrowser.h"
+#include "Randomizer.h"
 class SpaLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
@@ -51,7 +53,11 @@ public:
     // The faceplate is laid out at a fixed design size and the whole thing is
     // scaled to whatever the window is, so every pixel position below stays a
     // plain constant and the photograph can never be re-proportioned.
-    static constexpr int designWidth=1120;
+    static constexpr int faceplateWidth=1120;
+    // The preset drawer opens in its own column to the LEFT: the window widens
+    // by exactly its width, so it never covers any of the instrument.
+    int designWidth() const
+    { return faceplateWidth+(isPresetBrowserOpen() ? glitch::ui::PresetBrowser::width : 0); }
     // The faceplate ends where the control cards do. It was 780 with the
     // keyboard inside it, then 688 once that moved to its own drawer; the
     // status/meter/panic strip that occupied 620..688 has since moved into the
@@ -67,6 +73,8 @@ public:
     // restore them with the rest of the editor state.
     void setFxCollapsed(bool);
     void setKeyboardCollapsed(bool);
+    void setPresetBrowserOpen(bool);
+    bool isPresetBrowserOpen() const { return presetBrowserOpen; }
     bool isFxCollapsed() const { return fxSection.isCollapsed(); }
     bool isKeyboardCollapsed() const { return keyboardHeader.isCollapsed(); }
 
@@ -76,7 +84,15 @@ private:
     class Canvas final : public juce::Component
     {
     public:
-        explicit Canvas(GlitchEditor& e):editor(e) { setInterceptsMouseClicks(false,true); }
+        Canvas() { setInterceptsMouseClicks(false,true); }
+    };
+    // The instrument itself, always faceplateWidth wide. It sits at the right
+    // of the canvas so the preset column can own the space to its left, which
+    // keeps every coordinate in layoutCanvas()/paintCanvas() faceplate-local.
+    class Faceplate final : public juce::Component
+    {
+    public:
+        explicit Faceplate(GlitchEditor& e):editor(e) { setInterceptsMouseClicks(false,true); }
         void paint(juce::Graphics& g) override { editor.paintCanvas(g); }
     private:
         GlitchEditor& editor;
@@ -86,10 +102,11 @@ private:
     void paintCanvas(juce::Graphics&);
     void layoutCanvas();
     void applyDrawerHeights();   // re-fit the window after a drawer folds
-    float scale() const { return (float)getWidth()/(float)designWidth; }
+    float scale() const { return (float)getWidth()/(float)designWidth(); }
 
     GlitchProcessor& processor;
-    Canvas canvas{*this};
+    Canvas canvas;
+    Faceplate faceplate{*this};
     juce::ComponentBoundsConstrainer constrainer;
     SpaLookAndFeel look;
     juce::Label title,status,effective,categoryLabel,filterLabel;
@@ -111,6 +128,11 @@ private:
     MappedKeyboard keyboard;
     glitch::fx::ui::FXSection fxSection;
     glitch::ui::DrawerHeader keyboardHeader{"04","KEYBOARD","click keys or play your MIDI controller"};
+    std::unique_ptr<glitch::ui::PresetBrowser> presetBrowser;
+    juce::TextButton presetsButton{"PRESETS"},rollButton{juce::String::fromUTF8("\xe2\x86\xbb ROLL")};
+    juce::Slider wildness;
+    std::array<juce::TextButton,glitch::rnd::numLockGroups> lockButtons;
+    bool presetBrowserOpen=false;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,numKnobs> attachments;
     std::array<std::unique_ptr<glitch::ui::MidiLearnTarget>,numKnobs> learnTargets;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,filterAttachment;
@@ -118,6 +140,10 @@ private:
     float energy=0;
     int animationFrame=0;
     int highlighted=-1,lastKeyRange=-1;
+
+    // The randomize cluster: ROLL, WILD, and one lock per group.
+    static constexpr int randomStripW=404;
+    static constexpr int randomStripX=(faceplateWidth-randomStripW)/2;
 
     int keyboardStripHeight() const
     { return glitch::ui::DrawerHeader::height+(isKeyboardCollapsed() ? 0 : keyboardHeight+12); }

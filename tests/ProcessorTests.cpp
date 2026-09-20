@@ -4,6 +4,8 @@
 #include "../Source/fx/FXParameters.h"
 #include "../Source/fx/FXSection.h"
 #include "../Source/PluginEditor.h"
+#include "../Source/Randomizer.h"
+#include "../Source/PresetBrowser.h"
 #include <cmath>
 #include <complex>
 #include <iostream>
@@ -70,6 +72,25 @@ static void writeWave(const juce::File& file,float amplitude=0.25f,int frames=48
     juce::AudioBuffer<float> source(1,frames);
     for(int i=0;i<frames;++i) source.setSample(0,i,amplitude*std::sin((float)i*0.1f));
     require(writer->writeFromAudioSampleBuffer(source,0,frames),"Cannot write WAV");
+}
+// Broadband burst, the shape of the material this instrument actually plays.
+// The sine fixture above is a single 764 Hz tone, which any high-pass parked
+// above it removes completely -- fine for level tests, useless for judging
+// whether a randomized filter left a patch audible.
+static void writeNoise(const juce::File& file,int frames=9600)
+{
+    juce::WavAudioFormat wav; auto stream=file.createOutputStream();
+    require(stream!=nullptr,"Cannot create noise fixture");
+    std::unique_ptr<juce::AudioFormatWriter> writer(wav.createWriterFor(stream.release(),48000,1,16,{},0));
+    require(writer!=nullptr,"Cannot create WAV writer");
+    juce::AudioBuffer<float> source(1,frames);
+    juce::Random rng(1234);
+    for(int i=0;i<frames;++i)
+    {
+        const float envelope=std::exp(-3.f*(float)i/(float)frames);
+        source.setSample(0,i,0.6f*(rng.nextFloat()*2.f-1.f)*envelope);
+    }
+    require(writer->writeFromAudioSampleBuffer(source,0,frames),"Cannot write noise WAV");
 }
 static void note(GlitchProcessor& p,juce::AudioBuffer<float>& b,int key=60,int offset=0)
 {
@@ -601,6 +622,212 @@ static void fxChainTests(const juce::File& root)
     std::cout<<"PASS: eight FX modules, EQ bands, chain reordering, order validation, state recall, limiter latency and the analyser feed\n";
 }
 
+// Presets: what they carry, what they deliberately do not, and that all
+// twenty bundled patches load and sound.
+static void presetTests(const juce::File& root)
+{
+    namespace fxp=glitch::fx::params;
+    auto file=root.getChildFile("preset.wav");writeNoise(file);
+
+    GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+    p.loadSample(file);require(p.waitForContent(),"Preset fixture must load");
+
+    // Pure filtering, checked without a UI.
+    {
+        using Info=glitch::PresetManager::Info;
+        std::vector<Info> items{{"Alpha","Factory",{},false},{"Beta","User",{},true},
+                                {"Gamma","Factory",{},false}};
+        juce::StringArray favs{"User/Beta"};
+        glitch::ui::PresetBrowser::Filter f;
+        require(glitch::ui::PresetBrowser::filterIndices(items,f,favs).size()==3,"No filter shows all");
+        f.category="User";
+        require(glitch::ui::PresetBrowser::filterIndices(items,f,favs).size()==1,"Category filter");
+        f={};f.search="am";
+        require(glitch::ui::PresetBrowser::filterIndices(items,f,favs).size()==1,"Search matches Gamma");
+        f={};f.favouritesOnly=true;
+        const auto favOnly=glitch::ui::PresetBrowser::filterIndices(items,f,favs);
+        require(favOnly.size()==1 && items[(size_t)favOnly[0]].name=="Beta","Favourites filter");
+    }
+
+    // The twenty bundled patches are installed and all load and sound.
+    const auto& all=p.presets.all();
+    int factory=0;for(const auto& info:all) if(!info.isUser) ++factory;
+    require(factory==20,("Expected 20 factory presets, found "+juce::String(factory)).toRawUTF8());
+
+    juce::AudioBuffer<float> b(2,512);
+    for(const auto& info:all)
+    {
+        if(info.isUser) continue;
+        require(p.presets.load(info),("Factory preset must load: "+info.name).toRawUTF8());
+        p.allNotesOff();
+        float peak=0;
+        note(p,b,glitch::bankFirstNote((int)p.parameters.getRawParameterValue("category")->load(),true));
+        peak=std::max(peak,b.getMagnitude(0,512));
+        for(int i=0;i<24;++i){ render(p,b);finite(b);peak=std::max(peak,b.getMagnitude(0,512)); }
+        require(peak>0.01f,("Factory preset is inaudible: "+info.name).toRawUTF8());
+        require(peak<1.05f,("Factory preset is too loud: "+info.name).toRawUTF8());
+    }
+
+    // Save / recall round trip, including the FX chain order.
+    {
+        const juce::String name("__spaglitch selftest__");
+        parameter(p,fxp::id::reverbMix,0.61f);
+        parameter(p,"cutoff",321000);
+        const juce::Array<int> order{7,6,5,4,3,2,1,0};
+        p.setFxOrder(order);
+        require(p.presets.save(name),"Saving a user preset must succeed");
+
+        parameter(p,fxp::id::reverbMix,0.11f);
+        parameter(p,"cutoff",900000);
+        p.setFxOrder({0,1,2,3,4,5,6,7});
+
+        const glitch::PresetManager::Info* saved=nullptr;
+        for(const auto& info:p.presets.all()) if(info.name==name) saved=&info;
+        require(saved!=nullptr,"The saved preset must appear in the list");
+        require(saved->isUser,"A saved preset must be a user preset");
+        require(p.presets.load(*saved),"Loading the saved preset must succeed");
+
+        require(std::abs(p.parameters.getRawParameterValue(fxp::id::reverbMix)->load()-0.61f)<1e-4f,
+                "A preset must restore FX parameters");
+        require(std::abs(p.parameters.getRawParameterValue("cutoff")->load()-321000.f)<1.f,
+                "A preset must restore faceplate parameters");
+        require(p.getFxOrder()==order,"A preset must restore the FX chain order");
+
+        // Instance state must survive loading a patch: the samples stay put,
+        // and a MIDI binding is hardware, not sound.
+        p.midiLearn.armLearn("cutoff");
+        {
+            juce::MidiBuffer midi;midi.addEvent(juce::MidiMessage::controllerEvent(1,19,64),0);
+            p.processBlock(b,midi);
+        }
+        require(p.midiLearn.getAssignedCC("cutoff")==19,"Binding must exist before the load");
+        require(p.presets.load(*saved),"Reload must succeed");
+        require(p.midiLearn.getAssignedCC("cutoff")==19,"A preset must not disturb MIDI bindings");
+        p.allNotesOff();note(p,b,48);
+        require(b.getMagnitude(0,512)>0,"A preset must not unload the samples");
+
+        // Only user presets can be deleted.
+        for(const auto& info:p.presets.all())
+            if(!info.isUser) { require(!p.presets.remove(info),"Factory presets must not be deletable"); break; }
+
+        const glitch::PresetManager::Info* again=nullptr;
+        for(const auto& info:p.presets.all()) if(info.name==name) again=&info;
+        require(again!=nullptr && p.presets.remove(*again),"A user preset must be deletable");
+        for(const auto& info:p.presets.all())
+            require(info.name!=name,"A deleted preset must leave the list");
+    }
+
+    std::cout<<"PASS: preset filtering, twenty audible factory patches, save/recall and instance isolation\n";
+}
+
+// RANDOMIZE ALL must never land on a patch that makes no sound, or one that
+// is painfully loud. SPASynth found its clamps with a seeded sweep; this is
+// the same sweep for SPAGlitch, across the full wildness range.
+static void randomizeTests(const juce::File& root)
+{
+    auto file=root.getChildFile("random.wav");writeNoise(file);
+
+    GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+    p.loadSample(file);require(p.waitForContent(),"Randomize fixture must load");
+    juce::AudioBuffer<float> b(2,512);
+
+    // Held over the whole sweep so one bad roll doesn't hide behind another.
+    float quietest=1e9f,loudest=0.f;int quietSeed=-1,loudSeed=-1;float quietWild=0,loudWild=0;
+
+    for(float wildness:{0.0f,0.25f,0.5f,0.75f,1.0f})
+    {
+        p.setRandomWildness(wildness);
+        require(std::abs(p.randomWildness()-wildness)<1e-6f,"Wildness must round trip");
+
+        for(int seed=0;seed<40;++seed)
+        {
+            juce::Random rng(seed+1);
+            p.randomizeAll(rng);
+            p.allNotesOff();
+
+            // Render a held note plus a little tail, and track the peak.
+            float peak=0;
+            note(p,b,glitch::bankFirstNote((int)p.parameters.getRawParameterValue("category")->load(),true));
+            peak=std::max(peak,b.getMagnitude(0,512));
+            for(int i=0;i<24;++i){ render(p,b);finite(b);peak=std::max(peak,b.getMagnitude(0,512)); }
+
+            if(peak<quietest){ quietest=peak;quietSeed=seed;quietWild=wildness; }
+            if(peak>loudest){ loudest=peak;loudSeed=seed;loudWild=wildness; }
+        }
+    }
+
+    // Report the offending patch, not just its peak: a bare number says
+    // nothing about which clamp is missing.
+    auto describe=[&p]
+    {
+        namespace fxp=glitch::fx::params;
+        auto v=[&p](const char* id){ return p.parameters.getRawParameterValue(id)->load(); };
+        return juce::String("\n    filter ")+(v("filterEnable")>=.5f?"on":"off")
+             +" type "+juce::String((int)v("filterType"))
+             +" cutoff "+juce::String((int)v("cutoff"))+" res "+juce::String((int)v("resonance"))
+             +"\n    dist "+(v(fxp::id::distEnable)>=.5f?"on":"off")
+             +" type "+juce::String((int)v(fxp::id::distType))
+             +" drive "+juce::String(v(fxp::id::distDrive),2)+" mix "+juce::String(v(fxp::id::distMix),2)
+             +"\n    eq "+(v(fxp::id::eqEnable)>=.5f?"on":"off")
+             +"  trem "+(v(fxp::id::tremEnable)>=.5f?"on":"off")
+             +" depth "+juce::String(v(fxp::id::tremDepth),2)+" mix "+juce::String(v(fxp::id::tremMix),2)
+             +"\n    lim "+(v(fxp::id::limEnable)>=.5f?"on":"off")
+             +" drive "+juce::String(v(fxp::id::limDrive),1)+" ceil "+juce::String(v(fxp::id::limCeiling),1)
+             +"\n    reverb mix "+juce::String(v(fxp::id::reverbMix),2)
+             +" delay mix "+juce::String(v(fxp::id::delayMix),2)
+             +" mod mix "+juce::String(v(fxp::id::modMix),2)
+             +" chorus mix "+juce::String(v(fxp::id::chorusMix),2);
+    };
+    if(quietest<=0.01f)
+    {
+        juce::Random rng(quietSeed+1);
+        p.setRandomWildness(quietWild);p.randomizeAll(rng);
+        std::cout<<"  quietest roll:"<<describe()<<"\n";
+    }
+
+    // Audibility floor: about -40 dBFS. Anything below this reads as "I hit
+    // randomize, played a note, and heard nothing".
+    require(quietest>0.01f,
+            ("A roll was inaudible (peak "+juce::String(quietest,5)+" at seed "
+             +juce::String(quietSeed)+", wildness "+juce::String(quietWild,2)+")").toRawUTF8());
+
+    // Loudness ceiling: the musicality pass forces the limiter on at its
+    // -0.3 dBFS default, so nothing may exceed full scale by any margin.
+    require(loudest<1.05f,
+            ("A roll was excessively loud (peak "+juce::String(loudest,5)+" at seed "
+             +juce::String(loudSeed)+", wildness "+juce::String(loudWild,2)+")").toRawUTF8());
+
+    // The limiter is on afterwards whatever rolled, and OUTPUT is never touched.
+    require(p.parameters.getRawParameterValue(glitch::fx::params::id::limEnable)->load()>=0.5f,
+            "A roll must leave the limiter engaged");
+    const auto gainBefore=p.parameters.getRawParameterValue("gain")->load();
+    p.randomizeAll();
+    require(p.parameters.getRawParameterValue("gain")->load()==gainBefore,
+            "OUTPUT must never be randomized");
+
+    // Locks hold their group across a re-roll.
+    for(int group=0;group<glitch::rnd::numLockGroups;++group)
+    {
+        for(int g=0;g<glitch::rnd::numLockGroups;++g) p.setGroupLocked(g,g==group);
+        require(p.isGroupLocked(group),"A locked group must report itself locked");
+
+        const char* watched[]{"category","cutoff",glitch::fx::params::id::reverbMix};
+        const auto before=p.parameters.getRawParameterValue(watched[group])->load();
+        p.setRandomWildness(1.0f);
+        bool held=true;
+        for(int i=0;i<20 && held;++i)
+        {
+            p.randomizeAll();
+            held=p.parameters.getRawParameterValue(watched[group])->load()==before;
+        }
+        require(held,(juce::String("Locking ")+glitch::rnd::lockGroupName((glitch::rnd::LockGroup)group)
+                      +" must hold its parameters").toRawUTF8());
+    }
+    for(int g=0;g<glitch::rnd::numLockGroups;++g) p.setGroupLocked(g,false);
+
+    std::cout<<"PASS: 200 rolls across five wildness settings stay audible and bounded, and locks hold\n";
+}
+
 // Right-clicking a knob arms MIDI learn; the next CC binds to it and then
 // drives it. The binding travels with the saved state.
 static void midiLearnTests(const juce::File& root)
@@ -812,7 +1039,7 @@ static void fxDragReorderTest()
     auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
     require(editor!=nullptr,"The processor must build its own editor");
     std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
-    editor->setSize(GlitchEditor::designWidth,editor->designHeight());   // 1:1 scale
+    editor->setSize(GlitchEditor::faceplateWidth,editor->designHeight());   // 1:1 scale
 
     auto* bar=findTabBar(*editor);
     require(bar!=nullptr,"The editor must contain the FX tab strip");
@@ -866,7 +1093,7 @@ static void editorLayoutTests(GlitchProcessor& p)
     auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
     require(editor!=nullptr,"The processor must build its own editor");
     std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
-    editor->setSize(GlitchEditor::designWidth,editor->designHeight());
+    editor->setSize(GlitchEditor::faceplateWidth,editor->designHeight());
 
     auto* bar=findTabBar(*editor);require(bar!=nullptr,"No FX tab strip");
     auto* keys=findKeyboard(*editor);require(keys!=nullptr,"No on-screen keyboard");
@@ -885,7 +1112,7 @@ static void editorLayoutTests(GlitchProcessor& p)
     require(constrainer!=nullptr,"A resizable editor needs a constrainer");
     const int expanded=editor->designHeight();
     require(std::abs(constrainer->getFixedAspectRatio()
-                     -(double)GlitchEditor::designWidth/(double)expanded)<1e-9,
+                     -(double)GlitchEditor::faceplateWidth/(double)expanded)<1e-9,
             "The aspect ratio must be pinned to the design size");
 
     editor->setFxCollapsed(true);
@@ -894,7 +1121,7 @@ static void editorLayoutTests(GlitchProcessor& p)
     require(withoutFx<expanded,"Collapsing the FX drawer must shorten the window");
     require(editor->getHeight()==withoutFx,"Folding a drawer must re-fit the window at the same scale");
     require(std::abs(constrainer->getFixedAspectRatio()
-                     -(double)GlitchEditor::designWidth/(double)withoutFx)<1e-9,
+                     -(double)GlitchEditor::faceplateWidth/(double)withoutFx)<1e-9,
             "Folding a drawer must update the pinned aspect ratio");
     // The bar's own visible flag stays set; it is its parent TabbedComponent
     // that the drawer hides.
@@ -920,9 +1147,9 @@ static void editorLayoutTests(GlitchProcessor& p)
     // the window, so the faceplate can never be stretched out of proportion.
     const auto fullHeight=editor->designHeight();
     const auto keysAtFull=topIn(*keys);
-    editor->setSize(GlitchEditor::designWidth/2,fullHeight/2);
+    editor->setSize(GlitchEditor::faceplateWidth/2,fullHeight/2);
     require(std::abs(topIn(*keys)-keysAtFull/2)<=2,"Halving the window must halve child positions");
-    editor->setSize(GlitchEditor::designWidth,fullHeight);
+    editor->setSize(GlitchEditor::faceplateWidth,fullHeight);
     require(std::abs(topIn(*keys)-keysAtFull)<=2,"Restoring the size must restore the layout");
 
     std::cout<<"PASS: keyboard below the FX drawer, both drawers fold, and the window scales\n";
@@ -1071,12 +1298,25 @@ int main(int argc,char** argv)
             const struct { bool fx,keys; const char* name; } states[]{
                 {false,false,"expanded"},{true,false,"fx-collapsed"},
                 {false,true,"keys-collapsed"},{true,true,"both-collapsed"}};
+
+            {   // The preset column, open beside the instrument.
+                auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+                std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+                editor->setPresetBrowserOpen(true);
+                editor->setSize(editor->designWidth(),editor->designHeight());
+                juce::Timer::callPendingTimersSynchronously();
+                auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
+                juce::PNGImageFormat format;
+                auto output=directory.getChildFile("presets-open.png").createOutputStream();
+                require(output!=nullptr,"Preset shot failed");output->setPosition(0);output->truncate();
+                require(format.writeImageToStream(shot,*output),"Preset shot write failed");
+            }
             for(const auto& want:states)
             {
                 auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
                 require(editor!=nullptr,"No editor");
                 std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
-                editor->setSize(GlitchEditor::designWidth,editor->designHeight());
+                editor->setSize(GlitchEditor::faceplateWidth,editor->designHeight());
                 editor->setFxCollapsed(want.fx);
                 editor->setKeyboardCollapsed(want.keys);
                 juce::Timer::callPendingTimersSynchronously();
@@ -1086,6 +1326,38 @@ int main(int argc,char** argv)
                 require(output!=nullptr,"Layout shot open failed");output->setPosition(0);output->truncate();
                 require(format.writeImageToStream(shot,*output),"Layout shot write failed");
             }
+            return 0;
+        }
+        // Rolls the bundled factory patches. Fixed seeds, so re-running it
+        // reproduces the same twenty byte for byte.
+        if(argc==3 && juce::String(argv[1])=="--generate-factory-presets")
+        {
+            static const char* names[]{
+                "Ceramic Static","Steam Room Collapse","Cucumber Slice","Mineral Bath",
+                "Hot Stone Fracture","Eucalyptus Burst","Towel Warmer","Salt Scrub",
+                "Clay Mask Dry","Sauna Overload","Cold Plunge","Aromatherapy Fault",
+                "Robe Rustle","Pumice Grind","Chlorine Dream","Foil Wrap",
+                "Cucumber Water","Deep Tissue","Quiet Room Violation","Checkout Time"};
+            GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+            juce::File out(argv[2]);require(out.createDirectory().wasOk(),"Preset dir failed");
+
+            for(int i=0;i<(int)std::size(names);++i)
+            {
+                // Sweep wildness across the set so the twenty are not all the
+                // same flavour of roll.
+                p.setRandomWildness(0.2f+0.6f*(float)(i%5)/4.f);
+                juce::Random rng(9000+i*37);
+                p.randomizeAll(rng);
+
+                auto tree=p.capturePreset();
+                juce::ValueTree wrapper("SPAGlitchPreset");
+                wrapper.copyPropertiesFrom(tree,nullptr);
+                for(const auto& child:tree) wrapper.appendChild(child.createCopy(),nullptr);
+                auto xml=wrapper.createXml();require(xml!=nullptr,"Preset XML failed");
+                auto file=out.getChildFile(juce::String(names[i])+".spaglitch");
+                require(file.replaceWithText(xml->toString()),"Preset write failed");
+            }
+            std::cout<<"Wrote "<<std::size(names)<<" factory presets\n";
             return 0;
         }
         if(argc==2 && juce::String(argv[1])=="--reverb-report")
@@ -1136,7 +1408,7 @@ int main(int argc,char** argv)
             auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
             require(editor!=nullptr,"The processor must build its own editor");
             std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
-            editor->setSize(GlitchEditor::designWidth,editor->designHeight());   // 1:1 scale
+            editor->setSize(GlitchEditor::faceplateWidth,editor->designHeight());   // 1:1 scale
 
             auto* bar=findTabBar(*editor);require(bar!=nullptr,"No FX tab strip");
             for(int i=0;i<fxp::numSections;++i)
@@ -1180,7 +1452,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

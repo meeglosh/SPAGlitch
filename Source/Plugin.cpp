@@ -34,6 +34,9 @@ GlitchProcessor::GlitchProcessor(juce::File factory)
     for(size_t i=0;i<values.size();++i) values[i]=parameters.getRawParameterValue(ids[i]);
     publishedRuntime.write(engine.runtimeState());
     fxSnapshot.bind(parameters);
+    // Presets are installed and scanned by the processor, not the editor, so
+    // the list exists whether or not a UI is ever opened.
+    presets.installFactoryAndRescan();
     startTimer(200);
     if(factoryLibrary.isDirectory()) loadInstalledLibrary();
 }
@@ -269,6 +272,57 @@ bool GlitchProcessor::readScope(float* dest,int numSamples) const
     for(int i=0;i<numSamples;++i)
         dest[i]=scope[(size_t)((w+i)&(scopeSize-1))].load(std::memory_order_relaxed);   // oldest -> newest
     return true;
+}
+namespace
+{
+const juce::Identifier wildnessProperty{"randomWildness"},lockMaskProperty{"randomLockMask"};
+}
+float GlitchProcessor::randomWildness() const
+{ return juce::jlimit(0.f,1.f,(float)(double)parameters.state.getProperty(wildnessProperty,0.5)); }
+void GlitchProcessor::setRandomWildness(float w)
+{ parameters.state.setProperty(wildnessProperty,(double)juce::jlimit(0.f,1.f,w),nullptr); }
+bool GlitchProcessor::isGroupLocked(int group) const
+{
+    const auto mask=(juce::uint32)(int)parameters.state.getProperty(lockMaskProperty,0);
+    return juce::isPositiveAndBelow(group,glitch::rnd::numLockGroups) && (mask&(1u<<group))!=0;
+}
+void GlitchProcessor::setGroupLocked(int group,bool locked)
+{
+    if(!juce::isPositiveAndBelow(group,glitch::rnd::numLockGroups)) return;
+    auto mask=(juce::uint32)(int)parameters.state.getProperty(lockMaskProperty,0);
+    mask=locked ? (mask|(1u<<group)) : (mask&~(1u<<group));
+    parameters.state.setProperty(lockMaskProperty,(int)mask,nullptr);
+}
+juce::ValueTree GlitchProcessor::capturePreset()
+{
+    auto tree=parameters.copyState();
+    // Instance settings live on the same tree; they are not part of a patch.
+    tree.removeProperty(wildnessProperty,nullptr);
+    tree.removeProperty(lockMaskProperty,nullptr);
+    tree.setProperty("fxOrder",(juce::int64)fxOrderPacked.load(std::memory_order_relaxed),nullptr);
+    return tree;
+}
+void GlitchProcessor::applyPreset(const juce::ValueTree& tree)
+{
+    // Applied parameter by parameter rather than replaceState, so loading a
+    // patch cannot disturb the loaded samples, the MIDI map or the editor.
+    for(const auto& child:tree)
+    {
+        if(!child.hasType("PARAM")) continue;
+        if(auto* param=parameters.getParameter(child.getProperty("id").toString()))
+        {
+            const auto value=(float)(double)child.getProperty("value",param->convertFrom0to1(param->getDefaultValue()));
+            param->setValueNotifyingHost(param->convertTo0to1(value));
+        }
+    }
+    if(tree.hasProperty("fxOrder"))
+        fxOrderPacked.store((juce::uint64)(juce::int64)tree.getProperty("fxOrder"),std::memory_order_relaxed);
+}
+void GlitchProcessor::randomizeAll() { randomizeAll(juce::Random::getSystemRandom()); }
+void GlitchProcessor::randomizeAll(juce::Random& rng)
+{
+    glitch::rnd::randomizeAll(parameters,randomWildness(),
+        (juce::uint32)(int)parameters.state.getProperty(lockMaskProperty,0),rng);
 }
 juce::AudioProcessorEditor* GlitchProcessor::createEditor() { return new GlitchEditor(*this); }
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new GlitchProcessor(); }

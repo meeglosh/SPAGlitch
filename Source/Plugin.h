@@ -3,6 +3,8 @@
 #include "ContentLoader.h"
 #include "fx/FXChain.h"
 #include "MidiLearn.h"
+#include "Randomizer.h"
+#include "PresetManager.h"
 #include "fx/FXParamSnapshot.h"
 class GlitchProcessor final : public juce::AudioProcessor,
                              private juce::Timer
@@ -66,6 +68,25 @@ public:
     // Right-click any knob to bind it to a hardware CC. Constructed after the
     // APVTS so it can index the finished parameter list.
     glitch::MidiLearnManager midiLearn { parameters };
+
+    // RANDOMIZE ALL. Wildness and the lock mask live in the state tree rather
+    // than as parameters: they steer the roll, they are not part of the sound.
+    void randomizeAll();
+    // Deterministic overload for the factory-preset generator and the seeded
+    // sweep test; reseeding the shared system Random is not allowed.
+    void randomizeAll (juce::Random&);
+
+    // A patch is the parameter tree plus the FX chain order. Deliberately not
+    // the sample-content path, the MIDI map, the drawer states or the
+    // randomizer settings -- those belong to the instance, not the sound.
+    juce::ValueTree capturePreset();
+    void applyPreset (const juce::ValueTree&);
+    glitch::PresetManager presets { [this] { return capturePreset(); },
+                                    [this] (const juce::ValueTree& t) { applyPreset (t); } };
+    float randomWildness() const;
+    void setRandomWildness (float);
+    bool isGroupLocked (int group) const;
+    void setGroupLocked (int group, bool);
     std::atomic<float> leftPeak{0},rightPeak{0};
     // Held until the editor reads it, so short audio hits aren't missed between UI frames.
     std::atomic<float> visualPeak{0};
