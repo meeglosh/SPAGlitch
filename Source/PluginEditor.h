@@ -25,6 +25,8 @@ public:
     // JUCE's defaults (15pt buttons, 17pt menu items) are set for a stock UI.
     // This faceplate runs on 9.5-11.5pt captions, so the stock sizes read as
     // oversized next to everything around them.
+    // Only for the focus flag; drawLabel() sizes the readout -- see there.
+    juce::Label* createSliderTextBox(juce::Slider&) override;
     juce::Font getTextButtonFont(juce::TextButton&,int buttonHeight) override;
     juce::Font getComboBoxFont(juce::ComboBox&) override;
     juce::Font getPopupMenuFont() override;

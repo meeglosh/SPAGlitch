@@ -33,7 +33,15 @@ void SpaLookAndFeel::drawLabel(juce::Graphics& g,juce::Label& label)
     if(!label.isBeingEdited())
     {
         const auto alpha=label.isEnabled() ? 1.f : .5f;
-        g.setFont(getLabelFont(label));
+        auto font=getLabelFont(label);
+        // A Slider's readout is a Label parented to the Slider. It is built
+        // when the Slider is constructed -- before this look-and-feel is
+        // anywhere in the hierarchy -- so createSliderTextBox() never gets a
+        // say and the Label keeps JUCE's default font. Catching it here
+        // instead works whoever built it and whenever.
+        if(auto* owner=dynamic_cast<juce::Slider*>(label.getParentComponent()))
+            font=font.withHeight(juce::jmin(11.5f,(float)owner->getTextBoxHeight()*0.8f));
+        g.setFont(font);
         glitch::theme::drawGlitchText(g,label,label.getText(),
             getLabelBorderSize(label).subtractedFrom(label.getLocalBounds()),
             label.getJustificationType(),
@@ -42,6 +50,14 @@ void SpaLookAndFeel::drawLabel(juce::Graphics& g,juce::Label& label)
 
     g.setColour(label.findColour(juce::Label::outlineColourId));
     g.drawRect(label.getLocalBounds());
+}
+juce::Label* SpaLookAndFeel::createSliderTextBox(juce::Slider& slider)
+{
+    auto* label=juce::LookAndFeel_V4::createSliderTextBox(slider);
+    // Only the focus flag here -- drawLabel() owns the readout's size, because
+    // it also has to catch the boxes this is never asked to build.
+    if(label!=nullptr) label->setMouseClickGrabsKeyboardFocus(false);
+    return label;
 }
 juce::Font SpaLookAndFeel::getTextButtonFont(juce::TextButton&,int buttonHeight)
 {
