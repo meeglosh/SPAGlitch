@@ -13,7 +13,9 @@ class DrawerHeader final : public juce::Component
 public:
     DrawerHeader (juce::String indexText, juce::String titleText, juce::String hintText = {});
 
-    static constexpr int height = 30;
+    // Trimmed with the rest of the type: the bar holds a chevron and one
+    // 10.5pt line.
+    static constexpr int height = 26;
 
     void setCollapsed (bool shouldBeCollapsed);
     bool isCollapsed() const noexcept { return collapsed; }

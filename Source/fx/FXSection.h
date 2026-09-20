@@ -100,7 +100,9 @@ public:
 
     // Folded away, only the header bar remains; the chain keeps processing.
     static constexpr int collapsedHeight = glitch::ui::DrawerHeader::height;
-    static constexpr int expandedHeight = 290;
+    // Sized to what the tallest tab actually needs -- a two-row control grid
+    // under the tab strip -- rather than left at a round number.
+    static constexpr int expandedHeight = 260;
     int preferredHeight() const { return header.isCollapsed() ? collapsedHeight : expandedHeight; }
 
     void setCollapsed (bool);

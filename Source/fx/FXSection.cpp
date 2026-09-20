@@ -7,7 +7,7 @@ namespace pid = params::id;
 
 namespace
 {
-constexpr int tabBarHeight = 30;
+constexpr int tabBarHeight = 28;
 constexpr int headerHeight = 26;   // the title row inside a tab, not the drawer header
 } // namespace
 

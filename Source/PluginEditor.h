@@ -30,6 +30,10 @@ public:
     juce::Font getTextButtonFont(juce::TextButton&,int buttonHeight) override;
     juce::Font getComboBoxFont(juce::ComboBox&) override;
     juce::Font getPopupMenuFont() override;
+    // JUCE derives a tab's width from the BAR's depth, not from the font the
+    // tab is painted in, so trimming the bar clipped "CHORUS". DraggableTabs
+    // paints at a fixed size, so measure that instead.
+    int getTabButtonBestWidth(juce::TabBarButton&,int tabDepth) override;
     void drawButtonText(juce::Graphics&,juce::TextButton&,bool,bool) override;
 
     void setGlitch(float energy,int frame) { energyValue=energy; frameValue=frame; }
@@ -100,7 +104,14 @@ public:
     // keyboard inside it, then 688 once that moved to its own drawer; the
     // status/meter/panic strip that occupied 620..688 has since moved into the
     // header, so the drawers start here and the instrument is shorter again.
-    static constexpr int faceplateHeight=620;
+    // 90 was set for 15pt buttons and a 15pt readout; at 12.5 and 11.5 the
+    // rows pack tighter, so the band comes in with them.
+    static constexpr int headerHeight=74,headerMargin=24;
+    // Everything on the faceplate hangs off the header rather than from
+    // absolute pixels, so changing the band's height moves the lot.
+    static constexpr int contentTop=headerHeight+10;
+    static constexpr int meterY=32;
+    static constexpr int faceplateHeight=contentTop+520;
     static constexpr int keyboardHeight=64;
     // Full size is taller than a 14" laptop screen, so the window has to be
     // able to scale well below 100%.
@@ -199,7 +210,6 @@ private:
     // RANDOMIZE running into WILD.
     // Header right cluster: the readouts, the meters and panic, as one block
     // ending on a common margin rather than an icon stranded in the corner.
-    static constexpr int headerHeight=90,headerMargin=24;
     static constexpr int panicSize=24,panicGap=14,meterW=132;
     static constexpr int headerRight=faceplateWidth-headerMargin;
     static constexpr int panicX=headerRight-panicSize;

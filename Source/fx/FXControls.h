@@ -129,7 +129,9 @@ private:
     // and so the busiest tab (TREM/VIB, 15 column-spans) wraps to exactly two
     // rows at the band's width.
     static constexpr int cellWidth = 80;
-    static constexpr int cellHeight = 84;
+    // Came down with the readout font: the cell is a 13px caption, the rotary
+    // and a 15px value box, and the value box no longer needs 15pt of room.
+    static constexpr int cellHeight = 78;
 
     int columnsFor (int width) const;
 

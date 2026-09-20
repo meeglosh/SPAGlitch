@@ -67,6 +67,13 @@ juce::Font SpaLookAndFeel::getComboBoxFont(juce::ComboBox& box)
 {
     return juce::Font(juce::FontOptions(juce::jmin(12.5f,(float)box.getHeight()*0.6f)));
 }
+int SpaLookAndFeel::getTabButtonBestWidth(juce::TabBarButton& button,int)
+{
+    // 10pt bold is what DraggableTabButton::paintButton draws; the padding
+    // covers its grip dots and the rounded body either side.
+    const juce::Font font(juce::FontOptions(10.0f,juce::Font::bold));
+    return juce::roundToInt(juce::GlyphArrangement::getStringWidth(font,button.getButtonText()))+36;
+}
 juce::Font SpaLookAndFeel::getPopupMenuFont()
 {
     // A touch above the closed box: a menu item is a click target, and the
@@ -428,17 +435,17 @@ void GlitchEditor::layoutCanvas()
     // the meters, the load status and panic -- stays right.
     // The wordmark sits on the header's own centre, across as well as down:
     // its 36px line plus the 14px subtitle make a 50px block, centred in 90.
-    title.setBounds(410,20,300,36);
-    presetsButton.setBounds(28,36,96,32);
-    categoryLabel.setBounds(136,16,248,16);
-    category.setBounds(136,36,248,32);
+    title.setBounds(410,13,300,36);
+    presetsButton.setBounds(28,30,96,30);
+    categoryLabel.setBounds(136,14,248,14);
+    category.setBounds(136,30,248,30);
 
     // Vertically centred on the readout block (12..74) rather than the header,
     // so it lines up with what it sits beside.
-    panic.setBounds(panicX,31,panicSize,panicSize);
+    panic.setBounds(panicX,25,panicSize,panicSize);
     // Right-justified, so starting them early only trims unused space.
-    effective.setBounds(readoutX,12,readoutRight-readoutX,18);
-    status.setBounds(readoutX,56,readoutRight-readoutX,18);
+    effective.setBounds(readoutX,10,readoutRight-readoutX,16);
+    status.setBounds(readoutX,48,readoutRight-readoutX,16);
     photoBounds=juce::Rectangle<int>(0,0,faceplateWidth,faceplateHeight);
     const int knobWidth=140,rowHeight=112;
     // Two even columns: PITCH + RANDOMNESS and the FILTER menu on the left,
@@ -447,21 +454,21 @@ void GlitchEditor::layoutCanvas()
     const std::array<int,2> right{3,4};
     for(size_t row=0;row<left.size();++row)
     {
-        const auto i=(size_t)left[row];const int y=133+(int)row*rowHeight;
+        const auto i=(size_t)left[row];const int y=contentTop+33+(int)row*rowHeight;
         labels[i].setBounds(28,y+4,knobWidth,18);knobs[i].setBounds(28,y+22,knobWidth,80);
     }
     // The right column starts lower, under the filter menu.
     for(size_t row=0;row<right.size();++row)
     {
-        const auto i=(size_t)right[row];const int y=194+(int)row*rowHeight;
+        const auto i=(size_t)right[row];const int y=contentTop+94+(int)row*rowHeight;
         labels[i].setBounds(952,y+4,knobWidth,18);knobs[i].setBounds(952,y+22,knobWidth,80);
     }
     // The filter menu and its bypass switch sit directly above CUTOFF and
     // RESONANCE, the two knobs they drive.
-    filterLabel.setBounds(956,128,60,18);
-    filterPower->setBounds(1022,126,62,22);
-    filter.setBounds(956,152,132,30);
-    motion.setBounds(956,420,132,26);
+    filterLabel.setBounds(956,contentTop+44,60,18);
+    filterPower->setBounds(1022,contentTop+42,62,22);
+    filter.setBounds(956,contentTop+68,132,30);
+    motion.setBounds(956,contentTop+336,132,26);
 
     // The randomize cluster takes the strip of photograph between the cards.
     // Each control is centred in its own column, so it lines up with the
@@ -538,11 +545,11 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     // Stable contrast over both the warm photograph and the brightest blast.
     g.setColour(paper.withAlpha(.82f));g.fillRect(0,0,faceplateWidth,headerHeight);
     g.setColour(paper.withAlpha(.76f));
-    g.fillRoundedRectangle(18,100,160,370,16);
-    g.fillRoundedRectangle(942,100,160,370,16);
+    g.fillRoundedRectangle(18,contentTop,160,370,16);
+    g.fillRoundedRectangle(942,contentTop,160,370,16);
     g.setColour(sage.withAlpha(.3f));
-    g.drawRoundedRectangle(18,100,160,370,16,1);
-    g.drawRoundedRectangle(942,100,160,370,16,1);
+    g.drawRoundedRectangle(18,contentTop,160,370,16,1);
+    g.drawRoundedRectangle(942,contentTop,160,370,16,1);
     // Enclose each label, dial and readout in one visual group.
     for(size_t i=0;i<knobs.size();++i)
     {
@@ -559,19 +566,19 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     // drawer below, so the bottom of the photograph is no longer covered.
     g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
     glitch::theme::drawGlitchText(g,faceplate,"S I L V E R P L A T T E R   A U D I O",
-        juce::Rectangle<int>(410,56,300,14),juce::Justification::centred,muted);
+        juce::Rectangle<int>(410,49,300,14),juce::Justification::centred,muted);
     g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(headerHeight,0,(float)faceplateWidth);
     g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
-    glitch::theme::drawGlitchText(g,faceplate,"01  /  SOUND",juce::Rectangle<int>(32,108,140,18),
+    glitch::theme::drawGlitchText(g,faceplate,"01  /  SOUND",juce::Rectangle<int>(32,contentTop+8,140,18),
         juce::Justification::left,muted);
-    glitch::theme::drawGlitchText(g,faceplate,"02  /  ALTER",juce::Rectangle<int>(956,108,140,18),
+    glitch::theme::drawGlitchText(g,faceplate,"02  /  ALTER",juce::Rectangle<int>(956,contentTop+8,140,18),
         juce::Justification::left,muted);
-    g.setColour(paper.withAlpha(.8f));g.fillRoundedRectangle(192,102,136,26,13);
+    g.setColour(paper.withAlpha(.8f));g.fillRoundedRectangle(192,(float)contentTop+2,136,26,13);
     glitch::theme::drawGlitchText(g,faceplate,energy>.03f ? "SIGNAL ACTIVE" : "AT REST",
-        juce::Rectangle<int>(214,105,108,18),juce::Justification::left,
+        juce::Rectangle<int>(214,contentTop+5,108,18),juce::Justification::left,
         energy>.03f ? electric : muted);
     g.setColour(energy>.03f ? electric : muted);
-    g.fillEllipse(202,111,5,5);
+    g.fillEllipse(202,(float)contentTop+11,5,5);
     // Backing for the randomize cluster, matching the control cards.
     {
         auto strip=juce::Rectangle<float>((float)randomStripX,(float)randomStripY,
@@ -601,11 +608,11 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     // Output meters, on the readouts' right edge so the block runs right up to
     // the panic button.
     g.setColour(sage.withAlpha(.25f));
-    g.fillRect((float)meterX,38.f,(float)meterW,3.f);
-    g.fillRect((float)meterX,46.f,(float)meterW,3.f);
+    g.fillRect((float)meterX,(float)meterY,(float)meterW,3.f);
+    g.fillRect((float)meterX,(float)meterY+8.f,(float)meterW,3.f);
     g.setColour(electric);
-    g.fillRect((float)meterX,38.f,(float)meterW*std::min(1.f,meterLeft),3.f);
-    g.fillRect((float)meterX,46.f,(float)meterW*std::min(1.f,meterRight),3.f);
+    g.fillRect((float)meterX,(float)meterY,(float)meterW*std::min(1.f,meterLeft),3.f);
+    g.fillRect((float)meterX,(float)meterY+8.f,(float)meterW*std::min(1.f,meterRight),3.f);
 
 }
 void GlitchEditor::timerCallback()
