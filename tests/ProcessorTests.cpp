@@ -1263,9 +1263,16 @@ static void editorLayoutTests(GlitchProcessor& p)
                 ("Opening the preset column must not rescale the instrument (was "
                  +juce::String(scaleBefore,4)+", now "+juce::String(scaleAfter,4)+")").toRawUTF8());
 
-        // The drawer slides out, then the window takes the width back.
+        // The drawer slides out, then the window takes the width back. How
+        // promptly a timer actually fires is the platform's business, so wait
+        // for the result rather than assuming one fixed delay is enough --
+        // 260ms was, on macOS, and was not on a Windows runner.
         editor->setPresetBrowserOpen(false);
-        juce::Thread::sleep(260);juce::Timer::callPendingTimersSynchronously();
+        for(int i=0;i<60 && editor->getWidth()!=closedWidth;++i)
+        {
+            juce::Thread::sleep(25);
+            juce::Timer::callPendingTimersSynchronously();
+        }
         require(editor->getWidth()==closedWidth,"Closing the column must return the width");
         require(editor->getHeight()==closedHeight,"Closing the column must leave the height alone");
     }
