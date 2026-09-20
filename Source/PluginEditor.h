@@ -4,6 +4,7 @@
 #include "BlastAnimation.h"
 #include "fx/FXSection.h"
 #include "Drawer.h"
+#include "MidiLearnMenu.h"
 class SpaLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
@@ -33,6 +34,7 @@ private:
 class PanicButton final : public juce::Button
 {
 public:
+    static constexpr float markDiameter=11.f;   // a quarter of the original 42px button
     PanicButton():juce::Button("All notes off")
     { setTooltip("All notes off"); setMouseClickGrabsKeyboardFocus(false); }
 private:
@@ -110,6 +112,7 @@ private:
     glitch::fx::ui::FXSection fxSection;
     glitch::ui::DrawerHeader keyboardHeader{"04","KEYBOARD","click keys or play your MIDI controller"};
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>,numKnobs> attachments;
+    std::array<std::unique_ptr<glitch::ui::MidiLearnTarget>,numKnobs> learnTargets;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,filterAttachment;
     float meterLeft=0,meterRight=0;
     float energy=0;

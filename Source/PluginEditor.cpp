@@ -28,20 +28,16 @@ void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,in
 
 void PanicButton::paintButton(juce::Graphics& g,bool over,bool down)
 {
-    const juce::Colour ink(0xfff3f5e9),muted(0xffbdcfc1),sage(0xff9abea3),paper(0xff10241f);
-    auto body=getLocalBounds().toFloat().reduced(2.f);
-    g.setColour(paper.withAlpha(down ? .95f : .8f));
-    g.fillRoundedRectangle(body,body.getWidth()*.5f);
-    g.setColour(sage.withAlpha(over||down ? .55f : .3f));
-    g.drawRoundedRectangle(body,body.getWidth()*.5f,1.f);
-
-    // Slashed circle: the usual "kill everything" glyph.
-    const auto c=body.getCentre();
-    const float r=body.getWidth()*.26f;
-    g.setColour(over||down ? ink : muted);
-    g.drawEllipse(c.x-r,c.y-r,r*2.f,r*2.f,1.6f);
+    const juce::Colour ink(0xfff3f5e9),muted(0xffbdcfc1);
+    // The mark is a quarter of the button's old size. The component stays
+    // bigger than the mark so it is still comfortably clickable -- shrinking
+    // the hit area to match would leave a ~10px target.
+    const auto c=getLocalBounds().toFloat().getCentre();
+    const float r=markDiameter*.5f;
+    g.setColour(over||down ? ink : muted.withAlpha(.75f));
+    g.drawEllipse(c.x-r,c.y-r,r*2.f,r*2.f,1.2f);
     const float d=r*0.707f;
-    g.drawLine(c.x-d,c.y+d,c.x+d,c.y-d,1.6f);
+    g.drawLine(c.x-d,c.y+d,c.x+d,c.y-d,1.2f);
 }
 GlitchEditor::GlitchEditor(GlitchProcessor& p)
  :AudioProcessorEditor(p),processor(p),keyboard(p.keyboard),
@@ -49,7 +45,8 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
             [&p](float* dest,int n){ return p.readScope(dest,n); },
             [&p]{ return p.getSampleRate(); },
             [&p]{ return p.limiterGainReductionDb(); },
-            [&p]{ return p.limiterOutputPeak(); })
+            [&p]{ return p.limiterOutputPeak(); },
+            &p.midiLearn)
 {
     processor.visualPeak.store(0,std::memory_order_relaxed);
     look.setColour(juce::Label::textColourId,ink);
@@ -103,6 +100,8 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
         labels[i].setJustificationType(juce::Justification::centred);
         canvas.addAndMakeVisible(knob); canvas.addAndMakeVisible(labels[i]);
         attachments[i]=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.parameters,ids[i],knob);
+        learnTargets[i]=std::make_unique<glitch::ui::MidiLearnTarget>(p.midiLearn,knob,ids[i],names[i]);
+        learnTargets[i]->onStateChanged=[this]{ canvas.repaint(); };
     }
     // CUTOFF is stored in KSP units (0..1000000) but reads as a percentage.
     knobs[3].textFromValueFunction=[](double v){return juce::String(v/10000.0,1)+" %";};
@@ -209,7 +208,7 @@ void GlitchEditor::layoutCanvas()
     // -- gathered top right where the transport controls used to be.
     categoryLabel.setBounds((designWidth-248)/2,16,248,16);
     category.setBounds((designWidth-248)/2,36,248,32);
-    panic.setBounds(1046,25,42,42);
+    panic.setBounds(1058,32,28,28);
     effective.setBounds(646,12,382,18);
     status.setBounds(646,56,382,18);
     photoBounds=juce::Rectangle<int>(0,0,designWidth,faceplateHeight);
@@ -309,6 +308,8 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
         g.setColour(sage.withAlpha(.28f));g.drawRoundedRectangle(card,9,1);
         const auto value=knobs[i].getBounds().toFloat().removeFromBottom(20).reduced(21,0);
         g.setColour(sage.withAlpha(.10f));g.fillRoundedRectangle(value,5);
+        if(learnTargets[i]!=nullptr)
+            glitch::theme::drawLearnBadge(g,card,learnTargets[i]->badge(),learnTargets[i]->isArmed());
     }
     // The scrim stops at the status row: the keyboard has moved to its own
     // drawer below, so the bottom of the photograph is no longer covered.

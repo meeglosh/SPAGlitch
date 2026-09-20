@@ -601,6 +601,69 @@ static void fxChainTests(const juce::File& root)
     std::cout<<"PASS: eight FX modules, EQ bands, chain reordering, order validation, state recall, limiter latency and the analyser feed\n";
 }
 
+// Right-clicking a knob arms MIDI learn; the next CC binds to it and then
+// drives it. The binding travels with the saved state.
+static void midiLearnTests(const juce::File& root)
+{
+    auto file=root.getChildFile("learn.wav");writeWave(file);
+    GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+    p.loadSample(file);require(p.waitForContent(),"Learn fixture must load");
+
+    auto* cutoff=p.parameters.getParameter("cutoff");
+    require(cutoff!=nullptr,"cutoff must exist");
+    require(p.midiLearn.getAssignedCC("cutoff")==-1,"Nothing may be bound to begin with");
+
+    auto sendCC=[&p](int cc,int value)
+    {
+        juce::AudioBuffer<float> b(2,512);juce::MidiBuffer midi;
+        midi.addEvent(juce::MidiMessage::controllerEvent(1,cc,value),0);
+        p.processBlock(b,midi);
+    };
+
+    // An unarmed CC must be ignored entirely.
+    const auto before=cutoff->getValue();
+    sendCC(74,0);
+    require(cutoff->getValue()==before,"An unbound CC must not move anything");
+
+    p.midiLearn.armLearn("cutoff");
+    require(p.midiLearn.isArmed() && p.midiLearn.getArmedParamID()=="cutoff","Arming must register");
+    sendCC(74,127);
+    require(!p.midiLearn.isArmed(),"The first CC must complete the learn");
+    require(p.midiLearn.getAssignedCC("cutoff")==74,"The CC must bind to the armed parameter");
+    require(cutoff->getValue()>0.99f,"The learning CC must also apply its value");
+
+    sendCC(74,0);
+    require(cutoff->getValue()<0.01f,"A bound CC must keep driving its parameter");
+
+    // The engine sees it on the same block, not a block late.
+    sendCC(74,127);
+    require(p.parameters.getRawParameterValue("cutoff")->load()>900000.f,"The engine must see the CC value");
+
+    // One CC per parameter: re-learning releases the old binding.
+    p.midiLearn.armLearn("cutoff");sendCC(20,64);
+    require(p.midiLearn.getAssignedCC("cutoff")==20,"Re-learning must move the binding");
+    const auto afterRelearn=cutoff->getValue();
+    sendCC(74,0);
+    require(cutoff->getValue()==afterRelearn,"The released CC must go inert");
+
+    // Saved and restored with the project.
+    juce::MemoryBlock state;p.getStateInformation(state);
+    GlitchProcessor restored(juce::File{});restored.prepareToPlay(48000,512);
+    restored.setStateInformation(state.getData(),(int)state.getSize());
+    require(restored.midiLearn.getAssignedCC("cutoff")==20,"A binding must survive a state round trip");
+
+    // Forgetting, and clearing everything.
+    p.midiLearn.armLearn("resonance");sendCC(21,10);
+    require(p.midiLearn.getAssignedCC("resonance")==21,"A second parameter may bind its own CC");
+    p.midiLearn.clearAssignment("cutoff");
+    require(p.midiLearn.getAssignedCC("cutoff")==-1,"Forget must drop just that binding");
+    require(p.midiLearn.getAssignedCC("resonance")==21,"Forget must leave the others alone");
+    p.midiLearn.clearAll();
+    require(p.midiLearn.getAssignedCC("resonance")==-1,"Clear all must drop every binding");
+
+    std::cout<<"PASS: MIDI learn arms, binds, drives, re-binds, persists and clears\n";
+}
+
 // The filter menu lists types only; bypass is its own switch. Every type must
 // reach the engine and render differently from the others.
 static void filterTypeTests(const juce::File& root)
@@ -994,6 +1057,17 @@ int main(int argc,char** argv)
         {
             GlitchProcessor p(juce::File{});
             juce::File directory(argv[2]);require(directory.createDirectory().wasOk(),"Layout dir failed");
+            // Bind a couple of CCs so the learn badges are visible.
+            {
+                juce::AudioBuffer<float> b(2,64);
+                for(auto binding:{std::pair<const char*,int>{"cutoff",74},{"pitch",21}})
+                {
+                    p.midiLearn.armLearn(binding.first);
+                    juce::MidiBuffer midi;
+                    midi.addEvent(juce::MidiMessage::controllerEvent(1,binding.second,64),0);
+                    p.processBlock(b,midi);
+                }
+            }
             const struct { bool fx,keys; const char* name; } states[]{
                 {false,false,"expanded"},{true,false,"fx-collapsed"},
                 {false,true,"keys-collapsed"},{true,true,"both-collapsed"}};
@@ -1106,7 +1180,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

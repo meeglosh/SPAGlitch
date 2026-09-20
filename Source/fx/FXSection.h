@@ -55,11 +55,11 @@ private:
 class FXTab final : public juce::Component
 {
 public:
-    FXTab (juce::AudioProcessorValueTreeState&, params::Section, FXScope::Kind);
+    FXTab (juce::AudioProcessorValueTreeState&, params::Section, FXScope::Kind, MidiLearnManager*);
 
     // EQ and LIMIT supply their own display instead of an FXScope.
     FXTab (juce::AudioProcessorValueTreeState&, params::Section,
-           std::unique_ptr<juce::Component> customDisplay);
+           std::unique_ptr<juce::Component> customDisplay, MidiLearnManager*);
 
     void paint (juce::Graphics&) override;
     void resized() override;
@@ -91,7 +91,8 @@ public:
     FXSection (juce::AudioProcessorValueTreeState&,
                EqEditor::ScopeReader, std::function<double()> sampleRateFn,
                std::function<float()> limiterGainReduction,
-               std::function<float()> limiterOutputPeak);
+               std::function<float()> limiterOutputPeak,
+               MidiLearnManager* learn = nullptr);
     ~FXSection() override;
 
     void paint (juce::Graphics&) override;

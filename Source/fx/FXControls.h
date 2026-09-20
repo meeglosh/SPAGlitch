@@ -1,9 +1,15 @@
 #pragma once
 #include "FXParameters.h"
 #include "FXTheme.h"
+#include "../MidiLearnMenu.h"
 
 namespace glitch::fx::ui
 {
+// Pulled in from the instrument-wide UI namespace: the FX knobs get exactly
+// the same right-click MIDI learn the faceplate knobs do.
+using glitch::ui::MidiLearnTarget;
+using glitch::MidiLearnManager;
+
 
 // A captioned rotary knob. The rotary itself is a plain juce::Slider, so it
 // inherits SpaLookAndFeel::drawRotarySlider from the editor above it and looks
@@ -11,7 +17,8 @@ namespace glitch::fx::ui
 class Knob final : public juce::Component
 {
 public:
-    Knob (juce::AudioProcessorValueTreeState&, const params::Def&);
+    // `learn` may be null (tests build panels without a processor).
+    Knob (juce::AudioProcessorValueTreeState&, const params::Def&, MidiLearnManager* learn);
 
     void resized() override;
     void paint (juce::Graphics&) override;
@@ -20,6 +27,7 @@ private:
     juce::Slider slider;
     juce::Label caption;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
+    std::unique_ptr<MidiLearnTarget> learnTarget;
 };
 
 // A captioned combo box for choice parameters.
@@ -93,7 +101,7 @@ private:
 class ControlGrid final : public juce::Component
 {
 public:
-    ControlGrid (juce::AudioProcessorValueTreeState&, params::Section);
+    ControlGrid (juce::AudioProcessorValueTreeState&, params::Section, MidiLearnManager* learn);
 
     void resized() override;
 

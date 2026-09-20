@@ -2,6 +2,7 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "ContentLoader.h"
 #include "fx/FXChain.h"
+#include "MidiLearn.h"
 #include "fx/FXParamSnapshot.h"
 class GlitchProcessor final : public juce::AudioProcessor,
                              private juce::Timer
@@ -61,6 +62,10 @@ public:
     // are plain flags rather than parameters, but they travel with the saved
     // state so a reopened project looks the way it was left.
     std::atomic<bool> fxCollapsed { false }, keyboardCollapsed { false };
+
+    // Right-click any knob to bind it to a hardware CC. Constructed after the
+    // APVTS so it can index the finished parameter list.
+    glitch::MidiLearnManager midiLearn { parameters };
     std::atomic<float> leftPeak{0},rightPeak{0};
     // Held until the editor reads it, so short audio hits aren't missed between UI frames.
     std::atomic<float> visualPeak{0};

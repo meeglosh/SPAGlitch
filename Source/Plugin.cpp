@@ -74,6 +74,10 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
 {
     juce::ScopedNoDenormals guard;
     b.clear();
+    // Before controls() is read, so a learned CC reaches the engine on the
+    // same block it arrives -- reading it afterwards would apply the CC to the
+    // FX chain (whose snapshot is taken later) a block ahead of the engine.
+    midiLearn.processMidi(midi);
     // Offline rendering can wait for restore; a real-time callback never waits.
     if(isNonRealtime() && content.busy()) content.waitUntilReady(60000);
     auto* bank=content.adoptForAudio();
@@ -139,6 +143,8 @@ void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)
     state.setProperty("fxOrder",(juce::int64)fxOrderPacked.load(std::memory_order_relaxed),nullptr);
     state.setProperty("fxCollapsed",fxCollapsed.load(),nullptr);
     state.setProperty("keyboardCollapsed",keyboardCollapsed.load(),nullptr);
+    state.removeChild(state.getChildWithName(glitch::MidiLearnManager::mapTreeType),nullptr);
+    state.appendChild(midiLearn.toValueTree(),nullptr);
     glitch::Engine::RuntimeState runtime; uint64_t revision=0;
     while(!pendingRuntime.read(runtime,revision)) juce::Thread::yield();
     if(revision==appliedRuntime.load())
@@ -178,6 +184,7 @@ void GlitchProcessor::setStateInformation(const void* data,int size)
             fxOrderPacked.store((juce::uint64)(juce::int64)state.getProperty(
                 "fxOrder",(juce::int64)glitch::fx::FXChain::defaultOrderPacked()),
                 std::memory_order_relaxed);
+            midiLearn.restoreFromValueTree(state.getChildWithName(glitch::MidiLearnManager::mapTreeType));
             fxCollapsed.store((bool)state.getProperty("fxCollapsed",false));
             keyboardCollapsed.store((bool)state.getProperty("keyboardCollapsed",false));
             const auto seed=(uint32_t)(juce::int64)state.getProperty("randomSeed",(juce::int64)0x47544348u);

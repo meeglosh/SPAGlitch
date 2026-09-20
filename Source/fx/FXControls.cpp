@@ -20,7 +20,8 @@ void styleCaption (juce::Label& l, const juce::String& text)
 
 // ---------------------------------------------------------------- Knob -----
 
-Knob::Knob (juce::AudioProcessorValueTreeState& apvts, const params::Def& def)
+Knob::Knob (juce::AudioProcessorValueTreeState& apvts, const params::Def& def,
+            MidiLearnManager* learn)
 {
     slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
     slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 70, 15);
@@ -42,6 +43,12 @@ Knob::Knob (juce::AudioProcessorValueTreeState& apvts, const params::Def& def)
     attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (
         apvts, def.id, slider);
     slider.updateText();
+
+    if (learn != nullptr)
+    {
+        learnTarget = std::make_unique<MidiLearnTarget> (*learn, *this, def.id, def.name);
+        learnTarget->onStateChanged = [this] { repaint(); };
+    }
 }
 
 void Knob::resized()
@@ -58,6 +65,9 @@ void Knob::paint (juce::Graphics& g)
     auto value = slider.getBounds().toFloat().removeFromBottom (15.0f).reduced (10.0f, 0.0f);
     g.setColour (sage.withAlpha (0.10f));
     g.fillRoundedRectangle (value, 4.0f);
+
+    if (learnTarget != nullptr)
+        drawLearnBadge (g, getLocalBounds().toFloat(), learnTarget->badge(), learnTarget->isArmed());
 }
 
 // -------------------------------------------------------------- Choice -----
@@ -207,7 +217,8 @@ void DependentEnable::apply()
 
 // ---------------------------------------------------------- ControlGrid ----
 
-ControlGrid::ControlGrid (juce::AudioProcessorValueTreeState& apvts, params::Section section)
+ControlGrid::ControlGrid (juce::AudioProcessorValueTreeState& apvts, params::Section section,
+                          MidiLearnManager* learn)
 {
     for (const auto* def : params::forSection (section))
     {
@@ -217,7 +228,7 @@ ControlGrid::ControlGrid (juce::AudioProcessorValueTreeState& apvts, params::Sec
         switch (def->kind)
         {
             case params::Kind::floatParam:
-                cell.component = std::make_unique<Knob> (apvts, *def);
+                cell.component = std::make_unique<Knob> (apvts, *def, learn);
                 break;
             case params::Kind::choiceParam:
                 cell.component = std::make_unique<Choice> (apvts, *def);

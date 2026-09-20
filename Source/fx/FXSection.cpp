@@ -109,8 +109,9 @@ juce::TabBarButton* DraggableTabs::createTabButton (const juce::String& name, in
 
 // ---------------------------------------------------------------- FXTab ----
 
-FXTab::FXTab (juce::AudioProcessorValueTreeState& apvts, params::Section s, FXScope::Kind kind)
-    : section (s), title (params::sectionTitles()[(int) s]), grid (apvts, s)
+FXTab::FXTab (juce::AudioProcessorValueTreeState& apvts, params::Section s, FXScope::Kind kind,
+              MidiLearnManager* learn)
+    : section (s), title (params::sectionTitles()[(int) s]), grid (apvts, s, learn)
 {
     display = std::make_unique<FXScope> (apvts, kind, s);
     addAndMakeVisible (*display);
@@ -119,8 +120,8 @@ FXTab::FXTab (juce::AudioProcessorValueTreeState& apvts, params::Section s, FXSc
 }
 
 FXTab::FXTab (juce::AudioProcessorValueTreeState& apvts, params::Section s,
-              std::unique_ptr<juce::Component> customDisplay)
-    : section (s), title (params::sectionTitles()[(int) s]), grid (apvts, s)
+              std::unique_ptr<juce::Component> customDisplay, MidiLearnManager* learn)
+    : section (s), title (params::sectionTitles()[(int) s]), grid (apvts, s, learn)
 {
     // EQ is edited entirely on its curve (CHARACTER is its only knob), and the
     // limiter's transfer curve + GR meter want room to be read at a glance.
@@ -221,7 +222,8 @@ FXSection::FXSection (juce::AudioProcessorValueTreeState& state,
                       EqEditor::ScopeReader scopeReader,
                       std::function<double()> sampleRateFn,
                       std::function<float()> limiterGainReduction,
-                      std::function<float()> limiterOutputPeak)
+                      std::function<float()> limiterOutputPeak,
+                      MidiLearnManager* learn)
     : apvts (state)
 {
     tabs.setTabBarDepth (tabBarHeight);
@@ -237,26 +239,26 @@ FXSection::FXSection (juce::AudioProcessorValueTreeState& state,
     // Tab order here is the module id order (FXChain::Module), which
     // applyOrder/currentOrder then permute.
     tabs.addTab (params::sectionTabNames()[(int) S::dist], tabBg,
-                 new FXTab (apvts, S::dist, K::distortion), true);
+                 new FXTab (apvts, S::dist, K::distortion, learn), true);
     tabs.addTab (params::sectionTabNames()[(int) S::chorus], tabBg,
-                 new FXTab (apvts, S::chorus, K::chorus), true);
+                 new FXTab (apvts, S::chorus, K::chorus, learn), true);
     tabs.addTab (params::sectionTabNames()[(int) S::delay], tabBg,
-                 new FXTab (apvts, S::delay, K::delay), true);
+                 new FXTab (apvts, S::delay, K::delay, learn), true);
     tabs.addTab (params::sectionTabNames()[(int) S::reverb], tabBg,
-                 new FXTab (apvts, S::reverb, K::reverb), true);
+                 new FXTab (apvts, S::reverb, K::reverb, learn), true);
     tabs.addTab (params::sectionTabNames()[(int) S::eq], tabBg,
                  new FXTab (apvts, S::eq,
                             std::make_unique<EqEditor> (apvts, std::move (scopeReader),
-                                                        std::move (sampleRateFn))), true);
+                                                        std::move (sampleRateFn)), learn), true);
     tabs.addTab (params::sectionTabNames()[(int) S::mod], tabBg,
-                 new FXTab (apvts, S::mod, K::chorus), true);
+                 new FXTab (apvts, S::mod, K::chorus, learn), true);
     tabs.addTab (params::sectionTabNames()[(int) S::tremVib], tabBg,
-                 new FXTab (apvts, S::tremVib, K::chorus), true);
+                 new FXTab (apvts, S::tremVib, K::chorus, learn), true);
     tabs.addTab (params::sectionTabNames()[(int) S::limiter], tabBg,
                  new FXTab (apvts, S::limiter,
                             std::make_unique<LimiterDisplay> (apvts,
                                                               std::move (limiterGainReduction),
-                                                              std::move (limiterOutputPeak))), true);
+                                                              std::move (limiterOutputPeak)), learn), true);
 
     tabs.setModuleNames (params::sectionTabNames());
     tabs.onOrderChanged = [this]

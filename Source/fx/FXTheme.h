@@ -31,4 +31,9 @@ void glowStroke (juce::Graphics&, const juce::Path&, juce::Colour, float thickne
 void card (juce::Graphics&, juce::Rectangle<float>, float corner = 9.0f,
            float fillAlpha = 0.72f);
 
+// The "CC 74" / "LEARN" tag a knob wears once it is bound to a hardware
+// controller. Nothing is drawn for an unbound knob.
+void drawLearnBadge (juce::Graphics&, juce::Rectangle<float> knobBounds,
+                     const juce::String& text, bool armed);
+
 } // namespace glitch::theme
