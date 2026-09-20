@@ -59,16 +59,15 @@ void DrawerHeader::paint (juce::Graphics& g)
     g.strokePath (chevron, juce::PathStrokeType (1.6f, juce::PathStrokeType::curved,
                                                  juce::PathStrokeType::rounded));
 
-    g.setColour (hovered ? ink : muted);
     g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
-    g.drawText (index + "  /  " + title, bounds.withTrimmedLeft (52.0f),
-                juce::Justification::centredLeft);
+    drawGlitchText (g, *this, index + "  /  " + title, bounds.withTrimmedLeft (52.0f),
+                    juce::Justification::centredLeft, hovered ? ink : muted);
 
     if (hint.isNotEmpty() && ! collapsed)
     {
-        g.setColour (muted.withAlpha (0.5f));
         g.setFont (juce::Font (juce::FontOptions (9.5f)));
-        g.drawText (hint, bounds.withTrimmedRight (32.0f), juce::Justification::centredRight);
+        drawGlitchText (g, *this, hint, bounds.withTrimmedRight (32.0f),
+                        juce::Justification::centredRight, muted.withAlpha (0.5f));
     }
 }
 

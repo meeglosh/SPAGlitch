@@ -2,15 +2,28 @@
 #include "Plugin.h"
 #include "ShockAnimation.h"
 #include "BlastAnimation.h"
+#include "fx/FXTheme.h"
 #include "fx/FXSection.h"
 #include "Drawer.h"
 #include "MidiLearnMenu.h"
 #include "PresetBrowser.h"
 #include "Randomizer.h"
-class SpaLookAndFeel final : public juce::LookAndFeel_V4
+// Also the instrument's glitch source: every Label, button and combo box in
+// the editor resolves to this one look-and-feel, so routing their text through
+// it glitches the whole UI from a single place.
+class SpaLookAndFeel final : public juce::LookAndFeel_V4,
+                             public glitch::theme::GlitchSource
 {
 public:
     void drawRotarySlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider&) override;
+    void drawLabel(juce::Graphics&,juce::Label&) override;
+    void drawButtonText(juce::Graphics&,juce::TextButton&,bool,bool) override;
+
+    void setGlitch(float energy,int frame) { energyValue=energy; frameValue=frame; }
+    float glitchEnergy() const override { return energyValue; }
+    int glitchFrame() const override { return frameValue; }
+private:
+    float energyValue=0; int frameValue=0;
 };
 class MappedKeyboard final : public juce::MidiKeyboardComponent
 {
@@ -157,6 +170,8 @@ private:
     // a preset load both rewrite it -- so the editor follows the processor
     // rather than assuming it only ever changes by dragging a tab.
     juce::Array<int> shownFxOrder;
+    int glitchTick=0,glitchFrame=0;
+    bool wasGlitching=false;
 
     // The randomize cluster: the dice, WILD, and one lock per group, sitting
     // low over the photograph just above the FX drawer.

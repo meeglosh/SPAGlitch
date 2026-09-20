@@ -28,7 +28,82 @@ void card (juce::Graphics& g, juce::Rectangle<float> bounds, float corner, float
     g.drawRoundedRectangle (bounds.reduced (0.5f), corner, 1.0f);
 }
 
-void drawLearnBadge (juce::Graphics& g, juce::Rectangle<float> knobBounds,
+const GlitchSource* GlitchSource::find (const juce::Component& component)
+{
+    return dynamic_cast<const GlitchSource*> (&component.getLookAndFeel());
+}
+
+namespace
+{
+// Printable ASCII only: a box-drawing glyph would be a tofu box in whatever
+// font the host happens to resolve.
+const juce::String glitchGlyphs ("#%/\\|_*+=<>");
+
+juce::String corrupt (const juce::String& text, float amount, juce::Random& rng)
+{
+    if (amount <= 0.0f) return text;
+
+    juce::String out;
+    for (auto character : text)
+    {
+        if (character != ' ' && rng.nextFloat() < amount)
+            out += glitchGlyphs[rng.nextInt (glitchGlyphs.length())];
+        else
+            out += juce::String::charToString (character);
+    }
+    return out;
+}
+
+template <typename RectangleType>
+void drawGlitched (juce::Graphics& g, const juce::Component& component, const juce::String& text,
+                   RectangleType area, juce::Justification justification, juce::Colour colour)
+{
+    const auto* source = GlitchSource::find (component);
+    const auto energy = source != nullptr ? source->glitchEnergy() : 0.0f;
+
+    if (energy <= 0.01f || text.isEmpty())
+    {
+        g.setColour (colour);
+        g.drawText (text, area, justification);
+        return;
+    }
+
+    const auto amount = juce::jlimit (0.0f, 1.0f, energy);
+    // Seeded from the text and the frame, so a string holds still within a
+    // frame however many times it is repainted, and every string tears
+    // differently from its neighbours.
+    juce::Random rng ((juce::int64) text.hashCode() * 2654435761LL
+                      + (juce::int64) source->glitchFrame() * 40503LL);
+
+    const auto split = 1.0f + amount * 2.0f;
+    const auto jitterX = (float) (rng.nextInt (3) - 1);
+    const auto jitterY = (float) (rng.nextInt (3) - 1);
+    const auto shown = corrupt (text, amount * 0.14f, rng);
+
+    // Chromatic split either side, then the text itself over the top.
+    g.setColour (electric.withAlpha (0.55f * amount));
+    g.drawText (shown, area.translated (-split + jitterX, jitterY), justification);
+    g.setColour (juce::Colour (0xffff5fa8).withAlpha (0.4f * amount));
+    g.drawText (shown, area.translated (split + jitterX, jitterY), justification);
+    g.setColour (colour);
+    g.drawText (shown, area.translated (jitterX, jitterY), justification);
+}
+} // namespace
+
+void drawGlitchText (juce::Graphics& g, const juce::Component& c, const juce::String& text,
+                     juce::Rectangle<int> area, juce::Justification j, juce::Colour colour)
+{
+    drawGlitched (g, c, text, area.toFloat(), j, colour);
+}
+
+void drawGlitchText (juce::Graphics& g, const juce::Component& c, const juce::String& text,
+                     juce::Rectangle<float> area, juce::Justification j, juce::Colour colour)
+{
+    drawGlitched (g, c, text, area, j, colour);
+}
+
+void drawLearnBadge (juce::Graphics& g, const juce::Component& component,
+                     juce::Rectangle<float> knobBounds,
                      const juce::String& text, bool armed)
 {
     if (text.isEmpty()) return;
@@ -40,8 +115,7 @@ void drawLearnBadge (juce::Graphics& g, juce::Rectangle<float> knobBounds,
 
     g.setColour (armed ? electric.withAlpha (0.85f) : sage.withAlpha (0.22f));
     g.fillRoundedRectangle (tag, 3.0f);
-    g.setColour (armed ? paper : muted);
-    g.drawText (text, tag, juce::Justification::centred);
+    drawGlitchText (g, component, text, tag, juce::Justification::centred, armed ? paper : muted);
 }
 
 } // namespace glitch::theme

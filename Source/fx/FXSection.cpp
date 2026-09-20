@@ -58,10 +58,9 @@ void DraggableTabButton::paintButton (juce::Graphics& g, bool over, bool down)
         for (int row = -1; row <= 1; ++row)
             g.fillEllipse (x + (float) col * gap, cy + (float) row * gap - d * 0.5f, d, d);
 
-    g.setColour (lit ? electric : (front ? ink : muted));
     g.setFont (juce::Font (juce::FontOptions (10.0f, lit ? juce::Font::bold : juce::Font::plain)));
-    g.drawText (getButtonText(), body.withTrimmedLeft (14.0f).withTrimmedRight (4.0f),
-                juce::Justification::centred);
+    drawGlitchText (g, *this, getButtonText(), body.withTrimmedLeft (14.0f).withTrimmedRight (4.0f),
+                    juce::Justification::centred, lit ? electric : (front ? ink : muted));
 }
 
 // -------------------------------------------------------- DraggableTabs ----
@@ -180,10 +179,10 @@ void FXTab::buildHeader (juce::AudioProcessorValueTreeState& apvts)
 
 void FXTab::paint (juce::Graphics& g)
 {
-    g.setColour (muted);
     g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
-    g.drawText (title.toUpperCase(), getLocalBounds().removeFromTop (headerHeight).withTrimmedLeft (8),
-                juce::Justification::centredLeft);
+    drawGlitchText (g, *this, title.toUpperCase(),
+                    getLocalBounds().removeFromTop (headerHeight).withTrimmedLeft (8),
+                    juce::Justification::centredLeft, muted);
 }
 
 void FXTab::resized()

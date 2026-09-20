@@ -26,6 +26,32 @@ void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,in
     g.setColour(ink);g.drawLine(centre.x+dx*body*.4f,centre.y+dy*body*.4f,centre.x+dx*body*.82f,centre.y+dy*body*.82f,2.5f);
 }
 
+void SpaLookAndFeel::drawLabel(juce::Graphics& g,juce::Label& label)
+{
+    g.fillAll(label.findColour(juce::Label::backgroundColourId));
+
+    if(!label.isBeingEdited())
+    {
+        const auto alpha=label.isEnabled() ? 1.f : .5f;
+        g.setFont(getLabelFont(label));
+        glitch::theme::drawGlitchText(g,label,label.getText(),
+            getLabelBorderSize(label).subtractedFrom(label.getLocalBounds()),
+            label.getJustificationType(),
+            label.findColour(juce::Label::textColourId).withMultipliedAlpha(alpha));
+    }
+
+    g.setColour(label.findColour(juce::Label::outlineColourId));
+    g.drawRect(label.getLocalBounds());
+}
+void SpaLookAndFeel::drawButtonText(juce::Graphics& g,juce::TextButton& button,bool,bool)
+{
+    g.setFont(getTextButtonFont(button,button.getHeight()));
+    const auto colourId=button.getToggleState() ? juce::TextButton::textColourOnId
+                                                : juce::TextButton::textColourOffId;
+    glitch::theme::drawGlitchText(g,button,button.getButtonText(),
+        button.getLocalBounds().reduced(2,0),juce::Justification::centred,
+        button.findColour(colourId).withMultipliedAlpha(button.isEnabled() ? 1.f : .5f));
+}
 DiceButton::DiceButton():juce::Button("Randomize")
 {
     setTooltip("Randomize every unlocked group");
@@ -457,19 +483,24 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
         const auto value=knobs[i].getBounds().toFloat().removeFromBottom(20).reduced(21,0);
         g.setColour(sage.withAlpha(.10f));g.fillRoundedRectangle(value,5);
         if(learnTargets[i]!=nullptr)
-            glitch::theme::drawLearnBadge(g,card,learnTargets[i]->badge(),learnTargets[i]->isArmed());
+            glitch::theme::drawLearnBadge(g,faceplate,card,learnTargets[i]->badge(),learnTargets[i]->isArmed());
     }
     // The scrim stops at the status row: the keyboard has moved to its own
     // drawer below, so the bottom of the photograph is no longer covered.
-    g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
-    g.drawText("S I L V E R P L A T T E R   A U D I O",410,56,300,14,juce::Justification::centred);
+    g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
+    glitch::theme::drawGlitchText(g,faceplate,"S I L V E R P L A T T E R   A U D I O",
+        juce::Rectangle<int>(410,56,300,14),juce::Justification::centred,muted);
     g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(headerHeight,0,(float)faceplateWidth);
-    g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
-    g.drawText("01  /  SOUND",32,108,140,18,juce::Justification::left);
-    g.drawText("02  /  ALTER",956,108,140,18,juce::Justification::left);
+    g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
+    glitch::theme::drawGlitchText(g,faceplate,"01  /  SOUND",juce::Rectangle<int>(32,108,140,18),
+        juce::Justification::left,muted);
+    glitch::theme::drawGlitchText(g,faceplate,"02  /  ALTER",juce::Rectangle<int>(956,108,140,18),
+        juce::Justification::left,muted);
     g.setColour(paper.withAlpha(.8f));g.fillRoundedRectangle(192,102,136,26,13);
+    glitch::theme::drawGlitchText(g,faceplate,energy>.03f ? "SIGNAL ACTIVE" : "AT REST",
+        juce::Rectangle<int>(214,105,108,18),juce::Justification::left,
+        energy>.03f ? electric : muted);
     g.setColour(energy>.03f ? electric : muted);
-    g.drawText(energy>.03f ? "SIGNAL ACTIVE" : "AT REST",214,105,108,18,juce::Justification::left);
     g.fillEllipse(202,111,5,5);
     // Backing for the randomize cluster, matching the control cards.
     {
@@ -480,11 +511,12 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
 
         // One caption row: same baseline, same font, each centred over its
         // own column.
-        g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
+        g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
         const auto caption=[&](const char* text,int x,int width)
         {
-            g.drawText(text,juce::Rectangle<int>(x,randomCaptionY,width,randomCaptionH),
-                       juce::Justification::centred);
+            glitch::theme::drawGlitchText(g,faceplate,text,
+                juce::Rectangle<int>(x,randomCaptionY,width,randomCaptionH),
+                juce::Justification::centred,muted);
         };
         caption("RANDOMIZE",diceColX,diceCol);
         caption("WILD",wildColX,wildCol);
@@ -512,6 +544,15 @@ void GlitchEditor::timerCallback()
     shock.advance(peak,motion.getToggleState());energy=shock.energy();
     blast.advance(energy,motion.getToggleState());
     ++animationFrame;
+    // The zap drives the text as well as the photograph. The glitch frame
+    // advances at half the editor's rate: the tearing reads just as well at
+    // 15fps, and a full canvas repaint is the expensive part.
+    const bool glitching=energy>.03f;
+    const bool frameAdvanced=glitching && (++glitchTick%2)==0;
+    if(frameAdvanced) ++glitchFrame;
+    look.setGlitch(glitching ? energy : 0.f,glitchFrame);
+    if(frameAdvanced || (wasGlitching!=glitching)) canvas.repaint();
+    wasGlitching=glitching;
     meterLeft=std::max(processor.leftPeak.load(),meterLeft*0.85f);
     meterRight=std::max(processor.rightPeak.load(),meterRight*0.85f);
     if(const auto order=processor.getFxOrder(); order!=shownFxOrder)

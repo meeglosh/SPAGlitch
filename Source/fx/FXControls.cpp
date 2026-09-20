@@ -67,7 +67,7 @@ void Knob::paint (juce::Graphics& g)
     g.fillRoundedRectangle (value, 4.0f);
 
     if (learnTarget != nullptr)
-        drawLearnBadge (g, getLocalBounds().toFloat(), learnTarget->badge(), learnTarget->isArmed());
+        drawLearnBadge (g, *this, getLocalBounds().toFloat(), learnTarget->badge(), learnTarget->isArmed());
 }
 
 // -------------------------------------------------------------- Choice -----
@@ -136,9 +136,9 @@ void Toggle::paintButton (juce::Graphics& g, bool over, bool down)
     g.setColour (on ? electric : muted.withAlpha (0.65f));
     g.fillEllipse (cx, body.getY() + 3.0f, d, d);
 
-    g.setColour (on ? ink : muted);
     g.setFont (captionFont());
-    g.drawText (caption, getLocalBounds().removeFromTop (13), juce::Justification::centred);
+    drawGlitchText (g, *this, caption, getLocalBounds().removeFromTop (13),
+                    juce::Justification::centred, on ? ink : muted);
 }
 
 // --------------------------------------------------------- PowerButton -----
@@ -169,10 +169,9 @@ void PowerButton::paintButton (juce::Graphics& g, bool over, bool down)
     g.setColour (on ? electric : muted.withAlpha (0.55f));
     g.fillEllipse (body.getX() + 8.0f, cy - r, r * 2.0f, r * 2.0f);
 
-    g.setColour (on ? ink : muted);
     g.setFont (juce::Font (juce::FontOptions (9.5f, juce::Font::bold)));
-    g.drawText (label, body.withTrimmedLeft (22.0f).withTrimmedRight (6.0f),
-                juce::Justification::centredLeft);
+    drawGlitchText (g, *this, label, body.withTrimmedLeft (22.0f).withTrimmedRight (6.0f),
+                    juce::Justification::centredLeft, on ? ink : muted);
 }
 
 // ------------------------------------------------------ DependentEnable -----

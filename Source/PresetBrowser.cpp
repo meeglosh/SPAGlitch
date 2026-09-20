@@ -132,13 +132,13 @@ void PresetBrowser::paintListBoxItem (int row, juce::Graphics& g, int w, int h, 
     g.setFont (juce::Font (juce::FontOptions (12.0f)));
     g.drawText (juce::String::fromUTF8 ("\xe2\x98\x85"), starArea, juce::Justification::centred);
 
-    g.setColour (loaded ? ink : muted);
     g.setFont (juce::Font (juce::FontOptions (14.5f, loaded ? juce::Font::bold : juce::Font::plain)));
-    g.drawText (info.name, bounds.withTrimmedRight (54), juce::Justification::centredLeft, true);
+    drawGlitchText (g, *this, info.name, bounds.withTrimmedRight (54),
+                    juce::Justification::centredLeft, loaded ? ink : muted);
 
-    g.setColour (muted.withAlpha (0.45f));
     g.setFont (juce::Font (juce::FontOptions (9.0f, juce::Font::bold)));
-    g.drawText (info.category.toUpperCase(), bounds.removeFromRight (52), juce::Justification::centredRight);
+    drawGlitchText (g, *this, info.category.toUpperCase(), bounds.removeFromRight (52),
+                    juce::Justification::centredRight, muted.withAlpha (0.45f));
 }
 
 void PresetBrowser::listBoxItemClicked (int row, const juce::MouseEvent& e)
@@ -192,9 +192,8 @@ void PresetBrowser::paint (juce::Graphics& g)
                                              (float) shadow.getRight(), 0.0f, false));
     g.fillRect (shadow);
 
-    g.setColour (muted);
     g.setFont (juce::Font (juce::FontOptions (10.5f, juce::Font::bold)));
-    g.drawText ("00  /  PRESETS", titleArea, juce::Justification::centredLeft);
+    drawGlitchText (g, *this, "00  /  PRESETS", titleArea, juce::Justification::centredLeft, muted);
 
     g.setColour (well.withAlpha (0.6f));
     g.fillRoundedRectangle (listWell.toFloat(), 6.0f);

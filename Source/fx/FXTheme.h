@@ -31,9 +31,31 @@ void glowStroke (juce::Graphics&, const juce::Path&, juce::Colour, float thickne
 void card (juce::Graphics&, juce::Rectangle<float>, float corner = 9.0f,
            float fillAlpha = 0.72f);
 
+// Supplies the zap state to every piece of text in the instrument. It hangs
+// off the LookAndFeel rather than a global so it stays per-editor: two plugin
+// instances in the same session must not glitch in lockstep.
+struct GlitchSource
+{
+    virtual ~GlitchSource() = default;
+    virtual float glitchEnergy() const = 0;   // 0 = clean
+    virtual int glitchFrame() const = 0;      // advances while zapping
+    static const GlitchSource* find (const juce::Component&);
+};
+
+// Text that comes apart while the instrument is zapping: chromatic split,
+// per-frame jitter, and a few characters corrupted. Falls back to a plain
+// drawText the moment the zap ends, so nothing is unreadable at rest.
+//
+// The colour is passed rather than set beforehand because juce::Graphics has
+// no way to read back the colour already on it.
+void drawGlitchText (juce::Graphics&, const juce::Component&, const juce::String&,
+                     juce::Rectangle<int>, juce::Justification, juce::Colour);
+void drawGlitchText (juce::Graphics&, const juce::Component&, const juce::String&,
+                     juce::Rectangle<float>, juce::Justification, juce::Colour);
+
 // The "CC 74" / "LEARN" tag a knob wears once it is bound to a hardware
 // controller. Nothing is drawn for an unbound knob.
-void drawLearnBadge (juce::Graphics&, juce::Rectangle<float> knobBounds,
+void drawLearnBadge (juce::Graphics&, const juce::Component&, juce::Rectangle<float> knobBounds,
                      const juce::String& text, bool armed);
 
 } // namespace glitch::theme

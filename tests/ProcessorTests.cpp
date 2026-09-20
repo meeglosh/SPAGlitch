@@ -1358,6 +1358,20 @@ int main(int argc,char** argv)
                 {false,false,"expanded"},{true,false,"fx-collapsed"},
                 {false,true,"keys-collapsed"},{true,true,"both-collapsed"}};
 
+            {   // Mid-zap: the artwork and every label come apart together.
+                auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+                std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+                editor->setSize(editor->designWidth(),editor->designHeight());
+                p.visualPeak.store(.9f);
+                for(int i=0;i<6;++i)
+                { juce::Thread::sleep(34);juce::Timer::callPendingTimersSynchronously();
+                  p.visualPeak.store(.9f); }
+                auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
+                juce::PNGImageFormat format;
+                auto output=directory.getChildFile("zapped.png").createOutputStream();
+                require(output!=nullptr,"Zap shot failed");output->setPosition(0);output->truncate();
+                require(format.writeImageToStream(shot,*output),"Zap shot write failed");
+            }
             {   // The preset column, open beside the instrument.
                 auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
                 std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
