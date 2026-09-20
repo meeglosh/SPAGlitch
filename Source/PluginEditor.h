@@ -150,7 +150,10 @@ private:
     void timerCallback() override;
     void paintCanvas(juce::Graphics&);
     void layoutCanvas();
-    void applyDrawerHeights();   // re-fit the window after a drawer folds
+    // Re-fits the window after a drawer folds or the preset column opens.
+    // The scale MUST be sampled before the state that designWidth() reads
+    // changes, so it is passed in rather than read here.
+    void refitWindow(float heldScale);
     // Keeps QWERTY note entry alive: nothing in the instrument takes focus on
     // a click, and anything that does lose it hands it straight back.
     void restoreKeyboardFocus();
@@ -199,6 +202,8 @@ private:
     juce::Array<int> shownFxOrder;
     int glitchTick=0,glitchFrame=0;
     bool wasGlitching=false;
+    // Invalidates a pending close-completion if the drawer is reopened first.
+    int browserAnimSeq=0;
 
     // The randomize cluster: the dice, WILD, and one lock per group, sitting
     // low over the photograph just above the FX drawer.

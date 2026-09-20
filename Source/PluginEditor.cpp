@@ -262,7 +262,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     fxSection.onOrderChanged=[this](const juce::Array<int>& order)
     { shownFxOrder=order; processor.setFxOrder(order); };
     fxSection.onCollapsedChanged=[this]
-    { processor.fxCollapsed=fxSection.isCollapsed(); applyDrawerHeights(); };
+    { processor.fxCollapsed=fxSection.isCollapsed(); refitWindow(scale()); };
     faceplate.addAndMakeVisible(fxSection);
 
     keyboardHeader.onToggle=[this]{ setKeyboardCollapsed(!isKeyboardCollapsed()); };
@@ -357,18 +357,51 @@ void GlitchEditor::setKeyboardCollapsed(bool shouldBeCollapsed)
     keyboard.setVisible(!shouldBeCollapsed);
     if(!shouldBeCollapsed) keyboard.grabKeyboardFocus();
     processor.keyboardCollapsed=shouldBeCollapsed;
-    applyDrawerHeights();
+    refitWindow(scale());
 }
 void GlitchEditor::setPresetBrowserOpen(bool shouldBeOpen)
 {
     if(presetBrowserOpen==shouldBeOpen) return;
+
+    // Sampled first: designWidth() is about to change, and the scale has to
+    // survive it. Reading it afterwards is what made the window keep its width
+    // and squeeze the instrument to make room for the column.
+    const auto held=scale();
     presetBrowserOpen=shouldBeOpen;
     presetsButton.setToggleState(shouldBeOpen,juce::dontSendNotification);
-    // ChangeBroadcaster delivers asynchronously, so pull the current list
-    // rather than trusting a message that may not have arrived yet.
-    if(shouldBeOpen && presetBrowser!=nullptr) presetBrowser->refresh();
-    applyDrawerHeights();
-    if(shouldBeOpen && presetBrowser!=nullptr) presetBrowser->grabKeyboardFocus();
+    const int sequence=++browserAnimSeq;
+
+    auto& animator=juce::Desktop::getInstance().getAnimator();
+    if(presetBrowser==nullptr) { refitWindow(held); return; }
+
+    if(shouldBeOpen)
+    {
+        // ChangeBroadcaster delivers asynchronously, so pull the current list
+        // rather than trusting a message that may not have arrived yet.
+        presetBrowser->refresh();
+        refitWindow(held);   // the window grows first, making room to slide into
+
+        const auto target=presetBrowser->getBounds();
+        presetBrowser->setBounds(target.withX(-target.getWidth()));
+        presetBrowser->setVisible(true);
+        presetBrowser->toFront(false);
+        animator.animateComponent(presetBrowser.get(),target,1.f,180,false,1.0,0.0);
+        presetBrowser->grabKeyboardFocus();
+    }
+    else
+    {
+        // Slide out over the widened window, then take the width back.
+        const auto from=presetBrowser->getBounds();
+        animator.animateComponent(presetBrowser.get(),from.withX(-from.getWidth()),
+                                  1.f,160,false,1.0,0.0);
+        const auto safe=juce::Component::SafePointer<GlitchEditor>(this);
+        juce::Timer::callAfterDelay(170,[safe,held,sequence]
+        {
+            if(safe==nullptr || safe->browserAnimSeq!=sequence) return;
+            safe->presetBrowser->setVisible(false);
+            safe->refitWindow(held);
+        });
+    }
 }
 void GlitchEditor::restoreKeyboardFocus()
 {
@@ -392,13 +425,12 @@ void GlitchEditor::restoreKeyboardFocus()
 
     keyboard.grabKeyboardFocus();
 }
-void GlitchEditor::applyDrawerHeights()
+void GlitchEditor::refitWindow(float held)
 {
     // Folding a drawer, or opening the preset column, changes the design's
     // aspect ratio, so the constrainer has to be told before the window is
-    // re-fitted. The scale is preserved across the change: the faceplate must
-    // not shrink just because the drawer took a column beside it.
-    const auto held=scale();
+    // re-fitted. `held` is the scale from before that change: the instrument
+    // keeps its size on screen and the window grows around it.
     const auto width=designWidth(),height=designHeight();
     constrainer.setFixedAspectRatio((double)width/(double)height);
     constrainer.setSizeLimits((int)(width*minScale),(int)(height*minScale),
@@ -423,11 +455,11 @@ void GlitchEditor::layoutCanvas()
     // The faceplate keeps its own coordinate system; the preset column simply
     // takes the space to its left.
     const int x0=designWidth()-faceplateWidth;
-    if(presetBrowser!=nullptr)
+    if(presetBrowser!=nullptr && presetBrowserOpen
+       && !juce::Desktop::getInstance().getAnimator().isAnimating(presetBrowser.get()))
     {
-        presetBrowser->setVisible(presetBrowserOpen);
-        if(presetBrowserOpen)
-            presetBrowser->setBounds(0,0,glitch::ui::PresetBrowser::width,designHeight());
+        presetBrowser->setVisible(true);
+        presetBrowser->setBounds(0,0,glitch::ui::PresetBrowser::width,designHeight());
     }
     faceplate.setBounds(x0,0,faceplateWidth,designHeight());
     // Header, following SPASynth: the wordmark owns the centre, the controls

@@ -1245,9 +1245,35 @@ static void editorLayoutTests(GlitchProcessor& p)
     require(editor->designHeight()==expanded,"Re-opening both drawers must restore the height");
     require(keys->isVisible(),"Re-opening the keyboard drawer must show its keys");
 
+    // Opening the preset column must GROW the window. Sampling the scale after
+    // the column had already been counted in made the window keep its width
+    // and squeeze the instrument into it instead.
+    {
+        editor->setPresetBrowserOpen(false);
+        // Deliberately not 1:1 -- at full size a rescale is easy to miss.
+        editor->setSize(GlitchEditor::faceplateWidth * 3 / 4, editor->designHeight() * 3 / 4);
+        const auto closedWidth=editor->getWidth(),closedHeight=editor->getHeight();
+        const auto scaleBefore=(double)closedWidth/(double)editor->designWidth();
+
+        editor->setPresetBrowserOpen(true);
+        require(editor->getWidth()>closedWidth,"Opening the preset column must widen the window");
+        require(editor->getHeight()==closedHeight,"Opening the preset column must not change the height");
+        const auto scaleAfter=(double)editor->getWidth()/(double)editor->designWidth();
+        require(std::abs(scaleAfter-scaleBefore)<0.005,
+                ("Opening the preset column must not rescale the instrument (was "
+                 +juce::String(scaleBefore,4)+", now "+juce::String(scaleAfter,4)+")").toRawUTF8());
+
+        // The drawer slides out, then the window takes the width back.
+        editor->setPresetBrowserOpen(false);
+        juce::Thread::sleep(260);juce::Timer::callPendingTimersSynchronously();
+        require(editor->getWidth()==closedWidth,"Closing the column must return the width");
+        require(editor->getHeight()==closedHeight,"Closing the column must leave the height alone");
+    }
+
     // Resizing is a pure scale: children keep their position as a fraction of
     // the window, so the faceplate can never be stretched out of proportion.
     const auto fullHeight=editor->designHeight();
+    editor->setSize(GlitchEditor::faceplateWidth,fullHeight);   // 1:1, whatever ran above
     const auto keysAtFull=topIn(*keys);
     editor->setSize(GlitchEditor::faceplateWidth/2,fullHeight/2);
     require(std::abs(topIn(*keys)-keysAtFull/2)<=2,"Halving the window must halve child positions");
