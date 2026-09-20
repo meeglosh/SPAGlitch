@@ -1,15 +1,19 @@
 #!/bin/bash
 set -euo pipefail
 
-# Lays out dist/<version>/ for a release, matching SPASynth's shape so the two
-# products hand over identically:
+# Lays out the release folder, matching SPASynth's shape so the two products
+# hand over identically:
 #
-#   dist/<version>/
+#   dist/SPAGlitch-<version>/
 #     SPAGlitch-<version>-macOS.pkg      signed + notarized
 #     SPAGlitch-<version>-Windows.exe    see README.txt
 #     README.txt                         version + date substituted
 #     QUICKSTART.txt
 #     EULA.txt
+#
+# SPASynth names its folders SPASynth-<edition>-<version> because it ships
+# Standard and Pro. SPAGlitch has one edition, so the edition segment is
+# omitted rather than inventing a tier that does not exist.
 #
 # Usage: scripts/stage-release.sh <version> [mac-pkg] [windows-installer-or-dir]
 #
@@ -25,7 +29,7 @@ windows_src="${3:-}"
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
 docs="$repo/packaging/docs"
-out="$repo/dist/$version"
+out="$repo/dist/SPAGlitch-$version"
 mkdir -p "$out"
 
 abspath() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
