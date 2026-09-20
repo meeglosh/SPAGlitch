@@ -362,15 +362,19 @@ void GlitchEditor::layoutCanvas()
     motion.setBounds(956,420,132,26);
 
     // The randomize cluster takes the strip of photograph between the cards.
-    auto cluster=juce::Rectangle<int>(randomStripX+14,randomStripY+14,randomStripW-28,46);
-    rollButton.setBounds(cluster.removeFromLeft(diceSize).withSizeKeepingCentre(diceSize,diceSize));
-    cluster.removeFromLeft(8);
-    wildness.setBounds(cluster.removeFromLeft(46));
-    cluster.removeFromLeft(10);
+    // Each control is centred in its own column, so it lines up with the
+    // caption drawn above it.
+    const auto column=[](int x,int width)
+    { return juce::Rectangle<int>(x,randomRowY,width,randomRowH); };
+
+    rollButton.setBounds(column(diceColX,diceCol).withSizeKeepingCentre(diceSize,diceSize));
+    wildness.setBounds(column(wildColX,wildCol).withSizeKeepingCentre(wildCol,wildCol));
+
+    auto locks=column(lockColX,lockCol);
     for(auto& button:lockButtons)
     {
-        button.setBounds(cluster.removeFromLeft(66).withSizeKeepingCentre(66,30));
-        cluster.removeFromLeft(3);
+        button.setBounds(locks.removeFromLeft(lockButtonW).withSizeKeepingCentre(lockButtonW,30));
+        locks.removeFromLeft(lockGap);
     }
 
     fxSection.setBounds(0,faceplateHeight,faceplateWidth,fxSection.preferredHeight());
@@ -467,15 +471,18 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
                                           (float)randomStripW,(float)randomStripH);
         g.setColour(paper.withAlpha(.72f));g.fillRoundedRectangle(strip,9.f);
         g.setColour(sage.withAlpha(.28f));g.drawRoundedRectangle(strip,9.f,1.f);
+
+        // One caption row: same baseline, same font, each centred over its
+        // own column.
         g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
-        g.drawText("RANDOMIZE",strip.withTrimmedLeft(14.f).withHeight(16.f),juce::Justification::left);
-        const auto label=[&](const char* text,int offset,int width,juce::Justification justify)
+        const auto caption=[&](const char* text,int x,int width)
         {
-            g.drawText(text,juce::Rectangle<float>((float)(randomStripX+14+offset),strip.getY()+2.f,
-                                                   (float)width,14.f),justify);
+            g.drawText(text,juce::Rectangle<int>(x,randomCaptionY,width,randomCaptionH),
+                       juce::Justification::centred);
         };
-        label("WILD",diceSize+8,46,juce::Justification::centred);
-        label("LOCK",diceSize+8+46+10,66,juce::Justification::left);
+        caption("RANDOMIZE",diceColX,diceCol);
+        caption("WILD",wildColX,wildCol);
+        caption("LOCK",lockColX,lockCol);
     }
 
     // The keyboard drawer sits on the bare faceplate colour, so it needs the

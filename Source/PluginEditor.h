@@ -154,12 +154,30 @@ private:
     int animationFrame=0;
     int highlighted=-1,lastKeyRange=-1;
 
-    // The randomize cluster: the die, WILD, and one lock per group. It sits
-    // low over the photograph, just above the FX drawer.
-    static constexpr int randomStripW=340,randomStripH=74;
+    // The randomize cluster: the dice, WILD, and one lock per group, sitting
+    // low over the photograph just above the FX drawer.
+    //
+    // Three columns, each wide enough for its own caption, so every caption
+    // can be centred over what it labels and they line up as a row. The dice
+    // column is sized by the word RANDOMIZE rather than by the dice, which
+    // are narrower -- captioning the dice at their own width is what left
+    // RANDOMIZE running into WILD.
+    static constexpr int randomPad=14,randomColGap=12;
+    static constexpr int diceCol=72,wildCol=46,lockCol=204;   // lockCol: 3*66 + 2*3
+    static constexpr int diceSize=40,lockButtonW=66,lockGap=3;
+    static constexpr int randomRowH=46,randomCaptionH=12;
+
+    static constexpr int randomStripW=randomPad*2+diceCol+randomColGap+wildCol+randomColGap+lockCol;
+    static constexpr int randomStripH=8+randomCaptionH+4+randomRowH+8;
     static constexpr int randomStripX=(faceplateWidth-randomStripW)/2;
     static constexpr int randomStripY=faceplateHeight-randomStripH-12;
-    static constexpr int diceSize=40;
+
+    // Column left edges, shared by the layout and the captions above it.
+    static constexpr int diceColX=randomStripX+randomPad;
+    static constexpr int wildColX=diceColX+diceCol+randomColGap;
+    static constexpr int lockColX=wildColX+wildCol+randomColGap;
+    static constexpr int randomCaptionY=randomStripY+8;
+    static constexpr int randomRowY=randomCaptionY+randomCaptionH+4;
 
     int keyboardStripHeight() const
     { return glitch::ui::DrawerHeader::height+(isKeyboardCollapsed() ? 0 : keyboardHeight+12); }
