@@ -63,8 +63,9 @@ else
     signing_note="This development installer is not Developer ID signed or notarized."
 fi
 cat > "$package_work/resources/welcome.html" <<HTML
-<html><body style="font-family: -apple-system; color: #203a30">
-<h1>SPA / GLITCH</h1><p>Silverplatter Audio · Development test build</p>
+<html><head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system; color: #203a30">
+<h1>SPA / GLITCH</h1><p>Silverplatter Audio</p>
 <p>Install the standalone instrument, Audio Unit, and VST3 plugin.</p>
 <p>Quit SPAGlitch and your DAW before continuing. Use Customize to choose formats.</p>
 <p>All 479 factory sounds are included and load automatically in every format.</p>
