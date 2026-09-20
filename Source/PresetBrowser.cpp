@@ -43,6 +43,8 @@ PresetBrowser::PresetBrowser (GlitchProcessor& p, std::function<void()> close)
     searchBox.setColour (juce::TextEditor::textColourId, ink);
     searchBox.setEscapeAndReturnKeysConsumed (false);   // Esc bubbles up = close
     searchBox.onTextChange = [this] { filter.search = searchBox.getText(); applyFilter(); };
+    searchBox.onReturnKey = [this] { searchBox.giveAwayKeyboardFocus(); };
+    searchBox.onEscapeKey = [this] { searchBox.giveAwayKeyboardFocus(); };
     addAndMakeVisible (searchBox);
 
     for (size_t i = 0; i < categoryChips.size(); ++i)
@@ -63,6 +65,9 @@ PresetBrowser::PresetBrowser (GlitchProcessor& p, std::function<void()> close)
     list.setColour (juce::ListBox::backgroundColourId, juce::Colours::transparentBlack);
     list.setColour (juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
     addAndMakeVisible (list);
+    if (auto* viewport = list.getViewport())
+        if (auto* rows = viewport->getViewedComponent())
+            rows->addComponentListener (this);
 
     countLabel.setFont (juce::Font (juce::FontOptions (10.0f)));
     countLabel.setColour (juce::Label::textColourId, muted.withAlpha (0.7f));
@@ -86,7 +91,18 @@ PresetBrowser::PresetBrowser (GlitchProcessor& p, std::function<void()> close)
     refresh();
 }
 
-PresetBrowser::~PresetBrowser() { processor.presets.removeChangeListener (this); }
+PresetBrowser::~PresetBrowser()
+{
+    if (auto* viewport = list.getViewport())
+        if (auto* rows = viewport->getViewedComponent())
+            rows->removeComponentListener (this);
+    processor.presets.removeChangeListener (this);
+}
+
+void PresetBrowser::componentChildrenChanged (juce::Component& rows)
+{
+    glitch::ui::disableMouseClickFocusGrab (rows);
+}
 
 void PresetBrowser::changeListenerCallback (juce::ChangeBroadcaster*) { refresh(); }
 
@@ -148,6 +164,9 @@ void PresetBrowser::listBoxItemClicked (int row, const juce::MouseEvent& e)
 
     if (e.x < 24) { processor.presets.toggleFavourite (info); return; }
     processor.presets.load (info);
+    // Typing in the search box then clicking a row should leave you playing,
+    // not still typing; the editor's backstop takes it from here.
+    searchBox.giveAwayKeyboardFocus();
 }
 
 void PresetBrowser::promptSave()

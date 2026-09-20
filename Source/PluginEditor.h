@@ -3,6 +3,7 @@
 #include "ShockAnimation.h"
 #include "BlastAnimation.h"
 #include "fx/FXTheme.h"
+#include "KeyboardFocus.h"
 #include "fx/FXSection.h"
 #include "Drawer.h"
 #include "MidiLearnMenu.h"
@@ -17,6 +18,9 @@ class SpaLookAndFeel final : public juce::LookAndFeel_V4,
 public:
     void drawRotarySlider(juce::Graphics&,int,int,int,int,float,float,float,juce::Slider&) override;
     void drawLabel(juce::Graphics&,juce::Label&) override;
+    // A ComboBox rebuilds this Label whenever the look-and-feel changes, so
+    // the flag has to be cleared here rather than only in the editor's sweep.
+    juce::Label* createComboBoxTextBox(juce::ComboBox&) override;
     void drawButtonText(juce::Graphics&,juce::TextButton&,bool,bool) override;
 
     void setGlitch(float energy,int frame) { energyValue=energy; frameValue=frame; }
@@ -127,6 +131,9 @@ private:
     void paintCanvas(juce::Graphics&);
     void layoutCanvas();
     void applyDrawerHeights();   // re-fit the window after a drawer folds
+    // Keeps QWERTY note entry alive: nothing in the instrument takes focus on
+    // a click, and anything that does lose it hands it straight back.
+    void restoreKeyboardFocus();
     float scale() const { return (float)getWidth()/(float)designWidth(); }
 
     GlitchProcessor& processor;

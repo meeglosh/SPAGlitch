@@ -1,6 +1,7 @@
 #pragma once
 #include "PresetManager.h"
 #include "fx/FXTheme.h"
+#include "KeyboardFocus.h"
 
 class GlitchProcessor;
 
@@ -13,7 +14,8 @@ namespace glitch::ui
 // delete for user patches. Esc or the X closes it.
 class PresetBrowser final : public juce::Component,
                             private juce::ChangeListener,
-                            private juce::ListBoxModel
+                            private juce::ListBoxModel,
+                            private juce::ComponentListener
 {
 public:
     static constexpr int width = 320;
@@ -33,12 +35,19 @@ public:
 
     void refresh();
 
+    // The search box is the one thing here that SHOULD take focus on a click;
+    // the editor's tree-wide sweep clears that, so it is restored afterwards.
+    void restoreSearchFocusGrab() { searchBox.setMouseClickGrabsKeyboardFocus (true); }
+
     void paint (juce::Graphics&) override;
     void resized() override;
     bool keyPressed (const juce::KeyPress&) override;
 
 private:
     void changeListenerCallback (juce::ChangeBroadcaster*) override;
+    // ListBox builds its rows lazily while scrolling, so fresh RowComponents
+    // keep arriving after construction and have to be swept as they appear.
+    void componentChildrenChanged (juce::Component&) override;
     void applyFilter();
     void promptSave();
 

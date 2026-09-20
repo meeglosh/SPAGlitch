@@ -623,6 +623,49 @@ static void fxChainTests(const juce::File& root)
     std::cout<<"PASS: eight FX modules, EQ bands, chain reordering, order validation, state recall, limiter latency and the analyser feed\n";
 }
 
+static MappedKeyboard* findKeyboard(juce::Component&);   // defined with the layout tests
+
+// QWERTY note entry only works while the on-screen keyboard holds keyboard
+// focus, and JUCE hands focus to whatever is clicked unless it is told not to.
+// Touching any control therefore used to kill QWERTY until the keyboard was
+// clicked again.
+static void keyboardFocusTests()
+{
+    GlitchProcessor p(juce::File{});
+    auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+    require(editor!=nullptr,"The processor must build its own editor");
+    std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+    editor->setPresetBrowserOpen(true);   // so the drawer's widgets exist too
+    editor->setSize(editor->designWidth(),editor->designHeight());
+
+    auto* keys=findKeyboard(*editor);
+    require(keys!=nullptr,"No on-screen keyboard");
+    require(keys->getWantsKeyboardFocus(),"The keyboard must accept keyboard focus for QWERTY");
+    require(keys->getMouseClickGrabsKeyboardFocus(),"Clicking the keys must focus them");
+
+    // Nothing else in the tree may take focus on a click -- including the
+    // JUCE-internal children we never construct ourselves, which is the whole
+    // reason the sweep is recursive.
+    juce::StringArray offenders;
+    std::function<void(juce::Component&)> walk=[&](juce::Component& c)
+    {
+        const bool typedInto=dynamic_cast<juce::TextEditor*>(&c)!=nullptr;
+        if(&c!=keys && !typedInto && c.getMouseClickGrabsKeyboardFocus())
+        {
+            auto name=c.getName();
+            offenders.addIfNotAlreadyThere(
+                (name.isNotEmpty() ? name : juce::String("<unnamed>"))
+                +" ("+juce::String(typeid(c).name())+")");
+        }
+        for(auto* child:c.getChildren()) walk(*child);
+    };
+    walk(*editor);
+    require(offenders.isEmpty(),
+            ("These steal keyboard focus on click: "+offenders.joinIntoString(", ")).toRawUTF8());
+
+    std::cout<<"PASS: only the keys and the search box take keyboard focus, so QWERTY survives\n";
+}
+
 // Presets: what they carry, what they deliberately do not, and that all
 // twenty bundled patches load and sound.
 static void presetTests(const juce::File& root)
@@ -1532,7 +1575,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);keyboardFocusTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

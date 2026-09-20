@@ -43,6 +43,12 @@ void SpaLookAndFeel::drawLabel(juce::Graphics& g,juce::Label& label)
     g.setColour(label.findColour(juce::Label::outlineColourId));
     g.drawRect(label.getLocalBounds());
 }
+juce::Label* SpaLookAndFeel::createComboBoxTextBox(juce::ComboBox& box)
+{
+    auto* label=juce::LookAndFeel_V4::createComboBoxTextBox(box);
+    if(label!=nullptr) label->setMouseClickGrabsKeyboardFocus(false);
+    return label;
+}
 void SpaLookAndFeel::drawButtonText(juce::Graphics& g,juce::TextButton& button,bool,bool)
 {
     g.setFont(getTextButtonFont(button,button.getHeight()));
@@ -202,6 +208,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     knobs[0].setTextValueSuffix(" st"); knobs[1].setTextValueSuffix(" %");
     knobs[2].setTextValueSuffix(" dB"); knobs[4].setTextValueSuffix(" %");
     keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(48); keyboard.setKeyWidth(24);
+    keyboard.setWantsKeyboardFocus(true);   // QWERTY note entry lives here
     for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&filterLabel,&category,&filter,&panic,&keyboard}) faceplate.addAndMakeVisible(c);
     panic.onClick=[this]{processor.allNotesOff();};
     status.setFont(juce::Font(juce::FontOptions(11.5f)));
@@ -285,6 +292,16 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
                                       (float)area.getHeight()*0.92f/(float)designHeight()));
     }
     setSize((int)(designWidth()*initial),(int)(designHeight()*initial));
+
+    // After every child exists and the look-and-feel has been applied -- that
+    // application rebuilds each ComboBox's internal Label, so sweeping earlier
+    // would miss them.
+    glitch::ui::disableMouseClickFocusGrab(*this);
+    // The two things that SHOULD take focus on a click: the keys themselves,
+    // and the box you type a search into.
+    keyboard.setMouseClickGrabsKeyboardFocus(true);
+    if(presetBrowser!=nullptr) presetBrowser->restoreSearchFocusGrab();
+
     startTimerHz(30); timerCallback();
 }
 GlitchEditor::~GlitchEditor() { stopTimer(); setLookAndFeel(nullptr); }
@@ -301,6 +318,7 @@ void GlitchEditor::setKeyboardCollapsed(bool shouldBeCollapsed)
     if(isKeyboardCollapsed()==shouldBeCollapsed) return;
     keyboardHeader.setCollapsed(shouldBeCollapsed);
     keyboard.setVisible(!shouldBeCollapsed);
+    if(!shouldBeCollapsed) keyboard.grabKeyboardFocus();
     processor.keyboardCollapsed=shouldBeCollapsed;
     applyDrawerHeights();
 }
@@ -314,6 +332,28 @@ void GlitchEditor::setPresetBrowserOpen(bool shouldBeOpen)
     if(shouldBeOpen && presetBrowser!=nullptr) presetBrowser->refresh();
     applyDrawerHeights();
     if(shouldBeOpen && presetBrowser!=nullptr) presetBrowser->grabKeyboardFocus();
+}
+void GlitchEditor::restoreKeyboardFocus()
+{
+    // The sweep stops a click from taking focus in the first place; this is
+    // the backstop for everything that legitimately takes it and then goes
+    // away -- a closed dialog, a preset row, the search box.
+    if(isKeyboardCollapsed() || !keyboard.isShowing()) return;
+
+    // Never pull focus into a window the user isn't in, or out of a dialog.
+    auto* peer=getPeer();
+    if(peer==nullptr || !peer->isFocused()) return;
+    if(juce::ModalComponentManager::getInstance()->getNumModalComponents()>0) return;
+
+    auto* focused=juce::Component::getCurrentlyFocusedComponent();
+    if(focused==&keyboard) return;
+    // Anything being typed into keeps it.
+    if(dynamic_cast<juce::TextEditor*>(focused)!=nullptr) return;
+    // Only reclaim from inside this editor: another plugin's window, or the
+    // host's own UI, keeps whatever it has.
+    if(focused!=nullptr && focused!=this && !isParentOf(focused)) return;
+
+    keyboard.grabKeyboardFocus();
 }
 void GlitchEditor::applyDrawerHeights()
 {
@@ -555,6 +595,7 @@ void GlitchEditor::timerCallback()
     wasGlitching=glitching;
     meterLeft=std::max(processor.leftPeak.load(),meterLeft*0.85f);
     meterRight=std::max(processor.rightPeak.load(),meterRight*0.85f);
+    restoreKeyboardFocus();
     if(const auto order=processor.getFxOrder(); order!=shownFxOrder)
     {
         shownFxOrder=order;
