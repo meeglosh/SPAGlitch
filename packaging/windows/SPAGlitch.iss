@@ -1,12 +1,17 @@
 #ifndef BuildTag
 #define BuildTag "dev"   ; overridden by CI with the commit; unused in release naming
+; Keep in step with project(SPAGlitch VERSION ...) in CMakeLists.txt. Inno cannot
+; read that file, so CI passes /DAppVersion and this is the local fallback.
+#ifndef AppVersion
+  #define AppVersion "1.0.0"
+#endif
 #endif
 #define Root "..\.."
 #define Binaries Root + "\build\windows-x64\SPAGlitch_artefacts\Release"
 [Setup]
 AppId={{68D7F995-3813-48B5-A7B4-3154D7D6067D}
 AppName=SPAGlitch
-AppVersion=0.1.4
+AppVersion={#AppVersion}
 AppPublisher=Silverplatter Audio
 DefaultDirName={autopf}\Silverplatter Audio\SPAGlitch
 DefaultGroupName=Silverplatter Audio
