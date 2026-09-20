@@ -579,6 +579,40 @@ static void fxChainTests(const juce::File& root)
     std::cout<<"PASS: eight FX modules, EQ bands, chain reordering, order validation, state recall, limiter latency and the analyser feed\n";
 }
 
+// The x-ray zap is tied to the instrument's notes, not to whatever is coming
+// out of it. ShockAnimation is a hard gate, so metering the post-FX buffer let
+// a reverb tail hold the zap on for seconds after the last note.
+static void xrayFollowsNotesTest(const juce::File& root)
+{
+    namespace fxp=glitch::fx::params;
+    auto file=root.getChildFile("xray.wav");writeWave(file);
+    GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
+    p.loadSample(file);require(p.waitForContent(),"X-ray fixture must load");
+
+    parameter(p,fxp::id::reverbEnable,1.f);
+    parameter(p,fxp::id::reverbDecay,8.f);
+    parameter(p,fxp::id::reverbMix,1.f);
+
+    juce::AudioBuffer<float> b(2,512);
+    note(p,b);
+    require(p.visualPeak.exchange(0)>0,"A note must light the x-ray");
+
+    // Run well past the end of the 100 ms fixture, consuming the flag each
+    // block the way the editor's timer does.
+    for(int i=0;i<60;++i){ render(p,b);p.visualPeak.exchange(0); }
+    require(p.voiceCount.load()==0,"The note must have finished");
+
+    render(p,b);
+    require(b.getMagnitude(0,512)>1e-4f,"The reverb must still be ringing for this test to mean anything");
+    require(p.visualPeak.load()==0,"An FX tail must not keep the x-ray lit");
+
+    // A fresh note lights it again.
+    note(p,b);
+    require(p.visualPeak.exchange(0)>0,"A new note must light the x-ray again");
+
+    std::cout<<"PASS: the x-ray follows notes and ignores FX tails\n";
+}
+
 // The Kontakt lo-fi + tube stage (BITS / CRUNCH, gated by DESTROY) has been
 // retired from the front panel now that the FX chain carries the distortion.
 // The DSP stays in the engine as a calibration asset, but nothing may switch
@@ -907,6 +941,46 @@ int main(int argc,char** argv)
             }
             return 0;
         }
+        if(argc==2 && juce::String(argv[1])=="--reverb-report")
+        {
+            const char* modeNames[]{"Hall","Plate","Chamber","Room","Spring"};
+            const struct { int mode; float decay,size,mix; } cands[]{
+                {0,2.0f,0.5f,0.30f},   // current defaults
+                {1,1.5f,0.45f,0.25f},
+                {3,1.2f,0.40f,0.25f},
+                {1,1.0f,0.35f,0.22f}};
+            for(double sr:{48000.0})
+              for(const auto& cand:cands)
+            {
+                glitch::fx::FXChain chain;chain.prepare(sr,512);
+                glitch::fx::FXChain::Params fx;fx.reverbEnable=true;
+                fx.reverbMode=cand.mode;fx.reverbDecay=cand.decay;
+                fx.reverbSize=cand.size;fx.reverbMix=cand.mix;
+                const float decay=cand.decay;
+                juce::AudioBuffer<float> b(2,512);
+                double wetPeak=0,dry=0;int peakAt=-1,tailAt=-1;
+                const int total=(int)(sr*10);
+                for(int block=0;block*512<total;++block)
+                {
+                    b.clear();
+                    if(block==0){b.setSample(0,0,1.f);b.setSample(1,0,1.f);}
+                    chain.process(b,fx);
+                    for(int i=0;i<512;++i)
+                    {
+                        const int idx=block*512+i;const double m=std::abs(b.getSample(0,i));
+                        if(idx==0){dry=m;continue;}
+                        if(m>wetPeak){wetPeak=m;peakAt=idx;}
+                        if(m>1e-3) tailAt=idx;
+                    }
+                }
+                std::cout<<juce::String(modeNames[cand.mode]).paddedRight(' ',8)
+                         <<" decay "<<decay<<"s size "<<cand.size<<" mix "<<cand.mix
+                         <<" -> dry "<<dry<<"  wet peak "<<wetPeak
+                         <<" at "<<(int)(1000.0*peakAt/sr)<<" ms"
+                         <<"  tail "<<((double)tailAt/sr)<<" s\n";
+            }
+            return 0;
+        }
         if(argc==3 && juce::String(argv[1])=="--fx-screenshots")
         {
             namespace fxp=glitch::fx::params;
@@ -959,7 +1033,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

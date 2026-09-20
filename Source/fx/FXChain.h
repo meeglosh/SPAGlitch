@@ -86,16 +86,18 @@ public:
         float delayMix = 0.35f;
 
         bool reverbEnable = false;
-        int reverbMode = 0;         // 0 Hall 1 Plate 2 Chamber 3 Room 4 Spring
+        // Retuned for SPAGlitch's percussive material -- see the reverb block
+        // in FXParameters.cpp, which is the authoritative set.
+        int reverbMode = 3;         // 0 Hall 1 Plate 2 Chamber 3 Room 4 Spring
         float reverbPreDelay = 20.0f;
-        float reverbSize = 0.5f;
-        float reverbDecay = 2.0f;   // RT60 seconds
+        float reverbSize = 0.4f;
+        float reverbDecay = 1.2f;   // RT60 seconds
         float reverbDamping = 0.5f; // HF damp
         float reverbModDepth = 0.2f;
         float reverbLowCut = 20.0f;
         float reverbHighCut = 12000.0f;
         float reverbWidth = 1.0f;
-        float reverbMix = 0.3f;
+        float reverbMix = 0.25f;
 
         bool eqEnable = false;
         int eqCharacter = 0;   // 0 Clean 1 Modern 2 Vintage 3 Tube

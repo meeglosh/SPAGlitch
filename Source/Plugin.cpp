@@ -108,12 +108,19 @@ void GlitchProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer&
 
     if(b.getNumSamples()>0)
     {
+        // Output meters follow the final signal, FX and all.
         leftPeak=b.getMagnitude(0,0,b.getNumSamples());
         rightPeak=b.getMagnitude(b.getNumChannels()>1?1:0,0,b.getNumSamples());
-        const float peak=std::max(leftPeak.load(std::memory_order_relaxed),rightPeak.load(std::memory_order_relaxed));
-        auto held=visualPeak.load(std::memory_order_relaxed);
-        while(peak>held && !visualPeak.compare_exchange_weak(held,peak,std::memory_order_relaxed)) {}
     }
+    // The x-ray follows the instrument's NOTES, not its output. ShockAnimation
+    // is a hard gate (anything above -140 dB counts as sounding), so metering
+    // the post-FX buffer left a reverb or delay tail holding the zap on for
+    // seconds after the last note instead of snapping back to the calm plate.
+    // A note-on shorter than one block still flashes, and voices count until
+    // their sample actually finishes.
+    const float noteActivity=(containsNoteOn || engine.activeVoices()>0) ? 1.f : 0.f;
+    auto held=visualPeak.load(std::memory_order_relaxed);
+    while(noteActivity>held && !visualPeak.compare_exchange_weak(held,noteActivity,std::memory_order_relaxed)) {}
     midi.clear();
 }
 void GlitchProcessor::getStateInformation(juce::MemoryBlock& out)

@@ -70,20 +70,26 @@ std::vector<Def> build()
 
     // --- Reverb ----------------------------------------------------------
     addBool   (p, i::reverbEnable, "On", Section::reverb, 0.0f, true);
+    // Room rather than SPASynth's Hall, and shorter/smaller/drier with it.
+    // SPASynth's defaults are almost never heard -- a preset sets the reverb
+    // before you get to it -- and on SPAGlitch's short percussive hits a 2 s
+    // hall at 30% wet washes the instrument out: measured, it peaks 505 ms
+    // after the transient and rings for 1.53 s. Room at 1.2 s peaks at 287 ms
+    // and rings for 0.59 s, which sits behind the hits instead of over them.
     addChoice (p, i::reverbMode, "Mode", Section::reverb,
-               { "Hall", "Plate", "Chamber", "Room", "Spring" }, 0.0f);
+               { "Hall", "Plate", "Chamber", "Room", "Spring" }, 3.0f);
     addFloat  (p, i::reverbPreDelay, "Pre", Section::reverb, { 0.0f, 200.0f }, 20.0f, "ms");
-    addFloat  (p, i::reverbSize, "Size", Section::reverb, { 0.0f, 1.0f }, 0.5f);
+    addFloat  (p, i::reverbSize, "Size", Section::reverb, { 0.0f, 1.0f }, 0.4f);
     // Top end held at 8 s: at max Decay + Hall's decay multiplier a wider range
     // produces an effective RT60 near 17 s, which reads as runaway feedback
     // rather than a long tail.
-    addFloat  (p, i::reverbDecay, "Decay", Section::reverb, skewedRange (0.2f, 8.0f, 2.5f), 2.0f, "s");
+    addFloat  (p, i::reverbDecay, "Decay", Section::reverb, skewedRange (0.2f, 8.0f, 2.5f), 1.2f, "s");
     addFloat  (p, i::reverbDamping, "Damp", Section::reverb, { 0.0f, 1.0f }, 0.5f);
     addFloat  (p, i::reverbModDepth, "Mod", Section::reverb, { 0.0f, 1.0f }, 0.2f);
     addFloat  (p, i::reverbLowCut, "LoCut", Section::reverb, frequencyRange (20.0f, 2000.0f), 20.0f, "Hz");
     addFloat  (p, i::reverbHighCut, "HiCut", Section::reverb, frequencyRange (1000.0f, 20000.0f), 12000.0f, "Hz");
     addFloat  (p, i::reverbWidth, "Width", Section::reverb, { 0.0f, 1.0f }, 1.0f);
-    addFloat  (p, i::reverbMix, "Mix", Section::reverb, { 0.0f, 1.0f }, 0.3f);
+    addFloat  (p, i::reverbMix, "Mix", Section::reverb, { 0.0f, 1.0f }, 0.25f);
 
     // --- EQ --------------------------------------------------------------
     // Every band parameter is hidden from the grid: the curve editor is the
