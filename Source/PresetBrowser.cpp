@@ -7,7 +7,7 @@ using namespace glitch::theme;
 
 namespace
 {
-constexpr int rowHeight = 30;
+constexpr int rowHeight = 32;   // room for the 14.5pt name
 const char* chipLabels[] { "ALL", "FACTORY", "USER" };
 const char* chipCategories[] { "", "Factory", "User" };
 } // namespace
@@ -133,7 +133,7 @@ void PresetBrowser::paintListBoxItem (int row, juce::Graphics& g, int w, int h, 
     g.drawText (juce::String::fromUTF8 ("\xe2\x98\x85"), starArea, juce::Justification::centred);
 
     g.setColour (loaded ? ink : muted);
-    g.setFont (juce::Font (juce::FontOptions (12.0f, loaded ? juce::Font::bold : juce::Font::plain)));
+    g.setFont (juce::Font (juce::FontOptions (14.5f, loaded ? juce::Font::bold : juce::Font::plain)));
     g.drawText (info.name, bounds.withTrimmedRight (54), juce::Justification::centredLeft, true);
 
     g.setColour (muted.withAlpha (0.45f));

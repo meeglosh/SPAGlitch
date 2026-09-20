@@ -19,6 +19,12 @@ struct Spec
     float biasCentre = 0.5f, biasStrength = 0.0f;
 };
 
+// juce::Random is an LCG, so seeds close together hand out nearly identical
+// FIRST draws -- and the first thing a roll draws is the sample bank. Seeding
+// directly for a reproducible roll therefore gives every patch in a batch the
+// same bank. Warm the generator first; this returns one ready to use.
+juce::Random seededGenerator (int seed);
+
 // wildness 0 = tight around the musical centre, 0.5 = the spec's own window
 // with its bias, 1 = full range, uniform.
 float sampleValue (const Spec&, float wildness, juce::Random&);

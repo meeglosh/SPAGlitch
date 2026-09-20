@@ -741,7 +741,7 @@ static void randomizeTests(const juce::File& root)
 
         for(int seed=0;seed<40;++seed)
         {
-            juce::Random rng(seed+1);
+            auto rng=glitch::rnd::seededGenerator(seed+1);
             p.randomizeAll(rng);
             p.allNotesOff();
 
@@ -780,7 +780,7 @@ static void randomizeTests(const juce::File& root)
     };
     if(quietest<=0.01f)
     {
-        juce::Random rng(quietSeed+1);
+        auto rng=glitch::rnd::seededGenerator(quietSeed+1);
         p.setRandomWildness(quietWild);p.randomizeAll(rng);
         std::cout<<"  quietest roll:"<<describe()<<"\n";
     }
@@ -1346,7 +1346,7 @@ int main(int argc,char** argv)
                 // Sweep wildness across the set so the twenty are not all the
                 // same flavour of roll.
                 p.setRandomWildness(0.2f+0.6f*(float)(i%5)/4.f);
-                juce::Random rng(9000+i*37);
+                auto rng=glitch::rnd::seededGenerator(9000+i*37);
                 p.randomizeAll(rng);
 
                 auto tree=p.capturePreset();

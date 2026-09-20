@@ -1,76 +1,76 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <SPAGlitchPreset fxOrder="1949459728">
-  <PARAM id="category" value="7.0"/>
-  <PARAM id="cutoff" value="336979.0"/>
+  <PARAM id="category" value="0.0"/>
+  <PARAM id="cutoff" value="244070.0"/>
   <PARAM id="filterEnable" value="1.0"/>
-  <PARAM id="filterType" value="3.0"/>
-  <PARAM id="fxChorus.depth" value="0.3250710666179657"/>
-  <PARAM id="fxChorus.enable" value="1.0"/>
-  <PARAM id="fxChorus.feedback" value="0.05062154307961464"/>
-  <PARAM id="fxChorus.mix" value="0.110813669860363"/>
-  <PARAM id="fxChorus.rate" value="0.9258309602737427"/>
+  <PARAM id="filterType" value="1.0"/>
+  <PARAM id="fxChorus.depth" value="0.1756568551063538"/>
+  <PARAM id="fxChorus.enable" value="0.0"/>
+  <PARAM id="fxChorus.feedback" value="0.1944816112518311"/>
+  <PARAM id="fxChorus.mix" value="0.3631894290447235"/>
+  <PARAM id="fxChorus.rate" value="0.05000000074505806"/>
   <PARAM id="fxDelay.division" value="4.0"/>
-  <PARAM id="fxDelay.enable" value="1.0"/>
-  <PARAM id="fxDelay.feedback" value="0.1794152557849884"/>
-  <PARAM id="fxDelay.mix" value="0.5947409272193909"/>
+  <PARAM id="fxDelay.enable" value="0.0"/>
+  <PARAM id="fxDelay.feedback" value="0.1859106123447418"/>
+  <PARAM id="fxDelay.mix" value="0.1030150353908539"/>
   <PARAM id="fxDelay.pingpong" value="1.0"/>
-  <PARAM id="fxDelay.sync" value="0.0"/>
-  <PARAM id="fxDelay.time" value="737.43896484375"/>
-  <PARAM id="fxDist.drive" value="0.196859672665596"/>
-  <PARAM id="fxDist.enable" value="0.0"/>
-  <PARAM id="fxDist.mix" value="0.5638298988342285"/>
-  <PARAM id="fxDist.tone" value="642.7069702148438"/>
-  <PARAM id="fxDist.type" value="1.0"/>
+  <PARAM id="fxDelay.sync" value="1.0"/>
+  <PARAM id="fxDelay.time" value="1255.363037109375"/>
+  <PARAM id="fxDist.drive" value="0.5598094463348389"/>
+  <PARAM id="fxDist.enable" value="1.0"/>
+  <PARAM id="fxDist.mix" value="0.5418500900268555"/>
+  <PARAM id="fxDist.tone" value="10241.923828125"/>
+  <PARAM id="fxDist.type" value="2.0"/>
   <PARAM id="fxEQ.band0.enable" value="0.0"/>
-  <PARAM id="fxEQ.band0.freq" value="14672.5537109375"/>
-  <PARAM id="fxEQ.band0.gain" value="-13.89999961853027"/>
-  <PARAM id="fxEQ.band0.q" value="0.1000000014901161"/>
+  <PARAM id="fxEQ.band0.freq" value="7735.21728515625"/>
+  <PARAM id="fxEQ.band0.gain" value="12.20000076293945"/>
+  <PARAM id="fxEQ.band0.q" value="4.058608531951904"/>
   <PARAM id="fxEQ.band0.slope" value="1.0"/>
   <PARAM id="fxEQ.band0.type" value="1.0"/>
   <PARAM id="fxEQ.band1.enable" value="0.0"/>
-  <PARAM id="fxEQ.band1.freq" value="13808.3330078125"/>
-  <PARAM id="fxEQ.band1.gain" value="11.20000076293945"/>
-  <PARAM id="fxEQ.band1.q" value="3.400308132171631"/>
+  <PARAM id="fxEQ.band1.freq" value="7207.54541015625"/>
+  <PARAM id="fxEQ.band1.gain" value="6.90000057220459"/>
+  <PARAM id="fxEQ.band1.q" value="3.003802061080933"/>
   <PARAM id="fxEQ.band1.slope" value="1.0"/>
   <PARAM id="fxEQ.band1.type" value="0.0"/>
   <PARAM id="fxEQ.band2.enable" value="0.0"/>
-  <PARAM id="fxEQ.band2.freq" value="6627.33984375"/>
-  <PARAM id="fxEQ.band2.gain" value="12.50000095367432"/>
-  <PARAM id="fxEQ.band2.q" value="0.1000001356005669"/>
+  <PARAM id="fxEQ.band2.freq" value="13813.3203125"/>
+  <PARAM id="fxEQ.band2.gain" value="5.200000286102295"/>
+  <PARAM id="fxEQ.band2.q" value="0.1000106856226921"/>
   <PARAM id="fxEQ.band2.slope" value="1.0"/>
   <PARAM id="fxEQ.band2.type" value="0.0"/>
   <PARAM id="fxEQ.band3.enable" value="0.0"/>
-  <PARAM id="fxEQ.band3.freq" value="17941.0"/>
-  <PARAM id="fxEQ.band3.gain" value="9.600000381469727"/>
-  <PARAM id="fxEQ.band3.q" value="0.1464867740869522"/>
+  <PARAM id="fxEQ.band3.freq" value="25.23681449890137"/>
+  <PARAM id="fxEQ.band3.gain" value="-1.999999642372131"/>
+  <PARAM id="fxEQ.band3.q" value="0.4894194304943085"/>
   <PARAM id="fxEQ.band3.slope" value="1.0"/>
   <PARAM id="fxEQ.band3.type" value="0.0"/>
   <PARAM id="fxEQ.band4.enable" value="0.0"/>
-  <PARAM id="fxEQ.band4.freq" value="7735.21728515625"/>
-  <PARAM id="fxEQ.band4.gain" value="12.20000076293945"/>
-  <PARAM id="fxEQ.band4.q" value="4.058608531951904"/>
+  <PARAM id="fxEQ.band4.freq" value="2014.689208984375"/>
+  <PARAM id="fxEQ.band4.gain" value="4.000000476837158"/>
+  <PARAM id="fxEQ.band4.q" value="5.721103668212891"/>
   <PARAM id="fxEQ.band4.slope" value="1.0"/>
   <PARAM id="fxEQ.band4.type" value="0.0"/>
   <PARAM id="fxEQ.band5.enable" value="0.0"/>
-  <PARAM id="fxEQ.band5.freq" value="7207.54541015625"/>
-  <PARAM id="fxEQ.band5.gain" value="6.90000057220459"/>
-  <PARAM id="fxEQ.band5.q" value="3.003802061080933"/>
+  <PARAM id="fxEQ.band5.freq" value="83.39640045166016"/>
+  <PARAM id="fxEQ.band5.gain" value="-3.899999618530273"/>
+  <PARAM id="fxEQ.band5.q" value="0.3819362223148346"/>
   <PARAM id="fxEQ.band5.slope" value="1.0"/>
   <PARAM id="fxEQ.band5.type" value="0.0"/>
   <PARAM id="fxEQ.band6.enable" value="0.0"/>
-  <PARAM id="fxEQ.band6.freq" value="13813.3203125"/>
-  <PARAM id="fxEQ.band6.gain" value="5.200000286102295"/>
-  <PARAM id="fxEQ.band6.q" value="0.1000106856226921"/>
+  <PARAM id="fxEQ.band6.freq" value="290.3880310058594"/>
+  <PARAM id="fxEQ.band6.gain" value="10.40000057220459"/>
+  <PARAM id="fxEQ.band6.q" value="3.468369007110596"/>
   <PARAM id="fxEQ.band6.slope" value="1.0"/>
   <PARAM id="fxEQ.band6.type" value="2.0"/>
-  <PARAM id="fxEQ.band7.enable" value="0.0"/>
-  <PARAM id="fxEQ.band7.freq" value="25.23681449890137"/>
-  <PARAM id="fxEQ.band7.gain" value="-1.999999642372131"/>
-  <PARAM id="fxEQ.band7.q" value="0.4894194304943085"/>
+  <PARAM id="fxEQ.band7.enable" value="1.0"/>
+  <PARAM id="fxEQ.band7.freq" value="7082.8154296875"/>
+  <PARAM id="fxEQ.band7.gain" value="-11.30000019073486"/>
+  <PARAM id="fxEQ.band7.q" value="15.83443737030029"/>
   <PARAM id="fxEQ.band7.slope" value="1.0"/>
   <PARAM id="fxEQ.band7.type" value="0.0"/>
-  <PARAM id="fxEQ.character" value="1.0"/>
+  <PARAM id="fxEQ.character" value="2.0"/>
   <PARAM id="fxEQ.enable" value="1.0"/>
   <PARAM id="fxLim.autogain" value="0.0"/>
   <PARAM id="fxLim.autorelease" value="0.0"/>
@@ -80,47 +80,47 @@
   <PARAM id="fxLim.enable" value="1.0"/>
   <PARAM id="fxLim.link" value="1.0"/>
   <PARAM id="fxLim.lookahead" value="0.0"/>
-  <PARAM id="fxLim.release" value="547.2192993164062"/>
+  <PARAM id="fxLim.release" value="655.0928344726562"/>
   <PARAM id="fxLim.truepeak" value="0.0"/>
-  <PARAM id="fxMod.centre" value="2786.664794921875"/>
-  <PARAM id="fxMod.depth" value="0.2779376804828644"/>
+  <PARAM id="fxMod.centre" value="4870.302734375"/>
+  <PARAM id="fxMod.depth" value="0.5209901928901672"/>
   <PARAM id="fxMod.division" value="6.0"/>
   <PARAM id="fxMod.enable" value="0.0"/>
-  <PARAM id="fxMod.feedback" value="-0.1103745698928833"/>
-  <PARAM id="fxMod.manual" value="17.67000007629395"/>
-  <PARAM id="fxMod.mix" value="0.776181161403656"/>
-  <PARAM id="fxMod.rate" value="0.4030367732048035"/>
+  <PARAM id="fxMod.feedback" value="-0.2391092032194138"/>
+  <PARAM id="fxMod.manual" value="15.72999954223633"/>
+  <PARAM id="fxMod.mix" value="0.6109330654144287"/>
+  <PARAM id="fxMod.rate" value="0.7416658401489258"/>
   <PARAM id="fxMod.stages" value="2.0"/>
-  <PARAM id="fxMod.sync" value="0.0"/>
+  <PARAM id="fxMod.sync" value="1.0"/>
   <PARAM id="fxMod.type" value="0.0"/>
-  <PARAM id="fxMod.width" value="0.388566255569458"/>
-  <PARAM id="fxReverb.damping" value="0.0004306498449295759"/>
-  <PARAM id="fxReverb.decay" value="1.763091802597046"/>
-  <PARAM id="fxReverb.enable" value="1.0"/>
-  <PARAM id="fxReverb.highcut" value="3461.170654296875"/>
-  <PARAM id="fxReverb.lowcut" value="268.777099609375"/>
-  <PARAM id="fxReverb.mix" value="0.5523721575737"/>
-  <PARAM id="fxReverb.mod" value="0.1086224764585495"/>
-  <PARAM id="fxReverb.mode" value="3.0"/>
-  <PARAM id="fxReverb.predelay" value="114.9312973022461"/>
-  <PARAM id="fxReverb.size" value="0.4793750941753387"/>
-  <PARAM id="fxReverb.width" value="0.3047129809856415"/>
-  <PARAM id="fxTrem.depth" value="0.9824199080467224"/>
+  <PARAM id="fxMod.width" value="0.04170558974146843"/>
+  <PARAM id="fxReverb.damping" value="0.849596381187439"/>
+  <PARAM id="fxReverb.decay" value="1.284900188446045"/>
+  <PARAM id="fxReverb.enable" value="0.0"/>
+  <PARAM id="fxReverb.highcut" value="11274.4638671875"/>
+  <PARAM id="fxReverb.lowcut" value="20.07599449157715"/>
+  <PARAM id="fxReverb.mix" value="0.475395679473877"/>
+  <PARAM id="fxReverb.mod" value="0.2303646057844162"/>
+  <PARAM id="fxReverb.mode" value="2.0"/>
+  <PARAM id="fxReverb.predelay" value="118.2076797485352"/>
+  <PARAM id="fxReverb.size" value="0.8826799392700195"/>
+  <PARAM id="fxReverb.width" value="0.9852327704429626"/>
+  <PARAM id="fxTrem.depth" value="0.5947733521461487"/>
   <PARAM id="fxTrem.division" value="6.0"/>
-  <PARAM id="fxTrem.enable" value="0.0"/>
-  <PARAM id="fxTrem.mix" value="0.7409272193908691"/>
-  <PARAM id="fxTrem.rate" value="0.05006114020943642"/>
+  <PARAM id="fxTrem.enable" value="1.0"/>
+  <PARAM id="fxTrem.mix" value="0.9037479758262634"/>
+  <PARAM id="fxTrem.rate" value="0.05000000074505806"/>
   <PARAM id="fxTrem.shape" value="0.0"/>
-  <PARAM id="fxTrem.stereo" value="0.5674128532409668"/>
-  <PARAM id="fxTrem.sync" value="1.0"/>
-  <PARAM id="fxVib.depth" value="0.7407575845718384"/>
+  <PARAM id="fxTrem.stereo" value="0.9288839101791382"/>
+  <PARAM id="fxTrem.sync" value="0.0"/>
+  <PARAM id="fxVib.depth" value="0.9497979879379272"/>
   <PARAM id="fxVib.division" value="6.0"/>
   <PARAM id="fxVib.enable" value="1.0"/>
-  <PARAM id="fxVib.mix" value="0.5265698432922363"/>
-  <PARAM id="fxVib.rate" value="0.2611049711704254"/>
+  <PARAM id="fxVib.mix" value="0.01312415115535259"/>
+  <PARAM id="fxVib.rate" value="0.1729059517383575"/>
   <PARAM id="fxVib.sync" value="1.0"/>
   <PARAM id="gain" value="-1.341104507446289e-6"/>
-  <PARAM id="pitch" value="-6.0"/>
-  <PARAM id="randomness" value="36.0"/>
-  <PARAM id="resonance" value="14.0"/>
+  <PARAM id="pitch" value="1.0"/>
+  <PARAM id="randomness" value="10.0"/>
+  <PARAM id="resonance" value="47.0"/>
 </SPAGlitchPreset>

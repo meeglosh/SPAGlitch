@@ -33,43 +33,63 @@ DiceButton::DiceButton():juce::Button("Randomize")
 }
 void DiceButton::roll()
 {
-    // Never the same face twice, so a click always looks like it did something.
-    int next=face;
-    while(next==face) next=1+random.nextInt(6);
-    face=next;
+    // Never repeat a face, so a click always looks like it did something.
+    const auto reroll=[this](int current)
+    {
+        int next=current;
+        while(next==current) next=1+random.nextInt(6);
+        return next;
+    };
+    frontFace=reroll(frontFace);
+    backFace=reroll(backFace);
     repaint();
 }
 void DiceButton::paintButton(juce::Graphics& g,bool over,bool down)
 {
     const juce::Colour ink(0xfff3f5e9),sage(0xff9abea3),paper(0xff10241f),electric(0xff85e8f3);
-    auto body=getLocalBounds().toFloat().reduced(2.f);
-    if(down) body=body.reduced(1.f);
+    const auto lit=over||down;
+    const auto body=lit ? electric : ink.withAlpha(.85f);
+    const auto pipColour=lit ? paper.withAlpha(.9f) : paper;
 
-    g.setColour(over||down ? electric.withAlpha(.18f) : paper.withAlpha(.85f));
-    g.fillRoundedRectangle(body,body.getWidth()*.22f);
-    g.setColour(over||down ? electric.withAlpha(.9f) : sage.withAlpha(.45f));
-    g.drawRoundedRectangle(body,body.getWidth()*.22f,1.2f);
+    // The casino pair: one die tumbling behind the other, both tilted.
+    const auto drawDie=[&](juce::Point<float> centre,float size,float angleDegrees,int face,float alpha)
+    {
+        const auto transform=juce::AffineTransform::rotation(
+            juce::degreesToRadians(angleDegrees)).translated(centre);
 
-    // Standard die faces on a 3x3 grid.
-    static constexpr int pips[7][9]{
-        {},
-        {0,0,0, 0,1,0, 0,0,0},
-        {1,0,0, 0,0,0, 0,0,1},
-        {1,0,0, 0,1,0, 0,0,1},
-        {1,0,1, 0,0,0, 1,0,1},
-        {1,0,1, 0,1,0, 1,0,1},
-        {1,0,1, 1,0,1, 1,0,1}};
+        juce::Path shell;
+        shell.addRoundedRectangle(-size*.5f,-size*.5f,size,size,size*.22f);
+        g.setColour(body.withMultipliedAlpha(alpha));
+        g.fillPath(shell,transform);
+        g.setColour((lit ? electric : sage).withMultipliedAlpha(alpha*.9f));
+        g.strokePath(shell,juce::PathStrokeType(1.f),transform);
 
-    const auto grid=body.reduced(body.getWidth()*.2f);
-    const float step=grid.getWidth()/2.f,radius=body.getWidth()*.075f;
-    g.setColour(over||down ? ink : ink.withAlpha(.82f));
-    for(int i=0;i<9;++i)
-        if(pips[face][i]!=0)
-        {
-            const float cx=grid.getX()+(float)(i%3)*step;
-            const float cy=grid.getY()+(float)(i/3)*step;
-            g.fillEllipse(cx-radius,cy-radius,radius*2.f,radius*2.f);
-        }
+        static constexpr int pips[7][9]{
+            {},
+            {0,0,0, 0,1,0, 0,0,0},
+            {1,0,0, 0,0,0, 0,0,1},
+            {1,0,0, 0,1,0, 0,0,1},
+            {1,0,1, 0,0,0, 1,0,1},
+            {1,0,1, 0,1,0, 1,0,1},
+            {1,0,1, 1,0,1, 1,0,1}};
+
+        juce::Path dots;
+        const float step=size*.29f,radius=size*.085f;
+        for(int i=0;i<9;++i)
+            if(pips[face][i]!=0)
+                dots.addEllipse(-step+(float)(i%3)*step-radius,
+                                -step+(float)(i/3)*step-radius,radius*2.f,radius*2.f);
+        g.setColour(pipColour.withMultipliedAlpha(alpha));
+        g.fillPath(dots,transform);
+    };
+
+    auto area=getLocalBounds().toFloat();
+    if(down) area=area.reduced(1.f);
+    const auto centre=area.getCentre();
+    const float unit=std::min(area.getWidth(),area.getHeight());
+
+    drawDie(centre.translated(unit*.17f,-unit*.17f),unit*.44f,18.f,backFace,.72f);
+    drawDie(centre.translated(-unit*.13f,unit*.13f),unit*.54f,-12.f,frontFace,1.f);
 }
 void PanicButton::paintButton(juce::Graphics& g,bool over,bool down)
 {
@@ -117,6 +137,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     for(size_t i=0;i<electricImages.size();++i) electricImages[i]=juce::ImageCache::getFromMemory(images[i],sizes[i]);
     title.setText("SPA / GLITCH",juce::dontSendNotification);
     title.setFont(juce::Font(juce::FontOptions("Georgia",30.0f,juce::Font::plain)));
+    title.setJustificationType(juce::Justification::centred);
     motion.setToggleState(true,juce::dontSendNotification);
     motion.setTooltip("Disable animated lightning, sparks and twitching while retaining the audio-reactive x-ray glow");
     faceplate.addAndMakeVisible(motion);
@@ -304,16 +325,18 @@ void GlitchEditor::layoutCanvas()
             presetBrowser->setBounds(0,0,glitch::ui::PresetBrowser::width,designHeight());
     }
     faceplate.setBounds(x0,0,faceplateWidth,designHeight());
-    title.setBounds(28,18,290,40);
-
-    // Header: title left, the one remaining menu centred, and everything that
-    // reports state -- what is playing, the meters, the load status and panic
-    // -- gathered top right where the transport controls used to be.
-    categoryLabel.setBounds((faceplateWidth-248)/2,16,248,16);
-    category.setBounds((faceplateWidth-248)/2,36,248,32);
+    // Header, following SPASynth: the wordmark owns the centre, the controls
+    // sit left of it, and everything that reports state -- what is playing,
+    // the meters, the load status and panic -- stays right.
+    title.setBounds(410,8,300,36);
+    presetsButton.setBounds(28,36,96,32);
+    categoryLabel.setBounds(136,16,248,16);
+    category.setBounds(136,36,248,32);
     panic.setBounds(1058,32,28,28);
-    effective.setBounds(646,12,382,18);
-    status.setBounds(646,56,382,18);
+    // Right-justified, so starting them later only trims unused space and
+    // keeps the wordmark's centring true rather than optical.
+    effective.setBounds(700,12,328,18);
+    status.setBounds(700,56,328,18);
     photoBounds=juce::Rectangle<int>(0,0,faceplateWidth,faceplateHeight);
     const int knobWidth=140,rowHeight=112;
     // Two even columns: PITCH + RANDOMNESS and the FILTER menu on the left,
@@ -337,10 +360,6 @@ void GlitchEditor::layoutCanvas()
     filterPower->setBounds(1022,126,62,22);
     filter.setBounds(956,152,132,30);
     motion.setBounds(956,420,132,26);
-
-    // PRESETS fills the header gap between the title block and the centred
-    // SAMPLE BANK menu, on the menu's own row.
-    presetsButton.setBounds(330,36,96,32);
 
     // The randomize cluster takes the strip of photograph between the cards.
     auto cluster=juce::Rectangle<int>(randomStripX+14,randomStripY+14,randomStripW-28,46);
@@ -433,7 +452,7 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     // The scrim stops at the status row: the keyboard has moved to its own
     // drawer below, so the bottom of the photograph is no longer covered.
     g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
-    g.drawText("S I L V E R P L A T T E R   A U D I O",32,64,290,18,juce::Justification::left);
+    g.drawText("S I L V E R P L A T T E R   A U D I O",410,44,300,14,juce::Justification::centred);
     g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(90,0,(float)faceplateWidth);
     g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
     g.drawText("01  /  SOUND",32,108,140,18,juce::Justification::left);

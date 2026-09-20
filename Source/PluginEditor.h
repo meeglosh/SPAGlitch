@@ -52,7 +52,7 @@ public:
 private:
     void paintButton(juce::Graphics&,bool over,bool down) override;
     juce::Random random;
-    int face=5;
+    int frontFace=5,backFace=2;
 };
 class GlitchEditor final : public juce::AudioProcessorEditor, private juce::Timer
 {
