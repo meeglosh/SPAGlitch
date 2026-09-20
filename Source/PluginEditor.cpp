@@ -26,6 +26,51 @@ void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,in
     g.setColour(ink);g.drawLine(centre.x+dx*body*.4f,centre.y+dy*body*.4f,centre.x+dx*body*.82f,centre.y+dy*body*.82f,2.5f);
 }
 
+DiceButton::DiceButton():juce::Button("Randomize")
+{
+    setTooltip("Randomize every unlocked group");
+    setMouseClickGrabsKeyboardFocus(false);
+}
+void DiceButton::roll()
+{
+    // Never the same face twice, so a click always looks like it did something.
+    int next=face;
+    while(next==face) next=1+random.nextInt(6);
+    face=next;
+    repaint();
+}
+void DiceButton::paintButton(juce::Graphics& g,bool over,bool down)
+{
+    const juce::Colour ink(0xfff3f5e9),sage(0xff9abea3),paper(0xff10241f),electric(0xff85e8f3);
+    auto body=getLocalBounds().toFloat().reduced(2.f);
+    if(down) body=body.reduced(1.f);
+
+    g.setColour(over||down ? electric.withAlpha(.18f) : paper.withAlpha(.85f));
+    g.fillRoundedRectangle(body,body.getWidth()*.22f);
+    g.setColour(over||down ? electric.withAlpha(.9f) : sage.withAlpha(.45f));
+    g.drawRoundedRectangle(body,body.getWidth()*.22f,1.2f);
+
+    // Standard die faces on a 3x3 grid.
+    static constexpr int pips[7][9]{
+        {},
+        {0,0,0, 0,1,0, 0,0,0},
+        {1,0,0, 0,0,0, 0,0,1},
+        {1,0,0, 0,1,0, 0,0,1},
+        {1,0,1, 0,0,0, 1,0,1},
+        {1,0,1, 0,1,0, 1,0,1},
+        {1,0,1, 1,0,1, 1,0,1}};
+
+    const auto grid=body.reduced(body.getWidth()*.2f);
+    const float step=grid.getWidth()/2.f,radius=body.getWidth()*.075f;
+    g.setColour(over||down ? ink : ink.withAlpha(.82f));
+    for(int i=0;i<9;++i)
+        if(pips[face][i]!=0)
+        {
+            const float cx=grid.getX()+(float)(i%3)*step;
+            const float cy=grid.getY()+(float)(i/3)*step;
+            g.fillEllipse(cx-radius,cy-radius,radius*2.f,radius*2.f);
+        }
+}
 void PanicButton::paintButton(juce::Graphics& g,bool over,bool down)
 {
     const juce::Colour ink(0xfff3f5e9),muted(0xffbdcfc1);
@@ -140,9 +185,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     presetsButton.onClick=[this]{ setPresetBrowserOpen(!presetBrowserOpen); };
     faceplate.addAndMakeVisible(presetsButton);
 
-    rollButton.setTooltip("Randomize every unlocked group");
-    rollButton.setMouseClickGrabsKeyboardFocus(false);
-    rollButton.onClick=[this]{ processor.randomizeAll(); };
+    rollButton.onClick=[this]{ processor.randomizeAll(); rollButton.roll(); };
     faceplate.addAndMakeVisible(rollButton);
 
     wildness.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
@@ -300,8 +343,8 @@ void GlitchEditor::layoutCanvas()
     presetsButton.setBounds(330,36,96,32);
 
     // The randomize cluster takes the strip of photograph between the cards.
-    auto cluster=juce::Rectangle<int>(randomStripX+14,508,randomStripW-28,46);
-    rollButton.setBounds(cluster.removeFromLeft(104).withSizeKeepingCentre(104,30));
+    auto cluster=juce::Rectangle<int>(randomStripX+14,randomStripY+14,randomStripW-28,46);
+    rollButton.setBounds(cluster.removeFromLeft(diceSize).withSizeKeepingCentre(diceSize,diceSize));
     cluster.removeFromLeft(8);
     wildness.setBounds(cluster.removeFromLeft(46));
     cluster.removeFromLeft(10);
@@ -401,15 +444,19 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     g.fillEllipse(202,111,5,5);
     // Backing for the randomize cluster, matching the control cards.
     {
-        auto strip=juce::Rectangle<float>((float)randomStripX,494.f,(float)randomStripW,74.f);
+        auto strip=juce::Rectangle<float>((float)randomStripX,(float)randomStripY,
+                                          (float)randomStripW,(float)randomStripH);
         g.setColour(paper.withAlpha(.72f));g.fillRoundedRectangle(strip,9.f);
         g.setColour(sage.withAlpha(.28f));g.drawRoundedRectangle(strip,9.f,1.f);
         g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
         g.drawText("RANDOMIZE",strip.withTrimmedLeft(14.f).withHeight(16.f),juce::Justification::left);
-        g.drawText("WILD",juce::Rectangle<float>((float)(randomStripX+14+112),strip.getY()+2.f,46.f,14.f),
-                   juce::Justification::centred);
-        g.drawText("LOCK",juce::Rectangle<float>((float)(randomStripX+14+176),strip.getY()+2.f,66.f,14.f),
-                   juce::Justification::left);
+        const auto label=[&](const char* text,int offset,int width,juce::Justification justify)
+        {
+            g.drawText(text,juce::Rectangle<float>((float)(randomStripX+14+offset),strip.getY()+2.f,
+                                                   (float)width,14.f),justify);
+        };
+        label("WILD",diceSize+8,46,juce::Justification::centred);
+        label("LOCK",diceSize+8+46+10,66,juce::Justification::left);
     }
 
     // The keyboard drawer sits on the bare faceplate colour, so it needs the

@@ -42,6 +42,18 @@ public:
 private:
     void paintButton(juce::Graphics&,bool over,bool down) override;
 };
+// RANDOMIZE ALL's trigger: a die that lands on a new face every time it is
+// clicked, so a roll that happens to change little still reads as a roll.
+class DiceButton final : public juce::Button
+{
+public:
+    DiceButton();
+    void roll();
+private:
+    void paintButton(juce::Graphics&,bool over,bool down) override;
+    juce::Random random;
+    int face=5;
+};
 class GlitchEditor final : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
@@ -129,7 +141,8 @@ private:
     glitch::fx::ui::FXSection fxSection;
     glitch::ui::DrawerHeader keyboardHeader{"04","KEYBOARD","click keys or play your MIDI controller"};
     std::unique_ptr<glitch::ui::PresetBrowser> presetBrowser;
-    juce::TextButton presetsButton{"PRESETS"},rollButton{juce::String::fromUTF8("\xe2\x86\xbb ROLL")};
+    juce::TextButton presetsButton{"PRESETS"};
+    DiceButton rollButton;
     juce::Slider wildness;
     std::array<juce::TextButton,glitch::rnd::numLockGroups> lockButtons;
     bool presetBrowserOpen=false;
@@ -141,9 +154,12 @@ private:
     int animationFrame=0;
     int highlighted=-1,lastKeyRange=-1;
 
-    // The randomize cluster: ROLL, WILD, and one lock per group.
-    static constexpr int randomStripW=404;
+    // The randomize cluster: the die, WILD, and one lock per group. It sits
+    // low over the photograph, just above the FX drawer.
+    static constexpr int randomStripW=340,randomStripH=74;
     static constexpr int randomStripX=(faceplateWidth-randomStripW)/2;
+    static constexpr int randomStripY=faceplateHeight-randomStripH-12;
+    static constexpr int diceSize=40;
 
     int keyboardStripHeight() const
     { return glitch::ui::DrawerHeader::height+(isKeyboardCollapsed() ? 0 : keyboardHeight+12); }
