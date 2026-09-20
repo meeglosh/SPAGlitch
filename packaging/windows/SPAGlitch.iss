@@ -1,10 +1,13 @@
+; Short commit, passed by CI as /DBuildTag; "dev" for a local compile.
 #ifndef BuildTag
-#define BuildTag "dev"   ; overridden by CI with the commit; unused in release naming
-; Keep in step with project(SPAGlitch VERSION ...) in CMakeLists.txt. Inno cannot
-; read that file, so CI passes /DAppVersion and this is the local fallback.
+  #define BuildTag "dev"
+#endif
+
+; Keep in step with project(SPAGlitch VERSION ...) in CMakeLists.txt. Inno
+; cannot read CMake, so this is the single place the version lives on Windows;
+; CI may override it with /DAppVersion.
 #ifndef AppVersion
   #define AppVersion "1.0.0"
-#endif
 #endif
 #define Root "..\.."
 #define Binaries Root + "\build\windows-x64\SPAGlitch_artefacts\Release"
