@@ -1,85 +1,82 @@
 #!/bin/bash
 set -euo pipefail
 
-# Lays out dist/<version>/ for a release, so every build has the same shape and
-# the docs travel with the binaries:
+# Lays out dist/<version>/ for a release, matching SPASynth's shape so the two
+# products hand over identically:
 #
 #   dist/<version>/
-#     macOS/SPAGlitch-<version>.pkg        signed + notarized
-#     Windows/...                          see README-WINDOWS.txt
-#     README.md                            version + date substituted
-#     QUICKSTART.md
+#     SPAGlitch-<version>-macOS.pkg      signed + notarized
+#     SPAGlitch-<version>-Windows.exe    see README.txt
+#     README.txt                         version + date substituted
+#     QUICKSTART.txt
 #     EULA.txt
 #
-# Usage: scripts/stage-release.sh <version> [mac-pkg] [windows-artifact-dir]
+# Usage: scripts/stage-release.sh <version> [mac-pkg] [windows-installer-or-dir]
 #
-# Either payload may be omitted; the folder is created and the missing side is
-# left with a placeholder naming what is still needed, so a half-built release
-# says so out loud instead of looking finished.
+# Either payload may be omitted. Each side counts as staged when its file is
+# present, whether this run supplied it or an earlier one did, so re-staging to
+# add the second platform never undoes the first. A missing payload leaves a
+# PENDING note naming what is still needed, so a half-built release says so
+# rather than looking finished.
 
-version="${1:?Supply a version, e.g. 0.1.4}"
+version="${1:?Supply a version, e.g. 1.0.0}"
 mac_pkg="${2:-}"
-windows_dir="${3:-}"
+windows_src="${3:-}"
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
 docs="$repo/packaging/docs"
 out="$repo/dist/$version"
-
-mkdir -p "$out/macOS" "$out/Windows"
-
-sed -e "s/@VERSION@/$version/g" -e "s/@DATE@/$(date '+%-d %B %Y')/g" \
-    "$docs/README.md" > "$out/README.md"
-cp "$docs/QUICKSTART.md" "$docs/EULA.txt" "$out/"
+mkdir -p "$out"
 
 abspath() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
 
-# Each side is staged if a payload is present, whether this run supplied it or
-# an earlier one did. Re-staging to add the second platform is how a release
-# gets completed, so a run that supplies only one must not undo the other.
-staged_pkg="$out/macOS/SPAGlitch-$version.pkg"
-if [ -n "$mac_pkg" ] && [ "$(abspath "$mac_pkg")" != "$staged_pkg" ]; then
-    cp "$mac_pkg" "$staged_pkg"
+for doc in README.txt QUICKSTART.txt; do
+    sed -e "s/@VERSION@/$version/g" -e "s/@DATE@/$(date '+%-d %B %Y')/g" \
+        "$docs/$doc" > "$out/$doc"
+done
+cp "$docs/EULA.txt" "$out/"
+
+mac_target="$out/SPAGlitch-$version-macOS.pkg"
+if [ -n "$mac_pkg" ] && [ "$(abspath "$mac_pkg")" != "$mac_target" ]; then
+    cp "$mac_pkg" "$mac_target"
 fi
 
-if [ -f "$staged_pkg" ]; then
-    rm -f "$out/macOS/PENDING.txt"
-    if spctl -a -vv -t install "$staged_pkg" 2>&1 | grep -q 'source=Notarized Developer ID'; then
+if [ -f "$mac_target" ]; then
+    rm -f "$out/PENDING-macOS.txt"
+    # State the Gatekeeper verdict rather than trusting that signing ran: an
+    # unnotarized pkg looks identical until someone downloads it.
+    if spctl -a -vv -t install "$mac_target" 2>&1 | grep -q 'source=Notarized Developer ID'; then
         echo "macOS: signed and notarized"
     else
         echo "macOS: WARNING - not notarized; Gatekeeper will block this" >&2
     fi
 else
     echo "Pending: the signed, notarized macOS installer has not been staged yet." \
-        > "$out/macOS/PENDING.txt"
+        > "$out/PENDING-macOS.txt"
     echo "macOS: pending"
 fi
 
-if [ -n "$windows_dir" ] && [ "$(cd "$windows_dir" && pwd)" != "$out/Windows" ]; then
-    ditto "$windows_dir" "$out/Windows"
+win_target="$out/SPAGlitch-$version-Windows.exe"
+if [ -n "$windows_src" ]; then
+    # Accepts the installer itself, or the directory a CI artifact unpacks to.
+    if [ -d "$windows_src" ]; then
+        found=$(find "$windows_src" -maxdepth 1 -name '*.exe' | head -1)
+        [ -n "$found" ] || { echo "error: no .exe in $windows_src" >&2; exit 1; }
+        windows_src="$found"
+    fi
+    [ "$(abspath "$windows_src")" != "$win_target" ] && cp "$windows_src" "$win_target"
 fi
 
-if find "$out/Windows" -type f ! -name 'README-WINDOWS.txt' ! -name 'PENDING.txt' | grep -q .; then
-    rm -f "$out/Windows/PENDING.txt"
-    # Rewritten every run, so revised wording reaches an already-staged folder.
-    cat > "$out/Windows/README-WINDOWS.txt" <<'TXT'
-SPAGlitch for Windows - 64-bit, Windows 10 or 11.
-
-Run the Setup .exe. It installs the standalone instrument, the VST3 plugin and
-all 479 factory sounds. Choose the formats you want during setup, and quit your
-DAW first. Uninstall through Windows Settings > Apps.
-
-This installer is not yet code signed, so SmartScreen may show "Windows
-protected your PC" the first time you run it: click More info, then Run anyway.
-That warning is about the absence of a signing certificate, not about the file.
-TXT
+if [ -f "$win_target" ]; then
+    rm -f "$out/PENDING-Windows.txt"
     echo "Windows: staged"
 else
     echo "Pending: no Windows build has been staged yet. The installer is built by" \
          "the Windows CI workflow, and needs the factory samples enabled to include sounds." \
-        > "$out/Windows/PENDING.txt"
+        > "$out/PENDING-Windows.txt"
     echo "Windows: pending"
 fi
 
 echo
 echo "staged: $out"
-find "$out" -maxdepth 2 -mindepth 1 | sed "s|$out|  .|" | sort
+ls -1 "$out" | sed 's/^/  /'

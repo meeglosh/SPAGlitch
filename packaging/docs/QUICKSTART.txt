@@ -1,0 +1,69 @@
+SPAGlitch Quickstart
+====================
+
+1. FIRST SOUND
+   Load SPAGlitch in your DAW (or open the standalone app) and play. All 479
+   factory sounds install with it, so it makes a noise immediately - no
+   library to unzip, nothing to point it at.
+
+   The instrument plays from C3 upward. The on-screen keyboard at the bottom
+   responds to your computer keyboard as well as to MIDI.
+
+2. PICK A BANK
+   SAMPLE BANK in the header holds nine banks of glitch material - Digital,
+   Heavy, Squelchy, Percussive and the rest. This is the single biggest
+   change you can make to the sound.
+
+3. BROWSE THE PRESETS
+   PRESETS, top left. The browser opens in its own column beside the
+   instrument, so it never covers anything. Forty factory patches, live
+   search, star your favourites, and SAVE to keep your own.
+
+4. ROLL THE DICE
+   The dice in the RANDOMIZE strip rolls a brand-new patch. WILD sets how
+   polite or unhinged the rolls are. Lock SOUND, FILTER or FX first to hold
+   that part of the patch while the rest re-rolls.
+
+   It will never hand you a silent patch or one that is painfully loud.
+
+5. REORDER THE CHAIN
+   Drag the tabs in 03 / CHAIN. Distortion into delay is a different
+   instrument from delay into distortion, and the order is saved with the
+   patch. Every effect starts off - switch one on with the ON pill in its
+   tab header.
+
+6. THE EQ IS INTERACTIVE
+   Double-click empty space to add a band (near the left or right edge you
+   get a cut instead of a bell). Double-click a node to remove it, drag to
+   move it, Cmd-drag or scroll for Q, right-click for its type and slope.
+
+7. MIDI LEARN
+   Right-click any knob to bind it to a hardware controller. The next CC you
+   move is captured, and the knob wears a small CC tag afterwards.
+
+
+WORTH KNOWING
+-------------
+  Both drawers fold. Click the 03 / CHAIN or 04 / KEYBOARD bar anywhere.
+
+  Drag the bottom-right corner to resize. It is a pure zoom, 50 to 150%.
+
+  The UI glitches while you play. The text tearing is tied to the x-ray
+  artwork and the notes driving it, and it stops the moment the notes do.
+  That is meant to happen.
+
+  Tempo sync needs a host. In the standalone, synced delay and modulation
+  rates run at a fixed 120 BPM. Switch SYNC off to hear free rates.
+
+  CUTOFF and RESONANCE do nothing while FILTER is off. That gating is
+  inherited from the original instrument.
+
+  OUTPUT sits before the effects, so the limiter still catches the final
+  signal.
+
+
+SAFE LISTENING
+--------------
+SPAGlitch is a glitch instrument and can produce sudden, loud, transient-heavy
+output, especially when you roll a new patch. Set a comfortable monitoring
+level before you play.
