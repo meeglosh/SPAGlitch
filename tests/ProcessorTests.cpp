@@ -652,7 +652,7 @@ static void presetTests(const juce::File& root)
     // The twenty bundled patches are installed and all load and sound.
     const auto& all=p.presets.all();
     int factory=0;for(const auto& info:all) if(!info.isUser) ++factory;
-    require(factory==20,("Expected 20 factory presets, found "+juce::String(factory)).toRawUTF8());
+    require(factory==40,("Expected 40 factory presets, found "+juce::String(factory)).toRawUTF8());
 
     juce::AudioBuffer<float> b(2,512);
     for(const auto& info:all)
@@ -717,7 +717,7 @@ static void presetTests(const juce::File& root)
             require(info.name!=name,"A deleted preset must leave the list");
     }
 
-    std::cout<<"PASS: preset filtering, twenty audible factory patches, save/recall and instance isolation\n";
+    std::cout<<"PASS: preset filtering, forty audible factory patches, save/recall and instance isolation\n";
 }
 
 // RANDOMIZE ALL must never land on a patch that makes no sound, or one that
@@ -1337,7 +1337,14 @@ int main(int argc,char** argv)
                 "Hot Stone Fracture","Eucalyptus Burst","Towel Warmer","Salt Scrub",
                 "Clay Mask Dry","Sauna Overload","Cold Plunge","Aromatherapy Fault",
                 "Robe Rustle","Pumice Grind","Chlorine Dream","Foil Wrap",
-                "Cucumber Water","Deep Tissue","Quiet Room Violation","Checkout Time"};
+                "Cucumber Water","Deep Tissue","Quiet Room Violation","Checkout Time",
+                // Appended, never reordered: the seed is the index, so the
+                // twenty above keep regenerating byte for byte.
+                "Jade Roller","Infrared Cabin","Kelp Wrap","Whale Song Buffer",
+                "Marble Bench","Paraffin Dip","Lavender Overdose","Slipper Static",
+                "Brine Pool","Cold Towel Snap","Exfoliant Grain","Reception Chime",
+                "Mud Chamber","Charcoal Rinse","Humidity Fault","Reflexology Map",
+                "Ice Fountain","Gong Misfire","Cotton Gown","Late Cancellation"};
             GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
             juce::File out(argv[2]);require(out.createDirectory().wasOk(),"Preset dir failed");
 
