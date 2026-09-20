@@ -1,5 +1,5 @@
 #ifndef BuildTag
-#define BuildTag "dev"
+#define BuildTag "dev"   ; overridden by CI with the commit; unused in release naming
 #endif
 #define Root "..\.."
 #define Binaries Root + "\build\windows-x64\SPAGlitch_artefacts\Release"

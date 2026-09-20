@@ -1,4 +1,4 @@
-# macOS test installer
+# macOS installer
 
 Run `bash packaging/macos/build-installer.sh <bundle-directory> <output.pkg> <sample-directory>`
 on macOS. The source folder must contain `SPAGlitch.app`, `SPAGlitch.component`,
@@ -10,7 +10,7 @@ currently 0.1.4; update package and bundle versions together for a public releas
 
 ## Signing and notarization
 
-Signing is opt-in through the environment, so a local test build needs no
+Signing is opt-in through the environment, so a local build needs no
 certificates and a distribution build needs no separate script:
 
 ```
@@ -28,7 +28,7 @@ Both identities live in the login keychain. Notarization credentials are read
 from `~/.config/spaglitch/notary.env` (mode 600, never in the repo); see
 `scripts/notarize.sh` for the fields and the keychain-profile fallback.
 
-Verify a distribution build the way a tester receives it, with the quarantine
+Verify a distribution build the way a customer receives it, with the quarantine
 flag a download would attach:
 
 ```

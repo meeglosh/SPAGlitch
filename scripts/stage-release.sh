@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-# Lays out dist/<version>/ for a tester build, so every release has the same
-# shape and the docs travel with the binaries:
+# Lays out dist/<version>/ for a release, so every build has the same shape and
+# the docs travel with the binaries:
 #
 #   dist/<version>/
 #     macOS/SPAGlitch-<version>.pkg        signed + notarized
-#     Windows/...                          unsigned; see README-WINDOWS.txt
+#     Windows/...                          see README-WINDOWS.txt
 #     README.md                            version + date substituted
 #     QUICKSTART.md
 #     EULA.txt
@@ -31,19 +31,22 @@ sed -e "s/@VERSION@/$version/g" -e "s/@DATE@/$(date '+%-d %B %Y')/g" \
     "$docs/README.md" > "$out/README.md"
 cp "$docs/QUICKSTART.md" "$docs/EULA.txt" "$out/"
 
-if [ -n "$mac_pkg" ]; then
-    staged_pkg="$out/macOS/SPAGlitch-$version.pkg"
-    # Re-staging to add the other platform is normal, and the source is then
-    # the file already in place; copying it over itself is an error.
-    if [ "$(cd "$(dirname "$mac_pkg")" && pwd)/$(basename "$mac_pkg")" != "$staged_pkg" ]; then
-        cp "$mac_pkg" "$staged_pkg"
-    fi
-    # State the Gatekeeper verdict here rather than trusting that signing ran:
-    # an unnotarized pkg looks identical until a tester downloads it.
+abspath() { echo "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"; }
+
+# Each side is staged if a payload is present, whether this run supplied it or
+# an earlier one did. Re-staging to add the second platform is how a release
+# gets completed, so a run that supplies only one must not undo the other.
+staged_pkg="$out/macOS/SPAGlitch-$version.pkg"
+if [ -n "$mac_pkg" ] && [ "$(abspath "$mac_pkg")" != "$staged_pkg" ]; then
+    cp "$mac_pkg" "$staged_pkg"
+fi
+
+if [ -f "$staged_pkg" ]; then
+    rm -f "$out/macOS/PENDING.txt"
     if spctl -a -vv -t install "$staged_pkg" 2>&1 | grep -q 'source=Notarized Developer ID'; then
         echo "macOS: signed and notarized"
     else
-        echo "macOS: WARNING - not notarized; testers will be blocked by Gatekeeper" >&2
+        echo "macOS: WARNING - not notarized; Gatekeeper will block this" >&2
     fi
 else
     echo "Pending: the signed, notarized macOS installer has not been staged yet." \
@@ -51,25 +54,23 @@ else
     echo "macOS: pending"
 fi
 
-if [ -n "$windows_dir" ]; then
-    rm -f "$out/Windows/PENDING.txt"
+if [ -n "$windows_dir" ] && [ "$(cd "$windows_dir" && pwd)" != "$out/Windows" ]; then
     ditto "$windows_dir" "$out/Windows"
+fi
+
+if find "$out/Windows" -type f ! -name 'README-WINDOWS.txt' ! -name 'PENDING.txt' | grep -q .; then
+    rm -f "$out/Windows/PENDING.txt"
+    # Rewritten every run, so revised wording reaches an already-staged folder.
     cat > "$out/Windows/README-WINDOWS.txt" <<'TXT'
-Windows x64 build.
+SPAGlitch for Windows - 64-bit, Windows 10 or 11.
 
-This build is NOT code signed. SmartScreen will show "Windows protected your
-PC" the first time you run it: click More info, then Run anyway. That warning
-is about the absence of a signing certificate, not about the file itself.
+Run the Setup .exe. It installs the standalone instrument, the VST3 plugin and
+all 479 factory sounds. Choose the formats you want during setup, and quit your
+DAW first. Uninstall through Windows Settings > Apps.
 
-If this folder contains a Setup .exe, run it and it installs the standalone,
-the VST3 and the factory sounds for you.
-
-If it contains loose binaries instead, there is no installer for this build:
-  SPAGlitch.exe    the standalone; run it from wherever you put it
-  SPAGlitch.vst3   copy the whole folder to C:\Program Files\Common Files\VST3
-and the factory sounds are NOT included, so the instrument will report that
-sounds are unavailable and will not make a noise. Ask for an installer build if
-you need to hear it on Windows.
+This installer is not yet code signed, so SmartScreen may show "Windows
+protected your PC" the first time you run it: click More info, then Run anyway.
+That warning is about the absence of a signing certificate, not about the file.
 TXT
     echo "Windows: staged"
 else

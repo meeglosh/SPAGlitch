@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Usage: build-installer.sh <folder containing the three bundles> <output.pkg> <sample-directory>
 #
-# Signing is opt-in through the environment, so a local test build needs no
+# Signing is opt-in through the environment, so a local build needs no
 # certificates and a distribution build needs no separate script:
 #
 #   SPAGLITCH_CODESIGN_IDENTITY   "Developer ID Application: ..." — signs each
@@ -60,7 +60,7 @@ pkgbuild --root "$package_work/samples" --identifier com.silverplatteraudio.spag
 if [ -n "${SPAGLITCH_INSTALLER_IDENTITY:-}" ]; then
     signing_note="Signed by Kenzora Games Inc. and notarized by Apple."
 else
-    signing_note="This development installer is not Developer ID signed or notarized."
+    signing_note="This build is not Developer ID signed or notarized."
 fi
 cat > "$package_work/resources/welcome.html" <<HTML
 <html><head><meta charset="utf-8"></head>

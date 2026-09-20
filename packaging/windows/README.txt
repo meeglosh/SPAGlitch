@@ -1,10 +1,11 @@
-SPAGlitch 0.1.4 - unsigned Windows x64 test build
+SPAGlitch - Windows x64
 
-Includes the standalone instrument and VST3 plugin. Quit SPAGlitch and your DAW
-before installation. The VST3 installs in Common Files\VST3. Select the formats
-you want during setup. Uninstall through Windows Settings > Apps.
+Includes the standalone instrument and the VST3 plugin. Quit SPAGlitch and your
+DAW before installing. The VST3 installs in Common Files\VST3. Choose the
+formats you want during setup. Uninstall through Windows Settings > Apps.
 
 All 479 factory sounds are included and load automatically in every format.
+Installing does not change any sample library you already have.
 
-This development build and installer are unsigned. Windows signing will be
-added later. This installer does not change your sample library.
+This installer is not yet code signed, so SmartScreen may show "Windows
+protected your PC" the first time you run it. Click More info, then Run anyway.

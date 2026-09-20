@@ -1,6 +1,6 @@
 # SPAGlitch — Quick start
 
-Silverplatter Audio · test build
+Silverplatter Audio
 
 ## macOS
 
@@ -24,11 +24,11 @@ if it was open during the install, restart it.
 
 ## Windows
 
-See `Windows/README-WINDOWS.txt` in this folder for what is included.
+Run the installer in `Windows/` and choose the formats you want. Factory sounds
+install automatically. Uninstall through Windows Settings > Apps.
 
-Windows builds are unsigned, so SmartScreen will show **"Windows protected your
-PC"**. Click **More info → Run anyway**. This is expected and is about the
-absence of a code-signing certificate, not about the file.
+SmartScreen may show **"Windows protected your PC"** the first time you run it.
+Click **More info → Run anyway**. See `Windows/README-WINDOWS.txt`.
 
 ## First sound
 
@@ -55,7 +55,7 @@ absence of a code-signing certificate, not about the file.
 - **Both drawers fold** — click the `03 / CHAIN` or `04 / KEYBOARD` bar anywhere.
 - **Drag the bottom-right corner** to resize. It is a pure zoom, 50–150%.
 
-## Things that are meant to be like that
+## Meant to be like that
 
 - **The UI glitches while you play.** The text tearing is tied to the x-ray
   artwork and the notes driving it. It stops the moment the notes do.
@@ -66,8 +66,9 @@ absence of a code-signing certificate, not about the file.
 - **OUTPUT sits before the FX chain**, so the limiter still catches the final
   signal.
 
-## Reporting
+## Support
 
-Please include your OS version, DAW and version, the format (Standalone / AU /
-VST3), and what you were doing. If it is a sound problem, the preset name or a
-screenshot of the faceplate is enough to reproduce it — every control is on it.
+Please include your operating system, your DAW and its version, the format
+(Standalone / AU / VST3), and what you were doing. For a sound problem the
+preset name or a screenshot of the faceplate is usually enough to reproduce it,
+since every control that shapes the sound is on it.
