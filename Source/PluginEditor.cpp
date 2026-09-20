@@ -330,15 +330,19 @@ void GlitchEditor::layoutCanvas()
     // Header, following SPASynth: the wordmark owns the centre, the controls
     // sit left of it, and everything that reports state -- what is playing,
     // the meters, the load status and panic -- stays right.
-    title.setBounds(410,8,300,36);
+    // The wordmark sits on the header's own centre, across as well as down:
+    // its 36px line plus the 14px subtitle make a 50px block, centred in 90.
+    title.setBounds(410,20,300,36);
     presetsButton.setBounds(28,36,96,32);
     categoryLabel.setBounds(136,16,248,16);
     category.setBounds(136,36,248,32);
-    panic.setBounds(1058,32,28,28);
-    // Right-justified, so starting them later only trims unused space and
-    // keeps the wordmark's centring true rather than optical.
-    effective.setBounds(700,12,328,18);
-    status.setBounds(700,56,328,18);
+
+    // Vertically centred on the readout block (12..74) rather than the header,
+    // so it lines up with what it sits beside.
+    panic.setBounds(panicX,31,panicSize,panicSize);
+    // Right-justified, so starting them early only trims unused space.
+    effective.setBounds(readoutX,12,readoutRight-readoutX,18);
+    status.setBounds(readoutX,56,readoutRight-readoutX,18);
     photoBounds=juce::Rectangle<int>(0,0,faceplateWidth,faceplateHeight);
     const int knobWidth=140,rowHeight=112;
     // Two even columns: PITCH + RANDOMNESS and the FILTER menu on the left,
@@ -436,7 +440,7 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     }
 
     // Stable contrast over both the warm photograph and the brightest blast.
-    g.setColour(paper.withAlpha(.82f));g.fillRect(0,0,faceplateWidth,90);
+    g.setColour(paper.withAlpha(.82f));g.fillRect(0,0,faceplateWidth,headerHeight);
     g.setColour(paper.withAlpha(.76f));
     g.fillRoundedRectangle(18,100,160,370,16);
     g.fillRoundedRectangle(942,100,160,370,16);
@@ -458,8 +462,8 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     // The scrim stops at the status row: the keyboard has moved to its own
     // drawer below, so the bottom of the photograph is no longer covered.
     g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
-    g.drawText("S I L V E R P L A T T E R   A U D I O",410,44,300,14,juce::Justification::centred);
-    g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(90,0,(float)faceplateWidth);
+    g.drawText("S I L V E R P L A T T E R   A U D I O",410,56,300,14,juce::Justification::centred);
+    g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(headerHeight,0,(float)faceplateWidth);
     g.setColour(muted);g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
     g.drawText("01  /  SOUND",32,108,140,18,juce::Justification::left);
     g.drawText("02  /  ALTER",956,108,140,18,juce::Justification::left);
@@ -492,14 +496,14 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     g.setColour(sage.withAlpha(.35f));
     g.drawHorizontalLine(fxSection.getBottom(),0.f,(float)faceplateWidth);
 
-    // Output meters, right-aligned in the header between the "playing" line
-    // and the load status.
-    constexpr float meterX=896.f,meterW=132.f;
+    // Output meters, on the readouts' right edge so the block runs right up to
+    // the panic button.
     g.setColour(sage.withAlpha(.25f));
-    g.fillRect(meterX,38.f,meterW,3.f);g.fillRect(meterX,46.f,meterW,3.f);
+    g.fillRect((float)meterX,38.f,(float)meterW,3.f);
+    g.fillRect((float)meterX,46.f,(float)meterW,3.f);
     g.setColour(electric);
-    g.fillRect(meterX,38.f,meterW*std::min(1.f,meterLeft),3.f);
-    g.fillRect(meterX,46.f,meterW*std::min(1.f,meterRight),3.f);
+    g.fillRect((float)meterX,38.f,(float)meterW*std::min(1.f,meterLeft),3.f);
+    g.fillRect((float)meterX,46.f,(float)meterW*std::min(1.f,meterRight),3.f);
 
 }
 void GlitchEditor::timerCallback()

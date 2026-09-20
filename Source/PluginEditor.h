@@ -166,6 +166,16 @@ private:
     // column is sized by the word RANDOMIZE rather than by the dice, which
     // are narrower -- captioning the dice at their own width is what left
     // RANDOMIZE running into WILD.
+    // Header right cluster: the readouts, the meters and panic, as one block
+    // ending on a common margin rather than an icon stranded in the corner.
+    static constexpr int headerHeight=90,headerMargin=24;
+    static constexpr int panicSize=24,panicGap=14,meterW=132;
+    static constexpr int headerRight=faceplateWidth-headerMargin;
+    static constexpr int panicX=headerRight-panicSize;
+    static constexpr int readoutRight=panicX-panicGap;
+    static constexpr int readoutX=700;
+    static constexpr int meterX=readoutRight-meterW;
+
     static constexpr int randomPad=14,randomColGap=12;
     static constexpr int diceCol=72,wildCol=46,lockCol=204;   // lockCol: 3*66 + 2*3
     static constexpr int diceSize=40,lockButtonW=66,lockGap=3;
