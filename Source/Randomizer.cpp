@@ -156,6 +156,25 @@ float sampleValue (const Spec& spec, float wildness, juce::Random& rng)
     return juce::jlimit (0.0f, 1.0f, v);
 }
 
+juce::uint64 chainOrder (juce::uint64 current, juce::uint32 lockedMask, juce::Random& rng)
+{
+    using Module = fx::FXChain::Module;
+    if ((lockedMask & (1u << (int) LockGroup::fx)) != 0)
+        return current;
+
+    std::array<Module, fx::FXChain::numModules> order {};
+    int count = 0;
+    for (int i = 0; i < fx::FXChain::numModules; ++i)
+        if ((Module) i != Module::limiter)
+            order[(size_t) count++] = (Module) i;
+
+    for (int i = count - 1; i > 0; --i)
+        std::swap (order[(size_t) i], order[(size_t) rng.nextInt (i + 1)]);
+
+    order[(size_t) count] = Module::limiter;   // see the header: always last
+    return fx::FXChain::packOrder (order.data());
+}
+
 void randomizeAll (juce::AudioProcessorValueTreeState& apvts, float wildness,
                    juce::uint32 lockedMask, juce::Random& rng)
 {

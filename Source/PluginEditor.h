@@ -153,6 +153,10 @@ private:
     float energy=0;
     int animationFrame=0;
     int highlighted=-1,lastKeyRange=-1;
+    // The chain order can change without the strip being touched -- a roll or
+    // a preset load both rewrite it -- so the editor follows the processor
+    // rather than assuming it only ever changes by dragging a tab.
+    juce::Array<int> shownFxOrder;
 
     // The randomize cluster: the dice, WILD, and one lock per group, sitting
     // low over the photograph just above the FX drawer.

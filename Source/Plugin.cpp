@@ -321,8 +321,11 @@ void GlitchProcessor::applyPreset(const juce::ValueTree& tree)
 void GlitchProcessor::randomizeAll() { randomizeAll(juce::Random::getSystemRandom()); }
 void GlitchProcessor::randomizeAll(juce::Random& rng)
 {
-    glitch::rnd::randomizeAll(parameters,randomWildness(),
-        (juce::uint32)(int)parameters.state.getProperty(lockMaskProperty,0),rng);
+    const auto mask=(juce::uint32)(int)parameters.state.getProperty(lockMaskProperty,0);
+    glitch::rnd::randomizeAll(parameters,randomWildness(),mask,rng);
+    // After the parameters, so the roll's random stream stays reproducible.
+    fxOrderPacked.store(glitch::rnd::chainOrder(
+        fxOrderPacked.load(std::memory_order_relaxed),mask,rng),std::memory_order_relaxed);
 }
 juce::AudioProcessorEditor* GlitchProcessor::createEditor() { return new GlitchEditor(*this); }
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new GlitchProcessor(); }

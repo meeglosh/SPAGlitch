@@ -20,6 +20,13 @@ juce::PropertiesFile::Options favouriteOptions()
 // The factory patches are compiled in, so a fresh install has content before
 // anything else is set up.
 struct Bundled { const char* name; const char* data; int size; };
+
+// Stamped into the Factory folder so a revised bundle replaces what is there.
+// A hash of the bundle itself rather than a hand-maintained version number:
+// a number has to be remembered, and worse, it can be written by a build
+// whose compiled-in data is older than the files it claims to have installed,
+// after which the real update never lands.
+juce::String bundleFingerprint (const std::vector<struct Bundled>&);
 std::vector<Bundled> bundledFactory()
 {
     std::vector<Bundled> out;
@@ -34,6 +41,28 @@ std::vector<Bundled> bundledFactory()
                              data, size });
     }
     return out;
+}
+juce::String bundleFingerprint (const std::vector<Bundled>& bundle)
+{
+    // FNV-1a over the names and bytes. This only has to notice a change, not
+    // resist one being engineered, so it needs no crypto module.
+    juce::uint64 hash = 14695981039346656037ull;
+    const auto mix = [&hash] (const void* data, size_t bytes)
+    {
+        const auto* p = static_cast<const unsigned char*> (data);
+        for (size_t i = 0; i < bytes; ++i)
+        {
+            hash ^= p[i];
+            hash *= 1099511628211ull;
+        }
+    };
+    for (const auto& preset : bundle)
+    {
+        mix (preset.name, std::strlen (preset.name));
+        mix (&preset.size, sizeof (preset.size));
+        mix (preset.data, (size_t) preset.size);
+    }
+    return juce::String::toHexString ((juce::int64) hash);
 }
 } // namespace
 
@@ -60,14 +89,23 @@ void PresetManager::installFactoryAndRescan()
     auto factory = presetsRoot().getChildFile ("Factory");
     factory.createDirectory();
 
-    // Re-written when absent rather than only on a first run, so deleting a
-    // factory patch by accident restores it rather than losing it for good.
-    for (const auto& preset : bundledFactory())
+    // Topping up only what is missing would leave an existing install on the
+    // old patches whenever the bundled set is revised, so the fingerprint
+    // forces a rewrite when the bundle changes. Factory patches are
+    // replaceable by design -- anything edited belongs in User/.
+    const auto bundle = bundledFactory();
+    const auto fingerprint = bundleFingerprint (bundle);
+    auto stamp = factory.getChildFile (".factory-fingerprint");
+    const bool revised = stamp.loadFileAsString().trim() != fingerprint;
+
+    for (const auto& preset : bundle)
     {
         auto file = factory.getChildFile (juce::String (preset.name));
-        if (! file.existsAsFile())
+        if (revised || ! file.existsAsFile())
             file.replaceWithData (preset.data, (size_t) preset.size);
     }
+    if (revised)
+        stamp.replaceWithText (fingerprint);
 
     presetsRoot().getChildFile ("User").createDirectory();
     rescan();

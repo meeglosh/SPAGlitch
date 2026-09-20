@@ -10,6 +10,7 @@
 #include <complex>
 #include <iostream>
 #include <stdexcept>
+#include <set>
 
 static void require(bool ok,const char* message) { if(!ok) throw std::runtime_error(message); }
 static void shockTests()
@@ -668,6 +669,24 @@ static void presetTests(const juce::File& root)
         require(peak<1.05f,("Factory preset is too loud: "+info.name).toRawUTF8());
     }
 
+    // The bundled patches carry varied chain orders, not just varied knobs.
+    {
+        const int limiter=(int)glitch::fx::FXChain::Module::limiter;
+        std::set<juce::String> orders;
+        for(const auto& info:all)
+        {
+            if(info.isUser) continue;
+            require(p.presets.load(info),"Factory preset must load");
+            const auto order=p.getFxOrder();
+            require(order.getLast()==limiter,
+                    ("Factory preset must keep the limiter last: "+info.name).toRawUTF8());
+            juce::String key;for(int m:order) key+=juce::String(m);
+            orders.insert(key);
+        }
+        require(orders.size()>20,("Factory patches must vary the chain order (saw "
+                                  +juce::String((int)orders.size())+" distinct)").toRawUTF8());
+    }
+
     // Save / recall round trip, including the FX chain order.
     {
         const juce::String name("__spaglitch selftest__");
@@ -797,6 +816,38 @@ static void randomizeTests(const juce::File& root)
             ("A roll was excessively loud (peak "+juce::String(loudest,5)+" at seed "
              +juce::String(loudSeed)+", wildness "+juce::String(loudWild,2)+")").toRawUTF8());
 
+    // The chain order rolls too, and the limiter always lands last: the
+    // loudness ceiling is the limiter, and it only holds if nothing is
+    // downstream of it.
+    {
+        const int limiter=(int)glitch::fx::FXChain::Module::limiter;
+        std::set<juce::String> seen;
+        for(float wildness:{0.0f,0.5f,1.0f})
+        {
+            p.setRandomWildness(wildness);
+            for(int seed=0;seed<40;++seed)
+            {
+                auto rng=glitch::rnd::seededGenerator(seed+500);
+                p.randomizeAll(rng);
+                const auto order=p.getFxOrder();
+
+                require(order.size()==glitch::fx::FXChain::numModules,"A rolled order must be complete");
+                require(order.getLast()==limiter,
+                        ("The limiter must roll last (wildness "+juce::String(wildness,2)
+                         +", seed "+juce::String(seed)+")").toRawUTF8());
+
+                std::set<int> unique(order.begin(),order.end());
+                require((int)unique.size()==glitch::fx::FXChain::numModules,
+                        "A rolled order must stay a permutation");
+
+                juce::String key;for(int m:order) key+=juce::String(m);
+                seen.insert(key);
+            }
+        }
+        require(seen.size()>20,("Rolling must vary the chain order (saw "
+                                +juce::String((int)seen.size())+" distinct)").toRawUTF8());
+    }
+
     // The limiter is on afterwards whatever rolled, and OUTPUT is never touched.
     require(p.parameters.getRawParameterValue(glitch::fx::params::id::limEnable)->load()>=0.5f,
             "A roll must leave the limiter engaged");
@@ -822,6 +873,14 @@ static void randomizeTests(const juce::File& root)
         }
         require(held,(juce::String("Locking ")+glitch::rnd::lockGroupName((glitch::rnd::LockGroup)group)
                       +" must hold its parameters").toRawUTF8());
+    }
+    {
+        // Locking FX holds the chain order too, not just the FX parameters.
+        for(int g=0;g<glitch::rnd::numLockGroups;++g)
+            p.setGroupLocked(g,g==(int)glitch::rnd::LockGroup::fx);
+        const auto order=p.getFxOrder();
+        for(int i=0;i<20;++i){ auto rng=glitch::rnd::seededGenerator(i+900);p.randomizeAll(rng); }
+        require(p.getFxOrder()==order,"Locking FX must hold the chain order");
     }
     for(int g=0;g<glitch::rnd::numLockGroups;++g) p.setGroupLocked(g,false);
 

@@ -187,8 +187,10 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xfff8f6ef));
     keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,paper);
     keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
-    fxSection.applyOrder(processor.getFxOrder());
-    fxSection.onOrderChanged=[this](const juce::Array<int>& order){ processor.setFxOrder(order); };
+    shownFxOrder=processor.getFxOrder();
+    fxSection.applyOrder(shownFxOrder);
+    fxSection.onOrderChanged=[this](const juce::Array<int>& order)
+    { shownFxOrder=order; processor.setFxOrder(order); };
     fxSection.onCollapsedChanged=[this]
     { processor.fxCollapsed=fxSection.isCollapsed(); applyDrawerHeights(); };
     faceplate.addAndMakeVisible(fxSection);
@@ -508,6 +510,11 @@ void GlitchEditor::timerCallback()
     ++animationFrame;
     meterLeft=std::max(processor.leftPeak.load(),meterLeft*0.85f);
     meterRight=std::max(processor.rightPeak.load(),meterRight*0.85f);
+    if(const auto order=processor.getFxOrder(); order!=shownFxOrder)
+    {
+        shownFxOrder=order;
+        fxSection.applyOrder(order);
+    }
     auto text=processor.contentStatus();
     if(processor.isLoading()) text+="  "+juce::String((int)(processor.loadProgress()*100))+"%";
     status.setText(text,juce::dontSendNotification);

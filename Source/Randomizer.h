@@ -29,6 +29,16 @@ juce::Random seededGenerator (int seed);
 // with its bias, 1 = full range, uniform.
 float sampleValue (const Spec&, float wildness, juce::Random&);
 
+// A shuffled FX chain order, packed for FXChain::unpackOrder. Returns
+// `current` untouched when the FX group is locked.
+//
+// The limiter never moves: it always lands last. That is not a stylistic
+// preference -- randomizeAll()'s loudness guarantee is the limiter forced on
+// at its -0.3 dBFS ceiling, and a ceiling is only a ceiling if nothing runs
+// after it. A reverb or a distortion placed downstream would put the level
+// straight back over the top.
+juce::uint64 chainOrder (juce::uint64 current, juce::uint32 lockedMask, juce::Random&);
+
 // Re-rolls every randomizable parameter whose group is not in lockedMask
 // (bit i = LockGroup i), then applies the musicality pass. Message thread.
 void randomizeAll (juce::AudioProcessorValueTreeState&, float wildness,
