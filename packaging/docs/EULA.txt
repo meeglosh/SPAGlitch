@@ -1,0 +1,79 @@
+SPAGlitch — End User License Agreement
+Silverplatter Audio, a product of Kenzora Games Inc.
+
+DRAFT — PRE-RELEASE TEST BUILD
+This agreement accompanies a confidential test build and has not been reviewed
+by counsel. It is not the agreement that will ship with a public release.
+
+1. GRANT OF LICENSE
+Kenzora Games Inc. ("the Licensor") grants you a personal, non-exclusive,
+non-transferable, revocable license to install and use this software ("the
+Software") on computers you own or control, solely for the purpose of
+evaluating and testing it and providing feedback to the Licensor.
+
+2. CONFIDENTIALITY
+This is an unreleased pre-release build. You agree not to distribute, publish,
+share, demonstrate publicly, stream, or otherwise disclose the Software, its
+sounds, its interface, or any part of it to any third party without the
+Licensor's prior written permission. You agree not to publish screenshots,
+recordings of the interface, or performance measurements without permission.
+
+3. AUDIO CONTENT
+Audio you create using the Software is yours. You may use recordings made with
+the Software in your own musical works, commercial or otherwise, with no
+further permission or payment, subject to clause 2 while the Software remains
+unreleased. You may not redistribute the Software's factory sample content, or
+any derivative work consisting substantially of that content presented as a
+sample library, sound pack, or preset pack for another instrument.
+
+4. RESTRICTIONS
+You may not sell, rent, lease, sublicense, or otherwise transfer the Software.
+You may not reverse engineer, decompile, or disassemble the Software, except to
+the extent that applicable law expressly permits despite this limitation. You
+may not remove or alter any copyright, trademark, or other proprietary notice.
+
+5. OWNERSHIP
+The Software is licensed, not sold. The Licensor retains all right, title, and
+interest in the Software, including all intellectual property rights in its
+code, interface, artwork, factory presets, and factory sample content.
+
+6. FEEDBACK
+If you provide feedback, suggestions, or bug reports, the Licensor may use them
+without restriction and without obligation to you.
+
+7. NO WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. THIS IS PRE-RELEASE
+SOFTWARE AND MAY CONTAIN DEFECTS. IT MAY PRODUCE UNEXPECTED OR LOUD OUTPUT.
+PROTECT YOUR HEARING AND YOUR EQUIPMENT: MONITOR AT A LOW LEVEL THE FIRST TIME
+YOU LOAD A PATCH, AND DO NOT USE THIS BUILD IN A LIVE PERFORMANCE OR ANY OTHER
+SETTING WHERE A FAILURE WOULD MATTER.
+
+8. LIMITATION OF LIABILITY
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE
+LICENSOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR
+PUNITIVE DAMAGES, OR FOR ANY LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF
+OR RELATED TO YOUR USE OF OR INABILITY TO USE THE SOFTWARE, EVEN IF ADVISED OF
+THE POSSIBILITY OF SUCH DAMAGES.
+
+9. TERM AND TERMINATION
+This license takes effect when you install the Software and continues until
+terminated. It terminates automatically without notice if you breach any term.
+The Licensor may terminate it at any time for any reason. On termination you
+must stop using the Software and remove all copies.
+
+10. THIRD-PARTY COMPONENTS
+The Software is built with the JUCE framework (https://juce.com), used under
+its own license terms. The reverb, filter, and dynamics models are original
+implementations by the Licensor.
+
+11. GENERAL
+This agreement is the entire agreement between you and the Licensor regarding
+the Software and supersedes any prior understanding. If any provision is held
+unenforceable, the remainder stays in effect.
+
+By installing or using the Software you agree to these terms. If you do not
+agree, do not install it.
+
+(c) Kenzora Games Inc. All rights reserved.
