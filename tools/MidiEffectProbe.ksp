@@ -1,0 +1,67 @@
+{ Temporary second script slot in the local reference copy only.
+  CC20 resonance percent; CC21 cutoff in 10000 units; CC22 insert selection.
+  CC23 group volume in 10000 units. CC24 bit depth (4..16). }
+on init
+ declare $i
+ declare $v
+ declare ui_label $Status (6,2)
+ set_text($Status,"MIDI measurement probe armed")
+end on
+on controller
+ select ($CC_NUM)
+ case 20
+  $v := %CC[20]*10000
+  if ($v > 1000000)
+   $v := 1000000
+  end if
+  set_engine_par($ENGINE_PAR_RESONANCE,$v,-1,2,1)
+  set_engine_par($ENGINE_PAR_RESONANCE,$v,-1,3,1)
+ case 21
+  $v := %CC[21]*10000
+  if ($v > 1000000)
+   $v := 1000000
+  end if
+  set_engine_par($ENGINE_PAR_CUTOFF,$v,-1,2,1)
+  set_engine_par($ENGINE_PAR_CUTOFF,$v,-1,3,1)
+ case 22
+  $i := 0
+  while ($i < 4)
+   set_engine_par($ENGINE_PAR_EFFECT_BYPASS,1,-1,$i,1)
+   inc($i)
+  end while
+  select (%CC[22])
+   case 1
+    set_engine_par($ENGINE_PAR_EFFECT_BYPASS,0,-1,0,1)
+   case 2
+    set_engine_par($ENGINE_PAR_EFFECT_BYPASS,0,-1,2,1)
+   case 3
+    set_engine_par($ENGINE_PAR_EFFECT_BYPASS,0,-1,3,1)
+   case 4
+    set_engine_par($ENGINE_PAR_EFFECT_BYPASS,0,-1,1,1)
+   case 5
+    set_engine_par($ENGINE_PAR_EFFECT_BYPASS,0,-1,0,1)
+    set_engine_par($ENGINE_PAR_EFFECT_BYPASS,0,-1,1,1)
+  end select
+ case 23
+  $v := %CC[23]*10000
+  if ($v > 1000000)
+   $v := 1000000
+  end if
+  $i := 0
+  while ($i < 9)
+   set_engine_par($ENGINE_PAR_VOLUME,$v,$i,-1,-1)
+   inc($i)
+  end while
+ case 24
+  $v := %CC[24]
+  if ($v < 4)
+   $v := 4
+  end if
+  if ($v > 16)
+   $v := 16
+  end if
+  $v := $v*62500
+  set_engine_par($ENGINE_PAR_BITS,$v,-1,0,1)
+ end select
+ set_text($Status,"CC " & $CC_NUM & " = " & %CC[$CC_NUM])
+end on

@@ -1,0 +1,774 @@
+{
+  "bits": 8,
+  "rate": 48000,
+  "hold_frames": 11,
+  "input": "original PCM with fitted dry gain",
+  "model": "truncate toward zero in sample-amplitude domain; fitted free-running phase",
+  "takes": 127,
+  "within_three_pcm_steps": 127,
+  "limitations": "Dry PCM is quantized; phase fitted separately; no claim for other rates, filters or Tube.",
+  "results": [
+    {
+      "file": "n12-v1-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 1.3078320039137747e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v10-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 3.0305513389492306e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v100-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 1.0712934854213474e-08,
+      "peak_error": 1.4595981401299696e-07
+    },
+    {
+      "file": "n12-v101-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 1.0881957624478166e-08,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v102-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 1.0764192735849146e-08,
+      "peak_error": 1.5439787645621372e-07
+    },
+    {
+      "file": "n12-v103-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 1.1085273554130866e-08,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v104-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 1.0908276342860203e-08,
+      "peak_error": 1.389580888133679e-07
+    },
+    {
+      "file": "n12-v105-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 1.1390422018214284e-08,
+      "peak_error": 1.389580888133679e-07
+    },
+    {
+      "file": "n12-v106-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 1.1083246015131765e-08,
+      "peak_error": 1.473961512288291e-07
+    },
+    {
+      "file": "n12-v107-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 1.0605957627390935e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v108-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 1.1002056069620926e-08,
+      "peak_error": 1.473961512288291e-07
+    },
+    {
+      "file": "n12-v109-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 1.1215427045495736e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v11-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 3.846151767324156e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v110-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 1.118060072225364e-08,
+      "peak_error": 1.4595981401299696e-07
+    },
+    {
+      "file": "n12-v111-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 1.0990790611787153e-08,
+      "peak_error": 1.4595981401299696e-07
+    },
+    {
+      "file": "n12-v112-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 1.104880029801464e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v113-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 1.1051650847132285e-08,
+      "peak_error": 1.5439787645621372e-07
+    },
+    {
+      "file": "n12-v114-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 1.1560581871022375e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v115-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 1.1337416043255229e-08,
+      "peak_error": 1.3052002637015114e-07
+    },
+    {
+      "file": "n12-v116-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 1.1435111268802448e-08,
+      "peak_error": 1.473961512288291e-07
+    },
+    {
+      "file": "n12-v117-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 1.1232028987758008e-08,
+      "peak_error": 1.4883248844466124e-07
+    },
+    {
+      "file": "n12-v118-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 1.099028505327173e-08,
+      "peak_error": 1.2495463835859866e-07
+    },
+    {
+      "file": "n12-v119-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 1.121216629017044e-08,
+      "peak_error": 1.3195636358598328e-07
+    },
+    {
+      "file": "n12-v12-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 3.795721205822504e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v120-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 1.1658112876131767e-08,
+      "peak_error": 1.4595981401299696e-07
+    },
+    {
+      "file": "n12-v121-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 1.1293596870186137e-08,
+      "peak_error": 1.5439787645621372e-07
+    },
+    {
+      "file": "n12-v122-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 1.1774959619189316e-08,
+      "peak_error": 1.6427227605975148e-07
+    },
+    {
+      "file": "n12-v123-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 1.1558392769110104e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v124-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 1.1650254783358202e-08,
+      "peak_error": 1.5727055086012243e-07
+    },
+    {
+      "file": "n12-v125-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 1.177805248760961e-08,
+      "peak_error": 1.2351830114276652e-07
+    },
+    {
+      "file": "n12-v126-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 1.1621323384188819e-08,
+      "peak_error": 1.4595981401299696e-07
+    },
+    {
+      "file": "n12-v127-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 1.1851876375491083e-08,
+      "peak_error": 1.7271033847521267e-07
+    },
+    {
+      "file": "n12-v13-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 4.025195010784165e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v14-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 4.401308904015883e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v15-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 4.3192654499085005e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v16-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 4.695106994811142e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v17-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 4.555875144350026e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v18-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 5.365938977841965e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v19-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 5.325853396501029e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v2-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 1.2911795296664926e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v20-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 6.181086512518408e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v21-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 5.571845040781412e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v22-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 6.307987422777867e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v23-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 5.829579257175464e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v24-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 6.418022638135176e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v25-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 6.399364001088003e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v26-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 6.9854270732502676e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v27-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 6.864646595127909e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v28-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 7.32650739784956e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v29-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 7.633257514371653e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v3-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 1.4420994456728741e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v30-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 7.938739856967365e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v31-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 7.979464190035765e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v32-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 7.73270288260868e-09,
+      "peak_error": 1.0376950190793544e-07
+    },
+    {
+      "file": "n12-v33-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 7.688158106415545e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v34-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 7.448476231204416e-09,
+      "peak_error": 1.0376950190793544e-07
+    },
+    {
+      "file": "n12-v35-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 7.839947922471376e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v36-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 7.869613984751623e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v37-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 8.589399480208784e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v38-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 8.251298639202678e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v39-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 8.745627237621023e-09,
+      "peak_error": 1.0520583910988979e-07
+    },
+    {
+      "file": "n12-v4-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 1.74688947566048e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v40-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 8.637796782199759e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v41-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 8.84727581810595e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v42-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 8.672448308837259e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v43-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 8.780606928090703e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v44-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 8.525086399561438e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v45-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 8.42128192619064e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v46-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 8.77123918085835e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v47-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 8.587841594611292e-09,
+      "peak_error": 1.0520583910988979e-07
+    },
+    {
+      "file": "n12-v48-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 9.25433971183528e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v49-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 9.007191098463461e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v5-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 1.7714916837050111e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v50-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 9.324836242123244e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v51-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 8.981077155001144e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v52-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 8.926682517335524e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v53-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 9.185344948716794e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v54-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 9.336912187069997e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v55-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 9.347111876287521e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v56-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 9.534853987944035e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v57-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 9.286140921605282e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v58-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 9.471899719531483e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v59-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 9.46880616378669e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v6-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 1.6040106466178983e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v60-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 9.475838746461851e-09,
+      "peak_error": 1.1364390152535098e-07
+    },
+    {
+      "file": "n12-v61-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 9.583078501957876e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v62-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 9.392545398474135e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v63-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 9.31389111812875e-09,
+      "peak_error": 1.0520583910988979e-07
+    },
+    {
+      "file": "n12-v64-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 9.455779214894617e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v65-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 9.339650865322146e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v66-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 9.915513975036167e-09,
+      "peak_error": 1.1364390152535098e-07
+    },
+    {
+      "file": "n12-v67-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 9.65394391671777e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v68-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 9.853104667853514e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v69-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 9.595014689773285e-09,
+      "peak_error": 1.2908368918207458e-07
+    },
+    {
+      "file": "n12-v7-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 2.1986770291139526e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v70-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 9.556663402942415e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v71-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 9.588058908762409e-09,
+      "peak_error": 1.2908368918207458e-07
+    },
+    {
+      "file": "n12-v72-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 1.0066033512887406e-08,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v73-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 9.993915373440032e-09,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v74-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 9.787674175331161e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v75-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 9.90861563333413e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v76-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 9.707964786815896e-09,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v77-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 1.0017406901579409e-08,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v78-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 9.710801828825054e-09,
+      "peak_error": 1.2208196395468995e-07
+    },
+    {
+      "file": "n12-v79-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 1.0162462679016668e-08,
+      "peak_error": 1.1220756433033552e-07
+    },
+    {
+      "file": "n12-v8-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 2.468562558004607e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v80-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 1.0254726576682325e-08,
+      "peak_error": 1.1508023872730533e-07
+    },
+    {
+      "file": "n12-v81-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 1.0400043670564418e-08,
+      "peak_error": 1.1508023872730533e-07
+    },
+    {
+      "file": "n12-v82-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 1.0226145910919094e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v83-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 1.0697444370443666e-08,
+      "peak_error": 1.2208196395468995e-07
+    },
+    {
+      "file": "n12-v84-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 1.0372264757907566e-08,
+      "peak_error": 1.1364390152535098e-07
+    },
+    {
+      "file": "n12-v85-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 1.0598618598755821e-08,
+      "peak_error": 1.2208196395468995e-07
+    },
+    {
+      "file": "n12-v86-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 1.0029603999191013e-08,
+      "peak_error": 1.2208196395468995e-07
+    },
+    {
+      "file": "n12-v87-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 1.0547140943510374e-08,
+      "peak_error": 1.206456267527356e-07
+    },
+    {
+      "file": "n12-v88-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 1.0234197749305764e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v89-g144000.wav",
+      "phase_frames": 2,
+      "rms_error": 1.0214933598267511e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v9-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 3.34742044549792e-09,
+      "peak_error": 9.676777668488762e-08
+    },
+    {
+      "file": "n12-v90-g144000.wav",
+      "phase_frames": 8,
+      "rms_error": 1.030015065041791e-08,
+      "peak_error": 1.2208196395468995e-07
+    },
+    {
+      "file": "n12-v91-g144000.wav",
+      "phase_frames": 3,
+      "rms_error": 1.0613485872907914e-08,
+      "peak_error": 1.4595981401299696e-07
+    },
+    {
+      "file": "n12-v92-g144000.wav",
+      "phase_frames": 9,
+      "rms_error": 1.0639017555878051e-08,
+      "peak_error": 1.2908368918207458e-07
+    },
+    {
+      "file": "n12-v93-g144000.wav",
+      "phase_frames": 4,
+      "rms_error": 1.0753109848241728e-08,
+      "peak_error": 1.4595981401299696e-07
+    },
+    {
+      "file": "n12-v94-g144000.wav",
+      "phase_frames": 10,
+      "rms_error": 1.065514945527834e-08,
+      "peak_error": 1.3052002637015114e-07
+    },
+    {
+      "file": "n12-v95-g144000.wav",
+      "phase_frames": 5,
+      "rms_error": 1.0766188489388577e-08,
+      "peak_error": 1.2908368918207458e-07
+    },
+    {
+      "file": "n12-v96-g144000.wav",
+      "phase_frames": 0,
+      "rms_error": 1.0813415435832603e-08,
+      "peak_error": 1.2908368918207458e-07
+    },
+    {
+      "file": "n12-v97-g144000.wav",
+      "phase_frames": 6,
+      "rms_error": 1.0672322214799551e-08,
+      "peak_error": 1.3752175159753577e-07
+    },
+    {
+      "file": "n12-v98-g144000.wav",
+      "phase_frames": 1,
+      "rms_error": 1.0971514912267522e-08,
+      "peak_error": 1.2208196395468995e-07
+    },
+    {
+      "file": "n12-v99-g144000.wav",
+      "phase_frames": 7,
+      "rms_error": 1.0744346728565407e-08,
+      "peak_error": 1.3052002637015114e-07
+    }
+  ]
+}

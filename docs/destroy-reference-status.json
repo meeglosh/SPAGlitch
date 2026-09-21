@@ -1,0 +1,24 @@
+{
+  "scope": "First combined Destroy reference, default Glitch controls, note 12, 48 kHz",
+  "status": "Incomplete: Kontakt became silent and displayed Kontakt full version required",
+  "total_takes": 133,
+  "nonzero_takes": 47,
+  "first_silent_velocity": 82,
+  "usable_scope": "First full-velocity takes retained for exploratory analysis only. Later takes, including the final nonzero take, are not accepted as calibration evidence.",
+  "next_requirement": "A working full-Kontakt instance or reference recordings from a licensed machine; isolate Lo-Fi and Distort, then sweep controls.",
+  "implementation": "No effect DSP changed from this incomplete capture.",
+  "initial_full_velocity_takes": [
+    {
+      "gate_frames": 2400,
+      "sha256": "816dccf1208867325db178e3995610fbc9c70e653f4dfe660f2861f204f1b79b"
+    },
+    {
+      "gate_frames": 24000,
+      "sha256": "bce106b5eaa45fe91ec45465ac3c154f6ee3b1c9f5142a6c66be38efb1de5abe"
+    },
+    {
+      "gate_frames": 144000,
+      "sha256": "bd769b21f815bb1611bba21977230f4f88c31df74f46fc41819f80b260074043"
+    }
+  ]
+}

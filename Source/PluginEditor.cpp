@@ -1,0 +1,690 @@
+#include "PluginEditor.h"
+#include <BinaryData.h>
+
+namespace
+{
+const juce::Colour paper(0xff10241f),ink(0xfff3f5e9),muted(0xffbdcfc1),sage(0xff9abea3),electric(0xff85e8f3);
+}
+
+void SpaLookAndFeel::drawRotarySlider(juce::Graphics& g,int x,int y,int width,int height,float value,float start,float end,juce::Slider&)
+{
+    auto area=juce::Rectangle<float>((float)x,(float)y,(float)width,(float)height).reduced(8);
+    const float radius=std::min(area.getWidth(),area.getHeight())*.5f;
+    const auto centre=area.getCentre();
+    const float angle=start+value*(end-start);
+    juce::Path track,fill;
+    track.addCentredArc(centre.x,centre.y,radius,radius,0,start,end,true);
+    fill.addCentredArc(centre.x,centre.y,radius,radius,0,start,angle,true);
+    g.setColour(juce::Colour(0xff426156));g.strokePath(track,juce::PathStrokeType(3));
+    g.setColour(electric);g.strokePath(fill,juce::PathStrokeType(3));
+    const float body=radius-7;
+    g.setColour(juce::Colours::black.withAlpha(.4f));g.fillEllipse(centre.x-body,centre.y-body+2,body*2,body*2);
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff527466),centre.x,centre.y-body,juce::Colour(0xff122e26),centre.x,centre.y+body,false));
+    g.fillEllipse(centre.x-body,centre.y-body,body*2,body*2);
+    g.setColour(sage.withAlpha(.65f));g.drawEllipse(centre.x-body,centre.y-body,body*2,body*2,1);
+    const float dx=std::sin(angle),dy=-std::cos(angle);
+    g.setColour(ink);g.drawLine(centre.x+dx*body*.4f,centre.y+dy*body*.4f,centre.x+dx*body*.82f,centre.y+dy*body*.82f,2.5f);
+}
+
+void SpaLookAndFeel::drawLabel(juce::Graphics& g,juce::Label& label)
+{
+    g.fillAll(label.findColour(juce::Label::backgroundColourId));
+
+    if(!label.isBeingEdited())
+    {
+        const auto alpha=label.isEnabled() ? 1.f : .5f;
+        auto font=getLabelFont(label);
+        // A Slider's readout is a Label parented to the Slider. It is built
+        // when the Slider is constructed -- before this look-and-feel is
+        // anywhere in the hierarchy -- so createSliderTextBox() never gets a
+        // say and the Label keeps JUCE's default font. Catching it here
+        // instead works whoever built it and whenever.
+        if(auto* owner=dynamic_cast<juce::Slider*>(label.getParentComponent()))
+            font=font.withHeight(juce::jmin(11.5f,(float)owner->getTextBoxHeight()*0.8f));
+        g.setFont(font);
+        glitch::theme::drawGlitchText(g,label,label.getText(),
+            getLabelBorderSize(label).subtractedFrom(label.getLocalBounds()),
+            label.getJustificationType(),
+            label.findColour(juce::Label::textColourId).withMultipliedAlpha(alpha));
+    }
+
+    g.setColour(label.findColour(juce::Label::outlineColourId));
+    g.drawRect(label.getLocalBounds());
+}
+juce::Label* SpaLookAndFeel::createSliderTextBox(juce::Slider& slider)
+{
+    auto* label=juce::LookAndFeel_V4::createSliderTextBox(slider);
+    // Only the focus flag here -- drawLabel() owns the readout's size, because
+    // it also has to catch the boxes this is never asked to build.
+    if(label!=nullptr) label->setMouseClickGrabsKeyboardFocus(false);
+    return label;
+}
+juce::Font SpaLookAndFeel::getTextButtonFont(juce::TextButton&,int buttonHeight)
+{
+    return juce::Font(juce::FontOptions(juce::jmin(12.5f,(float)buttonHeight*0.55f)));
+}
+juce::Font SpaLookAndFeel::getComboBoxFont(juce::ComboBox& box)
+{
+    return juce::Font(juce::FontOptions(juce::jmin(12.5f,(float)box.getHeight()*0.6f)));
+}
+int SpaLookAndFeel::getTabButtonBestWidth(juce::TabBarButton& button,int)
+{
+    // 10pt bold is what DraggableTabButton::paintButton draws; the padding
+    // covers its grip dots and the rounded body either side.
+    const juce::Font font(juce::FontOptions(10.0f,juce::Font::bold));
+    return juce::roundToInt(juce::GlyphArrangement::getStringWidth(font,button.getButtonText()))+36;
+}
+juce::Font SpaLookAndFeel::getPopupMenuFont()
+{
+    // A touch above the closed box: a menu item is a click target, and the
+    // popup floats away from the faceplate's own type.
+    return juce::Font(juce::FontOptions(13.0f));
+}
+juce::Label* SpaLookAndFeel::createComboBoxTextBox(juce::ComboBox& box)
+{
+    auto* label=juce::LookAndFeel_V4::createComboBoxTextBox(box);
+    if(label!=nullptr) label->setMouseClickGrabsKeyboardFocus(false);
+    return label;
+}
+void SpaLookAndFeel::drawButtonText(juce::Graphics& g,juce::TextButton& button,bool,bool)
+{
+    g.setFont(getTextButtonFont(button,button.getHeight()));
+    const auto colourId=button.getToggleState() ? juce::TextButton::textColourOnId
+                                                : juce::TextButton::textColourOffId;
+    glitch::theme::drawGlitchText(g,button,button.getButtonText(),
+        button.getLocalBounds().reduced(2,0),juce::Justification::centred,
+        button.findColour(colourId).withMultipliedAlpha(button.isEnabled() ? 1.f : .5f));
+}
+DiceButton::DiceButton():juce::Button("Randomize")
+{
+    setTooltip("Randomize every unlocked group");
+    setMouseClickGrabsKeyboardFocus(false);
+}
+void DiceButton::roll()
+{
+    // Never repeat a face, so a click always looks like it did something.
+    const auto reroll=[this](int current)
+    {
+        int next=current;
+        while(next==current) next=1+random.nextInt(6);
+        return next;
+    };
+    frontFace=reroll(frontFace);
+    backFace=reroll(backFace);
+    repaint();
+}
+void DiceButton::paintButton(juce::Graphics& g,bool over,bool down)
+{
+    const juce::Colour ink(0xfff3f5e9),sage(0xff9abea3),paper(0xff10241f),electric(0xff85e8f3);
+    const auto lit=over||down;
+    const auto body=lit ? electric : ink.withAlpha(.85f);
+    const auto pipColour=lit ? paper.withAlpha(.9f) : paper;
+
+    // The casino pair: one die tumbling behind the other, both tilted.
+    const auto drawDie=[&](juce::Point<float> centre,float size,float angleDegrees,int face,float alpha)
+    {
+        const auto transform=juce::AffineTransform::rotation(
+            juce::degreesToRadians(angleDegrees)).translated(centre);
+
+        juce::Path shell;
+        shell.addRoundedRectangle(-size*.5f,-size*.5f,size,size,size*.22f);
+        g.setColour(body.withMultipliedAlpha(alpha));
+        g.fillPath(shell,transform);
+        g.setColour((lit ? electric : sage).withMultipliedAlpha(alpha*.9f));
+        g.strokePath(shell,juce::PathStrokeType(1.f),transform);
+
+        static constexpr int pips[7][9]{
+            {},
+            {0,0,0, 0,1,0, 0,0,0},
+            {1,0,0, 0,0,0, 0,0,1},
+            {1,0,0, 0,1,0, 0,0,1},
+            {1,0,1, 0,0,0, 1,0,1},
+            {1,0,1, 0,1,0, 1,0,1},
+            {1,0,1, 1,0,1, 1,0,1}};
+
+        juce::Path dots;
+        const float step=size*.29f,radius=size*.085f;
+        for(int i=0;i<9;++i)
+            if(pips[face][i]!=0)
+                dots.addEllipse(-step+(float)(i%3)*step-radius,
+                                -step+(float)(i/3)*step-radius,radius*2.f,radius*2.f);
+        g.setColour(pipColour.withMultipliedAlpha(alpha));
+        g.fillPath(dots,transform);
+    };
+
+    auto area=getLocalBounds().toFloat();
+    if(down) area=area.reduced(1.f);
+    const auto centre=area.getCentre();
+    const float unit=std::min(area.getWidth(),area.getHeight());
+
+    drawDie(centre.translated(unit*.17f,-unit*.17f),unit*.44f,18.f,backFace,.72f);
+    drawDie(centre.translated(-unit*.13f,unit*.13f),unit*.54f,-12.f,frontFace,1.f);
+}
+void PanicButton::paintButton(juce::Graphics& g,bool over,bool down)
+{
+    const juce::Colour ink(0xfff3f5e9),muted(0xffbdcfc1);
+    // The mark is a quarter of the button's old size. The component stays
+    // bigger than the mark so it is still comfortably clickable -- shrinking
+    // the hit area to match would leave a ~10px target.
+    const auto c=getLocalBounds().toFloat().getCentre();
+    const float r=markDiameter*.5f;
+    g.setColour(over||down ? ink : muted.withAlpha(.75f));
+    g.drawEllipse(c.x-r,c.y-r,r*2.f,r*2.f,1.2f);
+    const float d=r*0.707f;
+    g.drawLine(c.x-d,c.y+d,c.x+d,c.y-d,1.2f);
+}
+GlitchEditor::GlitchEditor(GlitchProcessor& p)
+ :AudioProcessorEditor(p),processor(p),keyboard(p.keyboard),
+  fxSection(p.parameters,
+            [&p](float* dest,int n){ return p.readScope(dest,n); },
+            [&p]{ return p.getSampleRate(); },
+            [&p]{ return p.limiterGainReductionDb(); },
+            [&p]{ return p.limiterOutputPeak(); },
+            &p.midiLearn)
+{
+    processor.visualPeak.store(0,std::memory_order_relaxed);
+    look.setColour(juce::Label::textColourId,ink);
+    look.setColour(juce::Slider::textBoxTextColourId,ink);
+    look.setColour(juce::Slider::textBoxBackgroundColourId,juce::Colours::transparentBlack);
+    look.setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);
+    look.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xff203a30));
+    look.setColour(juce::ComboBox::textColourId,ink);
+    look.setColour(juce::ComboBox::arrowColourId,ink);
+    look.setColour(juce::ComboBox::outlineColourId,sage.withAlpha(.35f));
+    look.setColour(juce::PopupMenu::backgroundColourId,paper);
+    look.setColour(juce::PopupMenu::textColourId,ink);
+    look.setColour(juce::PopupMenu::highlightedBackgroundColourId,juce::Colour(0xff426156));
+    look.setColour(juce::PopupMenu::highlightedTextColourId,ink);
+    look.setColour(juce::TextButton::buttonColourId,juce::Colour(0xff284638));
+    look.setColour(juce::TextButton::textColourOffId,ink);
+    look.setColour(juce::ToggleButton::textColourId,muted);
+    look.setColour(juce::ToggleButton::tickColourId,ink);
+    setLookAndFeel(&look);
+    calmImage=juce::ImageCache::getFromMemory(BinaryData::spacalm_png,BinaryData::spacalm_pngSize);
+    const char* images[]{BinaryData::spaelectric1_png,BinaryData::spaelectric2_png,BinaryData::spaelectric3_png,BinaryData::spaelectric4_png,BinaryData::spaelectric5_png};
+    const int sizes[]{BinaryData::spaelectric1_pngSize,BinaryData::spaelectric2_pngSize,BinaryData::spaelectric3_pngSize,BinaryData::spaelectric4_pngSize,BinaryData::spaelectric5_pngSize};
+    for(size_t i=0;i<electricImages.size();++i) electricImages[i]=juce::ImageCache::getFromMemory(images[i],sizes[i]);
+    title.setText("SPA / GLITCH",juce::dontSendNotification);
+    title.setFont(juce::Font(juce::FontOptions("Georgia",30.0f,juce::Font::plain)));
+    title.setJustificationType(juce::Justification::centred);
+    motion.setToggleState(true,juce::dontSendNotification);
+    motion.setTooltip("Disable animated lightning, sparks and twitching while retaining the audio-reactive x-ray glow");
+    faceplate.addAndMakeVisible(motion);
+    categoryLabel.setText("SAMPLE BANK",juce::dontSendNotification);
+    filterLabel.setText("FILTER",juce::dontSendNotification);
+    for(int i=0;i<9;++i) category.addItem(glitch::categories[(size_t)i],i+1);
+    filter.addItemList({"Low Pass","High Pass","Band Pass","Notch","Peak"},1);
+    categoryAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"category",category);
+    filterAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters,"filterType",filter);
+    filterPower=std::make_unique<glitch::fx::ui::PowerButton>(p.parameters,"filterEnable","ON");
+    faceplate.addAndMakeVisible(*filterPower);
+    const char* ids[]{"pitch","randomness","gain","cutoff","resonance"};
+    const char* names[]{"PITCH","RANDOMNESS","OUTPUT","CUTOFF","RESONANCE"};
+    for(size_t i=0;i<knobs.size();++i)
+    {
+        auto& knob=knobs[i];
+        knob.setColour(juce::Slider::textBoxTextColourId,ink);
+        knob.setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);
+        knob.setColour(juce::Slider::textBoxBackgroundColourId,juce::Colours::transparentBlack);
+        knob.setColour(juce::Slider::textBoxHighlightColourId,sage);
+        knob.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        knob.setTextBoxStyle(juce::Slider::TextBoxBelow,false,112,20);
+        knob.setRotaryParameters(juce::MathConstants<float>::pi*1.2f,juce::MathConstants<float>::pi*2.8f,true);
+        labels[i].setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
+        knob.setTitle(names[i]); labels[i].setText(names[i],juce::dontSendNotification);
+        labels[i].setJustificationType(juce::Justification::centred);
+        faceplate.addAndMakeVisible(knob); faceplate.addAndMakeVisible(labels[i]);
+        attachments[i]=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.parameters,ids[i],knob);
+        learnTargets[i]=std::make_unique<glitch::ui::MidiLearnTarget>(p.midiLearn,knob,ids[i],names[i]);
+        learnTargets[i]->onStateChanged=[this]{ faceplate.repaint(); };
+    }
+    // CUTOFF is stored in KSP units (0..1000000) but reads as a percentage.
+    knobs[3].textFromValueFunction=[](double v){return juce::String(v/10000.0,1)+" %";};
+    knobs[3].valueFromTextFunction=[](const juce::String& v){return v.getDoubleValue()*10000.0;};
+    knobs[3].updateText();
+    knobs[0].setTextValueSuffix(" st"); knobs[1].setTextValueSuffix(" %");
+    knobs[2].setTextValueSuffix(" dB"); knobs[4].setTextValueSuffix(" %");
+    keyboard.setAvailableRange(0,127); keyboard.setLowestVisibleKey(48); keyboard.setKeyWidth(24);
+    keyboard.setWantsKeyboardFocus(true);   // QWERTY note entry lives here
+    for(auto* c:std::initializer_list<juce::Component*>{&title,&status,&effective,&categoryLabel,&filterLabel,&category,&filter,&panic,&keyboard}) faceplate.addAndMakeVisible(c);
+    panic.onClick=[this]{processor.allNotesOff();};
+    status.setFont(juce::Font(juce::FontOptions(11.5f)));
+    status.setColour(juce::Label::textColourId,muted);
+    status.setJustificationType(juce::Justification::centredRight);
+    effective.setFont(juce::Font(juce::FontOptions(11.5f)));
+    effective.setJustificationType(juce::Justification::centredRight);
+    for(auto* label:{&categoryLabel,&filterLabel}) label->setFont(juce::Font(juce::FontOptions(10.0f,juce::Font::bold)));
+    keyboard.setColour(juce::MidiKeyboardComponent::whiteNoteColourId,juce::Colour(0xfff8f6ef));
+    keyboard.setColour(juce::MidiKeyboardComponent::blackNoteColourId,paper);
+    keyboard.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId,juce::Colour(0xffd4dacb));
+    shownFxOrder=processor.getFxOrder();
+    fxSection.applyOrder(shownFxOrder);
+    fxSection.onOrderChanged=[this](const juce::Array<int>& order)
+    { shownFxOrder=order; processor.setFxOrder(order); };
+    fxSection.onCollapsedChanged=[this]
+    { processor.fxCollapsed=fxSection.isCollapsed(); refitWindow(scale()); };
+    faceplate.addAndMakeVisible(fxSection);
+
+    keyboardHeader.onToggle=[this]{ setKeyboardCollapsed(!isKeyboardCollapsed()); };
+    faceplate.addAndMakeVisible(keyboardHeader);
+
+    // Restore however the drawers were left, before the first sizing pass.
+    fxSection.setCollapsed(processor.fxCollapsed);
+    keyboardHeader.setCollapsed(processor.keyboardCollapsed);
+    keyboard.setVisible(!processor.keyboardCollapsed);
+
+    canvas.addAndMakeVisible(faceplate);
+    presetsButton.setMouseClickGrabsKeyboardFocus(false);
+    presetsButton.onClick=[this]{ setPresetBrowserOpen(!presetBrowserOpen); };
+    faceplate.addAndMakeVisible(presetsButton);
+
+    rollButton.onClick=[this]{ processor.randomizeAll(); rollButton.roll(); };
+    faceplate.addAndMakeVisible(rollButton);
+
+    wildness.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    wildness.setTextBoxStyle(juce::Slider::NoTextBox,false,0,0);
+    wildness.setRange(0.0,1.0,0.01);
+    wildness.setValue(processor.randomWildness(),juce::dontSendNotification);
+    wildness.setTooltip("How far a roll may stray: tight and musical, through to full range");
+    wildness.setMouseClickGrabsKeyboardFocus(false);
+    wildness.onValueChange=[this]{ processor.setRandomWildness((float)wildness.getValue()); };
+    faceplate.addAndMakeVisible(wildness);
+
+    for(int g=0;g<glitch::rnd::numLockGroups;++g)
+    {
+        auto& button=lockButtons[(size_t)g];
+        button.setButtonText(glitch::rnd::lockGroupName((glitch::rnd::LockGroup)g));
+        button.setClickingTogglesState(true);
+        button.setToggleState(processor.isGroupLocked(g),juce::dontSendNotification);
+        button.setTooltip("Hold this group across a roll");
+        button.setMouseClickGrabsKeyboardFocus(false);
+        button.onClick=[this,g]{ processor.setGroupLocked(g,lockButtons[(size_t)g].getToggleState()); };
+        button.setColour(juce::TextButton::buttonOnColourId,juce::Colour(0xff2c5c52));
+        faceplate.addAndMakeVisible(button);
+    }
+
+    presetBrowser=std::make_unique<glitch::ui::PresetBrowser>(p,[this]{ setPresetBrowserOpen(false); });
+    canvas.addChildComponent(*presetBrowser);
+
+    canvas.addAndMakeVisible(faceplate);
+    addAndMakeVisible(canvas);
+
+    // A pure scale: the constrainer pins the aspect ratio so the faceplate can
+    // never be stretched, and the window is only ever a zoom of the design.
+    setResizable(true,true);
+    constrainer.setFixedAspectRatio((double)designWidth()/(double)designHeight());
+    constrainer.setSizeLimits((int)(designWidth()*minScale),(int)(designHeight()*minScale),
+                              (int)(designWidth()*maxScale),(int)(designHeight()*maxScale));
+    setConstrainer(&constrainer);
+
+    // Open at 100% when the display can take it, otherwise at the largest
+    // whole-instrument scale that fits -- at full size this is taller than a
+    // 14" laptop's screen.
+    float initial=1.0f;
+    if(auto* display=juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+    {
+        const auto area=display->userArea;
+        initial=juce::jlimit(minScale,1.0f,
+                             std::min((float)area.getWidth()*0.95f/(float)designWidth(),
+                                      (float)area.getHeight()*0.92f/(float)designHeight()));
+    }
+    setSize((int)(designWidth()*initial),(int)(designHeight()*initial));
+
+    // After every child exists and the look-and-feel has been applied -- that
+    // application rebuilds each ComboBox's internal Label, so sweeping earlier
+    // would miss them.
+    glitch::ui::disableMouseClickFocusGrab(*this);
+    // The two things that SHOULD take focus on a click: the keys themselves,
+    // and the box you type a search into.
+    keyboard.setMouseClickGrabsKeyboardFocus(true);
+    if(presetBrowser!=nullptr) presetBrowser->restoreSearchFocusGrab();
+
+    startTimerHz(30); timerCallback();
+}
+GlitchEditor::~GlitchEditor() { stopTimer(); setLookAndFeel(nullptr); }
+int GlitchEditor::designHeight() const
+{
+    return faceplateHeight+fxSection.preferredHeight()+keyboardStripHeight();
+}
+void GlitchEditor::setFxCollapsed(bool shouldBeCollapsed)
+{
+    fxSection.setCollapsed(shouldBeCollapsed);   // fires onCollapsedChanged
+}
+void GlitchEditor::setKeyboardCollapsed(bool shouldBeCollapsed)
+{
+    if(isKeyboardCollapsed()==shouldBeCollapsed) return;
+    keyboardHeader.setCollapsed(shouldBeCollapsed);
+    keyboard.setVisible(!shouldBeCollapsed);
+    if(!shouldBeCollapsed) keyboard.grabKeyboardFocus();
+    processor.keyboardCollapsed=shouldBeCollapsed;
+    refitWindow(scale());
+}
+void GlitchEditor::setPresetBrowserOpen(bool shouldBeOpen)
+{
+    if(presetBrowserOpen==shouldBeOpen) return;
+
+    // Sampled first: designWidth() is about to change, and the scale has to
+    // survive it. Reading it afterwards is what made the window keep its width
+    // and squeeze the instrument to make room for the column.
+    const auto held=scale();
+    presetBrowserOpen=shouldBeOpen;
+    presetsButton.setToggleState(shouldBeOpen,juce::dontSendNotification);
+    const int sequence=++browserAnimSeq;
+
+    auto& animator=juce::Desktop::getInstance().getAnimator();
+    if(presetBrowser==nullptr) { refitWindow(held); return; }
+
+    if(shouldBeOpen)
+    {
+        // ChangeBroadcaster delivers asynchronously, so pull the current list
+        // rather than trusting a message that may not have arrived yet.
+        presetBrowser->refresh();
+        refitWindow(held);   // the window grows first, making room to slide into
+
+        const auto target=presetBrowser->getBounds();
+        presetBrowser->setBounds(target.withX(-target.getWidth()));
+        presetBrowser->setVisible(true);
+        presetBrowser->toFront(false);
+        animator.animateComponent(presetBrowser.get(),target,1.f,180,false,1.0,0.0);
+        presetBrowser->grabKeyboardFocus();
+    }
+    else
+    {
+        // Slide out over the widened window, then take the width back.
+        const auto from=presetBrowser->getBounds();
+        animator.animateComponent(presetBrowser.get(),from.withX(-from.getWidth()),
+                                  1.f,160,false,1.0,0.0);
+        const auto safe=juce::Component::SafePointer<GlitchEditor>(this);
+        juce::Timer::callAfterDelay(170,[safe,held,sequence]
+        {
+            if(safe==nullptr || safe->browserAnimSeq!=sequence) return;
+            safe->presetBrowser->setVisible(false);
+            safe->refitWindow(held);
+        });
+    }
+}
+void GlitchEditor::restoreKeyboardFocus()
+{
+    // The sweep stops a click from taking focus in the first place; this is
+    // the backstop for everything that legitimately takes it and then goes
+    // away -- a closed dialog, a preset row, the search box.
+    if(isKeyboardCollapsed() || !keyboard.isShowing()) return;
+
+    // Never pull focus into a window the user isn't in, or out of a dialog.
+    auto* peer=getPeer();
+    if(peer==nullptr || !peer->isFocused()) return;
+    if(juce::ModalComponentManager::getInstance()->getNumModalComponents()>0) return;
+
+    auto* focused=juce::Component::getCurrentlyFocusedComponent();
+    if(focused==&keyboard) return;
+    // Anything being typed into keeps it.
+    if(dynamic_cast<juce::TextEditor*>(focused)!=nullptr) return;
+    // Only reclaim from inside this editor: another plugin's window, or the
+    // host's own UI, keeps whatever it has.
+    if(focused!=nullptr && focused!=this && !isParentOf(focused)) return;
+
+    keyboard.grabKeyboardFocus();
+}
+void GlitchEditor::refitWindow(float held)
+{
+    // Folding a drawer, or opening the preset column, changes the design's
+    // aspect ratio, so the constrainer has to be told before the window is
+    // re-fitted. `held` is the scale from before that change: the instrument
+    // keeps its size on screen and the window grows around it.
+    const auto width=designWidth(),height=designHeight();
+    constrainer.setFixedAspectRatio((double)width/(double)height);
+    constrainer.setSizeLimits((int)(width*minScale),(int)(height*minScale),
+                              (int)(width*maxScale),(int)(height*maxScale));
+    setSize(juce::roundToInt((float)width*held),juce::roundToInt((float)height*held));
+    resized();
+}
+void GlitchEditor::resized()
+{
+    // Width drives the scale; the constrainer keeps the height in step.
+    canvas.setTransform(juce::AffineTransform::scale(scale()));
+    canvas.setBounds(0,0,designWidth(),designHeight());
+    layoutCanvas();
+}
+void GlitchEditor::paint(juce::Graphics& g)
+{
+    // Only ever visible as a hairline from rounding the scaled canvas.
+    g.fillAll(juce::Colour(0xff10241f));
+}
+void GlitchEditor::layoutCanvas()
+{
+    // The faceplate keeps its own coordinate system; the preset column simply
+    // takes the space to its left.
+    const int x0=designWidth()-faceplateWidth;
+    if(presetBrowser!=nullptr && presetBrowserOpen
+       && !juce::Desktop::getInstance().getAnimator().isAnimating(presetBrowser.get()))
+    {
+        presetBrowser->setVisible(true);
+        presetBrowser->setBounds(0,0,glitch::ui::PresetBrowser::width,designHeight());
+    }
+    faceplate.setBounds(x0,0,faceplateWidth,designHeight());
+    // Header, following SPASynth: the wordmark owns the centre, the controls
+    // sit left of it, and everything that reports state -- what is playing,
+    // the meters, the load status and panic -- stays right.
+    // The wordmark sits on the header's own centre, across as well as down:
+    // its 36px line plus the 14px subtitle make a 50px block, centred in 90.
+    title.setBounds(410,13,300,36);
+    presetsButton.setBounds(28,30,96,30);
+    categoryLabel.setBounds(136,14,248,14);
+    category.setBounds(136,30,248,30);
+
+    // Vertically centred on the readout block (12..74) rather than the header,
+    // so it lines up with what it sits beside.
+    panic.setBounds(panicX,25,panicSize,panicSize);
+    // Right-justified, so starting them early only trims unused space.
+    effective.setBounds(readoutX,10,readoutRight-readoutX,16);
+    status.setBounds(readoutX,48,readoutRight-readoutX,16);
+    photoBounds=juce::Rectangle<int>(0,0,faceplateWidth,faceplateHeight);
+    const int knobWidth=140,rowHeight=112;
+    // Two even columns: PITCH + RANDOMNESS and the FILTER menu on the left,
+    // CUTOFF + RESONANCE + OUTPUT on the right.
+    const std::array<int,3> left{0,1,2};
+    const std::array<int,2> right{3,4};
+    for(size_t row=0;row<left.size();++row)
+    {
+        const auto i=(size_t)left[row];const int y=contentTop+33+(int)row*rowHeight;
+        labels[i].setBounds(28,y+4,knobWidth,18);knobs[i].setBounds(28,y+22,knobWidth,80);
+    }
+    // The right column starts lower, under the filter menu.
+    for(size_t row=0;row<right.size();++row)
+    {
+        const auto i=(size_t)right[row];const int y=contentTop+94+(int)row*rowHeight;
+        labels[i].setBounds(952,y+4,knobWidth,18);knobs[i].setBounds(952,y+22,knobWidth,80);
+    }
+    // The filter menu and its bypass switch sit directly above CUTOFF and
+    // RESONANCE, the two knobs they drive.
+    filterLabel.setBounds(956,contentTop+44,60,18);
+    filterPower->setBounds(1022,contentTop+42,62,22);
+    filter.setBounds(956,contentTop+68,132,30);
+    motion.setBounds(956,contentTop+336,132,26);
+
+    // The randomize cluster takes the strip of photograph between the cards.
+    // Each control is centred in its own column, so it lines up with the
+    // caption drawn above it.
+    const auto column=[](int x,int width)
+    { return juce::Rectangle<int>(x,randomRowY,width,randomRowH); };
+
+    rollButton.setBounds(column(diceColX,diceCol).withSizeKeepingCentre(diceSize,diceSize));
+    wildness.setBounds(column(wildColX,wildCol).withSizeKeepingCentre(wildCol,wildCol));
+
+    auto locks=column(lockColX,lockCol);
+    for(auto& button:lockButtons)
+    {
+        button.setBounds(locks.removeFromLeft(lockButtonW).withSizeKeepingCentre(lockButtonW,30));
+        locks.removeFromLeft(lockGap);
+    }
+
+    fxSection.setBounds(0,faceplateHeight,faceplateWidth,fxSection.preferredHeight());
+
+    auto strip=juce::Rectangle<int>(0,fxSection.getBottom(),faceplateWidth,keyboardStripHeight());
+    keyboardHeader.setBounds(strip.removeFromTop(glitch::ui::DrawerHeader::height));
+    if(!isKeyboardCollapsed())
+        keyboard.setBounds(strip.reduced(28,0).withTrimmedBottom(12));
+}
+void GlitchEditor::paintCanvas(juce::Graphics& g)
+{
+    {
+        juce::Graphics::ScopedSaveState saved(g);
+        juce::Path clip;clip.addRectangle(photoBounds.toFloat());g.reduceClipRegion(clip);
+        const auto bounds=juce::RectanglePlacement(juce::RectanglePlacement::fillDestination).appliedTo(calmImage.getBounds().toFloat(),photoBounds.toFloat());
+        g.drawImage(calmImage,bounds,juce::RectanglePlacement::stretchToFit);
+        if(energy>.002f)
+        {
+            const auto& electricImage=electricImages[(size_t)std::max(0,shock.variation())];
+            const float glow=1.f; // Hard cut: the calm image never bleeds through the zap.
+            g.setOpacity(glow);g.drawImage(electricImage,bounds,juce::RectanglePlacement::stretchToFit);
+            if(motion.getToggleState())
+            {
+                // Exclude the subject from the moving background and lightning.
+                juce::Path body;
+                auto pt=[&](float x,float y){return juce::Point<float>(bounds.getX()+x*bounds.getWidth(),bounds.getY()+y*bounds.getHeight());};
+                body.startNewSubPath(pt(.5f,.055f));
+                body.cubicTo(pt(.28f,.055f),pt(.28f,.45f),pt(.39f,.68f));
+                body.cubicTo(pt(.4f,.74f),pt(.1f,.69f),pt(.08f,1.f));
+                body.lineTo(pt(.92f,1.f));
+                body.cubicTo(pt(.9f,.69f),pt(.6f,.74f),pt(.61f,.68f));
+                body.cubicTo(pt(.72f,.45f),pt(.72f,.055f),pt(.5f,.055f));body.closeSubPath();
+                {
+                    juce::Graphics::ScopedSaveState background(g);
+                    juce::Path outside;outside.setUsingNonZeroWinding(false);
+                    outside.addRectangle(bounds);outside.addPath(body);
+                    g.reduceClipRegion(outside);
+                    // A small outward drift gives the photographic energy depth.
+                    // Crossfade two offset phases so the travel never snaps back.
+                    for(int layer=0;layer<2;++layer)
+                    {
+                        const float phase=std::fmod(animationFrame/24.f+layer*.5f,1.f);
+                        const float fade=std::sin(phase*juce::MathConstants<float>::pi);
+                        const float drift=1.f+phase*.045f;
+                        auto moving=bounds.withSizeKeepingCentre(bounds.getWidth()*drift,bounds.getHeight()*drift);
+                        g.setOpacity(glow*fade*.48f);
+                        g.drawImage(electricImage,moving,juce::RectanglePlacement::stretchToFit);
+                    }
+                    g.setOpacity(1.f);blast.draw(g,bounds,energy);
+                }
+                g.reduceClipRegion(body);
+                const float dx=blast.displacement().x;
+                const float dy=blast.displacement().y;
+                g.setOpacity(glow*.8f);g.drawImage(electricImage,bounds.translated(dx,dy),juce::RectanglePlacement::stretchToFit);
+            }
+        }
+    }
+
+    // Stable contrast over both the warm photograph and the brightest blast.
+    g.setColour(paper.withAlpha(.82f));g.fillRect(0,0,faceplateWidth,headerHeight);
+    g.setColour(paper.withAlpha(.76f));
+    g.fillRoundedRectangle(18,contentTop,160,370,16);
+    g.fillRoundedRectangle(942,contentTop,160,370,16);
+    g.setColour(sage.withAlpha(.3f));
+    g.drawRoundedRectangle(18,contentTop,160,370,16,1);
+    g.drawRoundedRectangle(942,contentTop,160,370,16,1);
+    // Enclose each label, dial and readout in one visual group.
+    for(size_t i=0;i<knobs.size();++i)
+    {
+        auto card=labels[i].getBounds().getUnion(knobs[i].getBounds()).toFloat();
+        card.setY(card.getY()-4);card.setHeight(106);
+        g.setColour(paper.withAlpha(.72f));g.fillRoundedRectangle(card,9);
+        g.setColour(sage.withAlpha(.28f));g.drawRoundedRectangle(card,9,1);
+        const auto value=knobs[i].getBounds().toFloat().removeFromBottom(20).reduced(21,0);
+        g.setColour(sage.withAlpha(.10f));g.fillRoundedRectangle(value,5);
+        if(learnTargets[i]!=nullptr)
+            glitch::theme::drawLearnBadge(g,faceplate,card,learnTargets[i]->badge(),learnTargets[i]->isArmed());
+    }
+    // The scrim stops at the status row: the keyboard has moved to its own
+    // drawer below, so the bottom of the photograph is no longer covered.
+    g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
+    glitch::theme::drawGlitchText(g,faceplate,"S I L V E R P L A T T E R   A U D I O",
+        juce::Rectangle<int>(410,49,300,14),juce::Justification::centred,muted);
+    g.setColour(sage.withAlpha(.35f));g.drawHorizontalLine(headerHeight,0,(float)faceplateWidth);
+    g.setFont(juce::Font(juce::FontOptions(10.5f,juce::Font::bold)));
+    glitch::theme::drawGlitchText(g,faceplate,"01  /  SOUND",juce::Rectangle<int>(32,contentTop+8,140,18),
+        juce::Justification::left,muted);
+    glitch::theme::drawGlitchText(g,faceplate,"02  /  ALTER",juce::Rectangle<int>(956,contentTop+8,140,18),
+        juce::Justification::left,muted);
+    g.setColour(paper.withAlpha(.8f));g.fillRoundedRectangle(192,(float)contentTop+2,136,26,13);
+    glitch::theme::drawGlitchText(g,faceplate,energy>.03f ? "SIGNAL ACTIVE" : "AT REST",
+        juce::Rectangle<int>(214,contentTop+5,108,18),juce::Justification::left,
+        energy>.03f ? electric : muted);
+    g.setColour(energy>.03f ? electric : muted);
+    g.fillEllipse(202,(float)contentTop+11,5,5);
+    // Backing for the randomize cluster, matching the control cards.
+    {
+        auto strip=juce::Rectangle<float>((float)randomStripX,(float)randomStripY,
+                                          (float)randomStripW,(float)randomStripH);
+        g.setColour(paper.withAlpha(.72f));g.fillRoundedRectangle(strip,9.f);
+        g.setColour(sage.withAlpha(.28f));g.drawRoundedRectangle(strip,9.f,1.f);
+
+        // One caption row: same baseline, same font, each centred over its
+        // own column.
+        g.setFont(juce::Font(juce::FontOptions(9.5f,juce::Font::bold)));
+        const auto caption=[&](const char* text,int x,int width)
+        {
+            glitch::theme::drawGlitchText(g,faceplate,text,
+                juce::Rectangle<int>(x,randomCaptionY,width,randomCaptionH),
+                juce::Justification::centred,muted);
+        };
+        caption("RANDOMIZE",diceColX,diceCol);
+        caption("WILD",wildColX,wildCol);
+        caption("LOCK",lockColX,lockCol);
+    }
+
+    // The keyboard drawer sits on the bare faceplate colour, so it needs the
+    // same hairline the FX drawer paints for itself.
+    g.setColour(sage.withAlpha(.35f));
+    g.drawHorizontalLine(fxSection.getBottom(),0.f,(float)faceplateWidth);
+
+    // Output meters, on the readouts' right edge so the block runs right up to
+    // the panic button.
+    g.setColour(sage.withAlpha(.25f));
+    g.fillRect((float)meterX,(float)meterY,(float)meterW,3.f);
+    g.fillRect((float)meterX,(float)meterY+8.f,(float)meterW,3.f);
+    g.setColour(electric);
+    g.fillRect((float)meterX,(float)meterY,(float)meterW*std::min(1.f,meterLeft),3.f);
+    g.fillRect((float)meterX,(float)meterY+8.f,(float)meterW*std::min(1.f,meterRight),3.f);
+
+}
+void GlitchEditor::timerCallback()
+{
+    const float peak=processor.visualPeak.exchange(0,std::memory_order_relaxed);
+    shock.advance(peak,motion.getToggleState());energy=shock.energy();
+    blast.advance(energy,motion.getToggleState());
+    ++animationFrame;
+    // The zap drives the text as well as the photograph. The glitch frame
+    // advances at half the editor's rate: the tearing reads just as well at
+    // 15fps, and a full canvas repaint is the expensive part.
+    const bool glitching=energy>.03f;
+    const bool frameAdvanced=glitching && (++glitchTick%2)==0;
+    if(frameAdvanced) ++glitchFrame;
+    look.setGlitch(glitching ? energy : 0.f,glitchFrame);
+    if(frameAdvanced || (wasGlitching!=glitching)) canvas.repaint();
+    wasGlitching=glitching;
+    meterLeft=std::max(processor.leftPeak.load(),meterLeft*0.85f);
+    meterRight=std::max(processor.rightPeak.load(),meterRight*0.85f);
+    restoreKeyboardFocus();
+    if(const auto order=processor.getFxOrder(); order!=shownFxOrder)
+    {
+        shownFxOrder=order;
+        fxSection.applyOrder(order);
+    }
+    auto text=processor.contentStatus();
+    if(processor.isLoading()) text+="  "+juce::String((int)(processor.loadProgress()*100))+"%";
+    status.setText(text,juce::dontSendNotification);
+    int group=processor.voiceCount.load()>0 ? processor.playingCategory.load() : category.getSelectedItemIndex();
+    group=juce::jlimit(0,8,group);
+    effective.setText("Playing: "+juce::String(glitch::categories[(size_t)group])+"   /   Pitch: "+juce::String(processor.playingPitch.load()/100000.0,1)+" st",juce::dontSendNotification);
+    // The key-range menu is gone; the instrument always uses the middle-key
+    // mapping, which is what that menu defaulted to.
+    if(lastKeyRange!=1) { lastKeyRange=1;keyboard.setLowestVisibleKey(48); }
+    if(group!=highlighted)
+    {
+        highlighted=group;
+        // The range matches the recovered per-category zone map.
+        keyboard.setMapping(group,false,0,true);
+    }
+    keyboard.setMapping(group,knobs[1].getValue()==100,processor.playingPitch.load()/10000,true);
+    faceplate.repaint(photoBounds.expanded(3));faceplate.repaint(190,100,740,22);
+}

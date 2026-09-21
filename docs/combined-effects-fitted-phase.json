@@ -1,0 +1,59 @@
+{
+  "scope": "Diagnostic only: per-take fitted Lo-Fi phase and empirical Python Tube model; not production timing parity",
+  "measurements": [
+    {
+      "file": "n12-v127-g2400.wav",
+      "phase": 10,
+      "relative_rms_error": 0.00011876531342678398,
+      "peak_error": 1.5061620830314482e-05
+    },
+    {
+      "file": "n12-v127-g24000.wav",
+      "phase": 2,
+      "relative_rms_error": 0.00011069050446098188,
+      "peak_error": 2.8489812116762325e-05
+    },
+    {
+      "file": "n12-v127-g144000.wav",
+      "phase": 9,
+      "relative_rms_error": 9.869896650798597e-05,
+      "peak_error": 1.2949877374747454e-05
+    },
+    {
+      "file": "n12-v64-g2400.wav",
+      "phase": 9,
+      "relative_rms_error": 8.918978313536523e-05,
+      "peak_error": 3.923700945552763e-06
+    },
+    {
+      "file": "n12-v64-g24000.wav",
+      "phase": 1,
+      "relative_rms_error": 0.00015595156598754336,
+      "peak_error": 1.0081835197397679e-05
+    },
+    {
+      "file": "n12-v64-g144000.wav",
+      "phase": 6,
+      "relative_rms_error": 0.00011298633042629191,
+      "peak_error": 6.659887689143551e-06
+    },
+    {
+      "file": "n12-v32-g2400.wav",
+      "phase": 1,
+      "relative_rms_error": 0.00010845435906768848,
+      "peak_error": 2.0532811337448803e-06
+    },
+    {
+      "file": "n12-v32-g24000.wav",
+      "phase": 2,
+      "relative_rms_error": 0.0001343350656979233,
+      "peak_error": 2.4675845264627433e-06
+    },
+    {
+      "file": "n12-v32-g144000.wav",
+      "phase": 10,
+      "relative_rms_error": 0.00013269925158800752,
+      "peak_error": 2.3774026030884757e-06
+    }
+  ]
+}

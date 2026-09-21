@@ -1,0 +1,119 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write # Needed for draft-release inputs when factory packaging is enabled.
+
+jobs:
+  windows-x64:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Fetch factory samples for installers
+        if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release download spaglitch-factory-build-inputs --repo $env:GITHUB_REPOSITORY --pattern factory-samples.zip --dir local
+          if ($LASTEXITCODE -ne 0) { throw 'Factory sample download failed' }
+          Expand-Archive local/factory-samples.zip local/factory-samples
+          python packaging/validate_samples.py local/factory-samples
+          if ($LASTEXITCODE -ne 0) { throw 'Factory sample verification failed' }
+      - name: Configure Visual Studio x64
+        run: cmake --preset windows-x64
+      - name: Build VST3, standalone and tests
+        run: cmake --build --preset windows-x64-release --parallel 4
+      - name: Run processor tests
+        run: ctest --preset windows-x64-release
+      - name: Verify deliverables
+        shell: pwsh
+        run: |
+          $root = 'build/windows-x64/SPAGlitch_artefacts/Release'
+          $required = @(
+            "$root/Standalone/SPAGlitch.exe",
+            "$root/VST3/SPAGlitch.vst3/Contents/x86_64-win/SPAGlitch.vst3"
+          )
+          foreach ($file in $required) {
+            if (!(Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Missing deliverable: $file"
+            }
+          }
+      - name: Build unsigned installer
+        if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $compiler)) { throw 'Inno Setup 6 is missing from runner' }
+          $tag = $env:GITHUB_SHA.Substring(0,7)
+          & $compiler "/DBuildTag=$tag" packaging/windows/SPAGlitch.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
+      - name: Smoke test installation and uninstall
+        if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
+        shell: pwsh
+        run: |
+          $setup = (Get-ChildItem build/installer/*Setup.exe).FullName
+          $destination = "$env:ProgramFiles\Silverplatter Audio\SPAGlitch"
+          $plugin = "$env:CommonProgramFiles\VST3\SPAGlitch.vst3"
+          $process = Start-Process $setup -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          if (!(Test-Path "$destination/SPAGlitch.exe") -or !(Test-Path "$plugin/Contents/x86_64-win/SPAGlitch.vst3")) { throw 'Installed payload missing' }
+          python packaging/validate_samples.py "$env:ProgramData/Silverplatter Audio/SPAGlitch/Samples"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed samples invalid' }
+          & build/windows-x64/Release/SPAGlitchTests.exe --installed-library
+          if ($LASTEXITCODE -ne 0) { throw 'Automatic factory playback failed' }
+          $app = Start-Process "$destination/SPAGlitch.exe" -PassThru
+          Start-Sleep -Seconds 5
+          if ($app.HasExited) { throw 'Installed standalone exited unexpectedly' }
+          $null = $app.CloseMainWindow()
+          if (!$app.WaitForExit(10000)) { $app.Kill(); $app.WaitForExit() }
+          $uninstall = Start-Process "$destination/unins000.exe" -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) { throw 'Uninstall failed' }
+          if ((Test-Path "$destination/SPAGlitch.exe") -or (Test-Path "$plugin/Contents/x86_64-win/SPAGlitch.vst3")) { throw 'Uninstall left installed binaries' }
+          if (Test-Path "$env:ProgramData/Silverplatter Audio/SPAGlitch/Samples/Glitch Digital 01.wav") { throw 'Uninstall left factory samples' }
+      - name: Prune superseded artifacts
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        continue-on-error: true   # housekeeping must never fail a build
+        run: |
+          # Windows artifacts are tens of MB each and the free storage quota is
+          # shared with releases, so every run clears the ones it supersedes
+          # rather than waiting out the retention window.
+          #
+          # Only artifacts older than this run are touched. Excluding just this
+          # run's own would let concurrent runs delete each other's uploads --
+          # two runs overlapped the first time this ran, and the later one ate
+          # the earlier one's installer.
+          $started = (gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --jq ".run_started_at")
+          $artifacts = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?per_page=100" `
+            --jq ".artifacts[] | select(.expired==false) | select(.created_at < \"$started\") | .id"
+          foreach ($id in $artifacts) {
+            if ($id) { gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$id" | Out-Null }
+          }
+      - name: Upload unsigned Windows installer
+        if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
+        uses: actions/upload-artifact@v6
+        with:
+          name: SPAGlitch-Windows-x64-Installer
+          path: build/installer/*Setup.exe
+          if-no-files-found: error
+          retention-days: 5
+      - name: Upload unsigned Windows binaries
+        uses: actions/upload-artifact@v6
+        with:
+          name: SPAGlitch-Windows-x64-Release
+          path: |
+            build/windows-x64/SPAGlitch_artefacts/Release/Standalone/SPAGlitch.exe
+            build/windows-x64/SPAGlitch_artefacts/Release/VST3/SPAGlitch.vst3/
+          if-no-files-found: error
+          retention-days: 5

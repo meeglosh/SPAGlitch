@@ -1,0 +1,40 @@
+{
+  "scope": "Glitch Digital 01, MIDI note 12, velocity 127, 48 kHz, effects bypassed, original saved settings",
+  "reference": "Kontakt 8 VST3 in live reference host",
+  "limitation": "Does not validate other velocities, pitches, categories, rates, effects or gain staging inside effects.",
+  "results": [
+    {
+      "gate_frames": 2400,
+      "reference_sha256": "0a13a1bd2c6254c5c8bd1cbd58aea7ed6d2fb1709ae47f3806f90218e05051aa",
+      "native_sha256": "09e177246abb87a64936a5969ab21c916f832c6cf6104b7ad913f5c550c6caa7",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 4.746363355670923e-07,
+      "candidate_gain_relative_to_reference": 0.9999996523170459,
+      "gain_corrected_relative_rms_error": 3.2310403047593657e-07
+    },
+    {
+      "gate_frames": 24000,
+      "reference_sha256": "61ae29ff4e07aa65846a25dd436091081299c65201157f877a13c73f54890a56",
+      "native_sha256": "408fc6d7f0cf642ebb68af84f6ef6f7ce07ad98bb2c7e202b58460321e34f5cf",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 7.439985632297296e-07,
+      "candidate_gain_relative_to_reference": 0.9999996326838313,
+      "gain_corrected_relative_rms_error": 6.470028549364488e-07
+    },
+    {
+      "gate_frames": 144000,
+      "reference_sha256": "1a47d00ba8f9dafb338c59a85692a371c9cff5eaae4fcea62770530e2f99d529",
+      "native_sha256": "207e03dc4ca9031100a1269e5d67a5c5092ac0482b1892b39bc0cc76d8f91aa5",
+      "candidate_delay_frames": 0,
+      "raw_peak_error": 1.1920928955078125e-07,
+      "aligned_peak_error": 1.1920928955078125e-07,
+      "aligned_relative_rms_error": 7.439985487550669e-07,
+      "candidate_gain_relative_to_reference": 0.9999996326838456,
+      "gain_corrected_relative_rms_error": 6.470028464064897e-07
+    }
+  ]
+}

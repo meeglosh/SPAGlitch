@@ -1,0 +1,175 @@
+#pragma once
+#include <juce_audio_basics/juce_audio_basics.h>
+#include <array>
+#include <cstdint>
+#include <cmath>
+#include "TubeModel.h"
+#include "LoFiModel.h"
+#include "AdaptiveFilter.h"
+#include <memory>
+
+namespace glitch
+{
+inline constexpr std::array<const char*,9> categories {
+    "Glitch Digital", "Glitch Digital Long", "Glitch Digital Short", "Glitch Heavy",
+    "Glitch Heavy Long", "Glitch Heavy Short", "Glitch Rapid Modulation", "Glitch Squelchy", "Glitch Percussive" };
+inline constexpr std::array<int,9> counts {46,14,95,76,24,65,32,50,77};
+inline constexpr int firstNote=12;
+inline constexpr int bankFirstNote(int group,bool middleKeys) noexcept
+{
+    return middleKeys ? (group==2 ? 24 : 48) : firstNote;
+}
+// Filter selection, as stored in Controls/NoteSettings and the runtime state.
+// 0/1/2 are Kontakt's own and must keep those indices; the rest were added on
+// top and continue the list.
+enum Filter { filterHighPass=0, filterOff=1, filterLowPass=2,
+              filterBandPass=3, filterNotch=4, filterPeak=5 };
+inline constexpr int filterCount=6;
+inline constexpr AdaptiveFilter::Mode adaptiveMode(int filter) noexcept
+{
+    switch(filter)
+    {
+        case filterHighPass: return AdaptiveFilter::Mode::highPass;
+        case filterBandPass: return AdaptiveFilter::Mode::bandPass;
+        case filterNotch:    return AdaptiveFilter::Mode::notch;
+        case filterPeak:     return AdaptiveFilter::Mode::peak;
+        default:             return AdaptiveFilter::Mode::lowPass;
+    }
+}
+// Kontakt kept a separate cutoff/resonance memory per filter mode, and the
+// callback-parity tests pin that behaviour for its two. The modes added since
+// share the low-pass memory: the quirk is Kontakt's, and only its originals
+// have to reproduce it.
+inline constexpr int filterSlot(int filter) noexcept { return filter==filterHighPass ? 0 : 1; }
+
+inline constexpr bool noteInBank(int group,int note,bool middleKeys) noexcept
+{
+    return group>=0 && group<9 && note>=bankFirstNote(group,middleKeys)
+        && note<bankFirstNote(group,middleKeys)+counts[(size_t)group];
+}
+// Measured full-velocity dry level, relative to the original PCM. Keep the
+// small residual trim after effects until the internal gain staging is isolated.
+inline constexpr float groupGain=0.5f;
+inline constexpr float referenceOutputTrim=0.49165056986916567f/groupGain;
+// Input/output retain the engine's group gain; quantization is measured in
+// original sample-amplitude units. Tube gain staging is a separate calibration.
+inline double quantizeLoFi(double input,double levels) noexcept
+{
+    return std::trunc(input/groupGain*levels)/levels*groupGain;
+}
+// Fitted to the original instrument and verified against fresh, clean offline
+// captures at all 127 MIDI velocities (48 kHz, Glitch Digital 01).
+inline float velocityGain(float velocity) noexcept
+{
+    const float v=juce::jlimit(0.0f,1.0f,velocity);
+    if(v==0.0f) return 0.0f;
+    const float amplitude=0.2488846435f+0.7511153565f*v;
+    return amplitude*amplitude*amplitude;
+}
+
+struct Sample
+{
+    juce::AudioBuffer<float> audio;
+    double sampleRate=48000;
+};
+struct Bank
+{
+    std::array<std::array<std::unique_ptr<Sample>,95>,9> samples;
+    std::unique_ptr<Sample> audition;
+    uint64_t generation=0;
+    int size=0;
+    const Sample* get(int group,int note,bool middleKeys=false) const noexcept
+    {
+        if(audition) return audition.get();
+        if(!noteInBank(group,note,middleKeys)) return nullptr;
+        return samples[(size_t)group][(size_t)(note-bankFirstNote(group,middleKeys))].get();
+    }
+};
+struct Controls
+{
+    int category=0, pitch=0, lofi=4, drive=488095, cutoff=476191, resonance=49;
+    int randomness=0, destroy=1, filter=1;
+    float gainDb=0;
+    bool middleKeys=false;
+};
+struct NoteSettings
+{
+    int category=0, pitchUnits=0, bits=500000, drive=488095, cutoff=476191, resonance=49;
+    int destroy=1, filter=1;
+    int outputGainUnits() const noexcept { return 400000-drive/8; }
+};
+class Random
+{
+public:
+    explicit Random(uint32_t seed=0x47544348u):state(seed ? seed : 1) {}
+    uint32_t next() noexcept { auto x=state; x^=x<<13; x^=x>>17; x^=x<<5; return state=x; }
+    int between(int low,int high) noexcept { return low+int((uint64_t(next())*uint64_t(high-low+1))>>32); }
+    uint32_t state;
+};
+// KSP arithmetic is preserved in integer parameter units. Physical DSP response
+// is isolated below, since Kontakt's effect implementations are not available.
+NoteSettings forNote(const Controls&,int note,Random&,bool audition=false) noexcept;
+
+class Engine
+{
+public:
+    void beginBlock(bool containsNoteOn) noexcept
+    {
+        // Downstream insert tails keep Kontakt's reducer clock running.
+        // The exact block-dependent Kontakt silence test remains uncalibrated;
+        // this conservative floor avoids stopping at the voice's end alone.
+        lofi.beginBlock(activeVoices()>0 || containsNoteOn || effectBlockPeak>=1e-6);
+        effectBlockPeak=0;
+    }
+    using RuntimeState=std::array<int,26>;
+    RuntimeState runtimeState() const noexcept;
+    void restoreRuntimeState(const RuntimeState&) noexcept;
+    void prepare(double rate) noexcept;
+    void reset() noexcept;
+    void setBank(const Bank* b) noexcept { reset(); bank=b; }
+    void setControls(const Controls&) noexcept;
+    void handle(const juce::MidiMessage&) noexcept;
+    void render(juce::AudioBuffer<float>&,int start,int length) noexcept;
+    void setSeed(uint32_t seed) noexcept { random.state=seed ? seed : 1; }
+    uint32_t seed() const noexcept { return random.state; }
+    const NoteSettings& effective() const noexcept { return settings; }
+    int activeVoices() const noexcept;
+    int filterCutoff(int mode) const noexcept { return filterValues[(size_t)filterSlot(mode)][0]; }
+    int filterResonance(int mode) const noexcept { return filterValues[(size_t)filterSlot(mode)][1]; }
+private:
+    struct Voice
+    {
+        const Sample* sample=nullptr;
+        double position=0, baseStep=1;
+        float velocity=0, envelope=1;
+        int note=0,channel=1;
+        bool held=false, releasing=false;
+        uint64_t age=0;
+    };
+    std::array<Voice,32> voices;
+    std::array<bool,16> sustain{};
+    std::array<double,16> bend{};
+    std::array<AdaptiveFilter,2> filters;
+    LoFiModel lofi;
+    TubeModel tube;
+    const Bank* bank=nullptr;
+    Controls controls;
+    NoteSettings settings;
+    // Separate insert parameter memories. Initial physical Kontakt values still
+    // require calibration; these preserve subsequent KSP callback routing.
+    std::array<std::array<int,2>,2> filterValues{{{476191,49},{476191,49}}};
+    int selectedCategory=0, lastRandomTune=0, lastRandomCutoff=0, lastRandomResonance=0;
+    bool pitchKnobUsed=false;
+    Random random;
+    double sampleRate=48000;
+    double effectBlockPeak=0;
+    double quantisation=256;
+    juce::SmoothedValue<float> outputGain;
+    uint64_t clock=0;
+    void updateEffects() noexcept;
+    void selectFilterValues() noexcept;
+    void noteOn(int channel,int note,float velocity) noexcept;
+    void noteOff(int channel,int note) noexcept;
+    float processEffect(float,int channel) noexcept;
+};
+}
