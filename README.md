@@ -1,10 +1,17 @@
 # SPAGlitch
 
-Native port of Silverplatter Audio's Kontakt Glitch Bundle.
+Silverplatter Audio's unhinged glitch instrument. A native AU / VST3 /
+standalone rebuild of the Kontakt Glitch Bundle, shipping at **1.0.0**.
 
-**Functional development port; Kontakt sound/behavior parity is still in progress.**
-The original 21 KB KSP has been recovered. See [port status](docs/PORT-STATUS.md)
-for confirmed source behavior, limitations and next milestones.
+The engine is modelled from the original: the 21 KB KSP was recovered, and the
+velocity curve, lo-fi transfer and filter response are fitted to measurements
+captured from Kontakt, with the fixtures checked on every build. See
+[port status](docs/PORT-STATUS.md) for what is measured, what is inferred, and
+the residuals that remain.
+
+The instrument has since grown past the original — a drag-reorderable effects
+chain, a five-mode filter, a preset browser with forty factory patches,
+randomisation and MIDI learn — so it is a rebuild rather than an emulation.
 
 ## Build
 
