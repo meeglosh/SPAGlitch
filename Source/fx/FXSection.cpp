@@ -124,7 +124,13 @@ FXTab::FXTab (juce::AudioProcessorValueTreeState& apvts, params::Section s,
 {
     // EQ is edited entirely on its curve (CHARACTER is its only knob), and the
     // limiter's transfer curve + GR meter want room to be read at a glance.
-    displayWidthFraction = s == params::Section::eq ? 0.80f : 0.46f;
+    // OTT is the other way round: three bars need very little width, and it
+    // has fifteen controls to place. At the limiter's 0.46 the grid only gets
+    // seven columns, which wraps those fifteen onto a third row and pushes the
+    // last one out of the band entirely.
+    displayWidthFraction = s == params::Section::eq  ? 0.80f
+                         : s == params::Section::ott ? 0.34f
+                                                     : 0.46f;
     display = std::move (customDisplay);
     if (display != nullptr)
         addAndMakeVisible (*display);
@@ -222,6 +228,7 @@ FXSection::FXSection (juce::AudioProcessorValueTreeState& state,
                       std::function<double()> sampleRateFn,
                       std::function<float()> limiterGainReduction,
                       std::function<float()> limiterOutputPeak,
+                      std::function<float (int)> ottBandGain,
                       MidiLearnManager* learn)
     : apvts (state)
 {
@@ -258,6 +265,11 @@ FXSection::FXSection (juce::AudioProcessorValueTreeState& state,
                             std::make_unique<LimiterDisplay> (apvts,
                                                               std::move (limiterGainReduction),
                                                               std::move (limiterOutputPeak)), learn), true);
+
+    tabs.addTab (params::sectionTabNames()[(int) S::ott], tabBg,
+                 new FXTab (apvts, S::ott,
+                            std::make_unique<OttDisplay> (apvts, std::move (ottBandGain)),
+                            learn), true);
 
     tabs.setModuleNames (params::sectionTabNames());
     tabs.onOrderChanged = [this]

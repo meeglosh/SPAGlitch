@@ -6,6 +6,17 @@ there is, plus the per-area READMEs it points at.
 
 ## Where we are
 
+- **2026-09-21 (later): OTT is built on `codex/ott`, not merged and not
+  released.** A three-band upward/downward compressor added to the FX chain
+  as module id 8, taking the chain to nine modules. Full per-band control
+  set (15 knobs), its own bidirectional band meter, in the randomizer, and
+  eight new factory presets built around it (48 total). All four ctest
+  suites pass. Nothing is versioned or staged for it yet: `CMakeLists.txt`
+  still says 1.0.0, and the version bump belongs to whenever a build is
+  actually cut. Mike chose the name "OTT" knowingly after being told the
+  three-letter name originates with Xfer Records; that is a decision of
+  record, not an oversight to re-raise.
+
 - **2026-09-21: v1.0.0 is tagged, merged to `main`, and staged. Nothing is
   waiting on the agent.** The whole FX round was built in one session on
   `codex/fx-chain`, merged to `main` (`7bf8cbd`), README de-dev-ified
@@ -172,6 +183,29 @@ Tool modes on the test binary worth knowing: `--reverb-report`,
   because CI passes `/DBuildTag`. Run the suite locally before pushing.
 - **Installer HTML needs `<meta charset="utf-8">`** or you get `Â·`
   mojibake, which Mike will screenshot.
+- **Appending an FX module breaks every saved chain order unless you
+  migrate it.** The order packs 4 bits per module; a state written when
+  there were eight packs eight nibbles and leaves the ninth at zero, which
+  reads as a duplicate of module 0 and throws the user's whole chain away.
+  `FXChain::unpackOrder` now falls back through shorter lengths and appends
+  what is missing — **in front of a trailing limiter**, not behind it, or
+  every factory preset silently stops ending in the limiter. There is a test
+  for both halves of that.
+- **A preset only stores the parameters that existed when it was saved.**
+  `applyPreset` iterated the tree, so anything added since kept the previous
+  patch's value: every pre-OTT preset would have inherited whatever OTT was
+  left switched on. It now resets absent parameters to their defaults, and
+  an absent `fxOrder` to the default order.
+- **A shipped preset is an artifact, not a derived file.** Adding an entry
+  to the randomize table shifts every later draw in the stream, so re-rolling
+  seed N no longer reproduces the preset seed N produced before.
+  `--generate-factory-presets` therefore refuses to overwrite a file that
+  already exists; delete one by hand to deliberately re-roll it.
+- **`FXTab::displayWidthFraction` decides how many knobs fit per row.** At
+  the limiter's 0.46 the grid gets seven columns, and OTT's fifteen controls
+  wrapped to a third row that the FX band has no height for — the fifteenth
+  knob was simply cut off. Screenshots caught it; the layout tests did not.
+  Check `--fx-screenshots` after adding controls to a tab.
 
 ## Sample hosting and GitHub storage
 
@@ -189,9 +223,12 @@ repos, not per-repo, so check every repo before blaming this one.
 
 ## Branches
 
-`main` is the only branch to work from and has everything. Two `codex/`
-branches remain on the remote and both are fully merged into `main`, so
-neither holds anything and both can be deleted whenever:
+`codex/ott` is the live one (see the top of "Where we are"); it is ahead of
+`main` and not merged.
+
+`main` holds everything through 1.0.0. Two older `codex/` branches remain on
+the remote and both are fully merged into it, so neither holds anything and
+both can be deleted whenever:
 
 - `codex/fx-chain` — the whole 1.0.0 round, merged at `7bf8cbd`.
 - `codex/kontakt-port` — the original port, older still.
@@ -209,7 +246,9 @@ same version number.
 
 - `CMAKE_OSX_DEPLOYMENT_TARGET=13.0`, `arm64;x86_64` for distribution.
 - **Append-only choice orders**: FX module ids, filter modes, EQ band types,
-  reverb/limiter character modes. They are stored in presets as indices.
+  reverb/limiter character modes. They are stored in presets as indices. A
+  new module goes on the end of `FXChain::Module` and nowhere else, and
+  `unpackOrder` has to learn to migrate the shorter orders (see Gotchas).
 - **RT-safety on the audio thread**: no allocation, no locks, no host
   notifications.
 - The per-preset packed `fxOrder` atomic, and its permutation validation in

@@ -40,6 +40,7 @@ void FXChain::prepare (double newSampleRate, int maxBlockSize)
     modEffect.prepare (sampleRate, maxBlockSize);
     tremVibEffect.prepare (sampleRate, maxBlockSize);
     limiterEffect.prepare (sampleRate, maxBlockSize);
+    ottEffect.prepare (sampleRate, maxBlockSize);
 
     delayBuffer.setSize (2, (int) (sampleRate * 4.0) + 8);
     delayBuffer.clear();
@@ -63,6 +64,7 @@ void FXChain::reset()
     modEffect.reset();
     tremVibEffect.reset();
     limiterEffect.reset();
+    ottEffect.reset();
     delayBuffer.clear();
     reverb.reset();
     eq.reset();
@@ -111,6 +113,7 @@ void FXChain::process (juce::AudioBuffer<float>& buffer, const Params& params)
             case Module::tremVib:    if (params.tremEnable || params.vibEnable)
                                                             { processTremVib (buffer, params); } break;
             case Module::limiter:    if (params.limEnable)    processLimiter (buffer, params); break;
+            case Module::ott:        if (params.ottEnable)    processOTT (buffer, params); break;
         }
     }
 }
@@ -307,6 +310,22 @@ void FXChain::processLimiter (juce::AudioBuffer<float>& buffer, const Params& p)
     lp.lookahead   = p.limLookahead;
     lp.autoGain    = p.limAutoGain;
     limiterEffect.process (buffer, lp);
+}
+
+void FXChain::processOTT (juce::AudioBuffer<float>& buffer, const Params& p)
+{
+    OTT::Params op;
+    op.enable           = p.ottEnable;
+    op.depth            = p.ottDepth;
+    op.timePercent      = p.ottTime;
+    op.inGainDb         = p.ottInGain;
+    op.outGainDb        = p.ottOutGain;
+    op.crossoverLowHz   = p.ottCrossoverLow;
+    op.crossoverHighHz  = p.ottCrossoverHigh;
+    op.bands[0] = { p.ottLowUp,  p.ottLowDown,  p.ottLowGain };
+    op.bands[1] = { p.ottMidUp,  p.ottMidDown,  p.ottMidGain };
+    op.bands[2] = { p.ottHighUp, p.ottHighDown, p.ottHighGain };
+    ottEffect.process (buffer, op);
 }
 
 int FXChain::limiterLatencySamples (const Params& p) const

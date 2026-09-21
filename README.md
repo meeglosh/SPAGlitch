@@ -10,7 +10,7 @@ captured from Kontakt, with the fixtures checked on every build. See
 the residuals that remain.
 
 The instrument has since grown past the original — a drag-reorderable effects
-chain, a five-mode filter, a preset browser with forty factory patches,
+chain, a five-mode filter, a preset browser with forty-eight factory patches,
 randomisation and MIDI learn — so it is a rebuild rather than an emulation.
 
 ## Build

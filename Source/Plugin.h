@@ -53,6 +53,7 @@ public:
 
     float limiterGainReductionDb() const { return fxChain.limiterGainReductionDb(); }
     float limiterOutputPeak() const { return fxChain.limiterOutputPeak(); }
+    float ottBandGainDb(int band) const { return fxChain.ottBandGainDb(band); }
 
     // Fills `dest` with the most recent `numSamples` output samples, oldest
     // first, for the EQ tab's spectrum analyser. False when nothing has been

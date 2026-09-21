@@ -12,7 +12,7 @@
 namespace glitch::fx::params
 {
 
-enum class Section { dist, chorus, delay, reverb, eq, mod, tremVib, limiter, count };
+enum class Section { dist, chorus, delay, reverb, eq, mod, tremVib, limiter, ott, count };
 inline constexpr int numSections = (int) Section::count;
 
 // Tab labels, indexed by Section AND by FXChain::Module -- the two enums are
@@ -138,6 +138,25 @@ namespace id
     inline constexpr const char* limTruePeak    = "fxLim.truepeak";
     inline constexpr const char* limLookahead   = "fxLim.lookahead";
     inline constexpr const char* limAutoGain    = "fxLim.autogain";
+
+    // Three-band upward/downward compressor. `up` lifts what sits below the
+    // threshold, `down` holds back what sits above it, independently per band.
+    inline constexpr const char* ottEnable     = "fxOTT.enable";
+    inline constexpr const char* ottDepth      = "fxOTT.depth";
+    inline constexpr const char* ottTime       = "fxOTT.time";
+    inline constexpr const char* ottInGain     = "fxOTT.ingain";
+    inline constexpr const char* ottOutGain    = "fxOTT.outgain";
+    inline constexpr const char* ottXoverLow   = "fxOTT.xoverlow";
+    inline constexpr const char* ottXoverHigh  = "fxOTT.xoverhigh";
+    inline constexpr const char* ottLowUp      = "fxOTT.lowup";
+    inline constexpr const char* ottLowDown    = "fxOTT.lowdown";
+    inline constexpr const char* ottLowGain    = "fxOTT.lowgain";
+    inline constexpr const char* ottMidUp      = "fxOTT.midup";
+    inline constexpr const char* ottMidDown    = "fxOTT.middown";
+    inline constexpr const char* ottMidGain    = "fxOTT.midgain";
+    inline constexpr const char* ottHighUp     = "fxOTT.highup";
+    inline constexpr const char* ottHighDown   = "fxOTT.highdown";
+    inline constexpr const char* ottHighGain   = "fxOTT.highgain";
 }
 
 } // namespace glitch::fx::params

@@ -173,6 +173,27 @@ std::vector<Def> build()
     addBool   (p, i::limLookahead, "Look", Section::limiter, 0.0f);
     addBool   (p, i::limAutoGain, "Auto Gain", Section::limiter, 0.0f);
 
+    // --- OTT -------------------------------------------------------------
+    // Thresholds are deliberately not exposed: the premise of this effect is
+    // that you dial how much of each direction you want, not where each one
+    // starts. See OTT.h.
+    addBool  (p, i::ottEnable, "On", Section::ott, 0.0f, true);
+    addFloat (p, i::ottDepth, "Depth", Section::ott, { 0.0f, 1.0f }, 1.0f);
+    addFloat (p, i::ottTime, "Time", Section::ott, skewedRange (10.0f, 500.0f, 100.0f), 100.0f, "%");
+    addFloat (p, i::ottInGain, "In", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
+    addFloat (p, i::ottOutGain, "Out", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
+    addFloat (p, i::ottXoverLow, "Xover L", Section::ott, frequencyRange (30.0f, 1000.0f), 90.0f, "Hz");
+    addFloat (p, i::ottXoverHigh, "Xover H", Section::ott, frequencyRange (500.0f, 16000.0f), 2500.0f, "Hz");
+    addFloat (p, i::ottLowUp, "Low Up", Section::ott, { 0.0f, 1.0f }, 0.4f);
+    addFloat (p, i::ottLowDown, "Low Dn", Section::ott, { 0.0f, 1.0f }, 0.5f);
+    addFloat (p, i::ottLowGain, "Low G", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
+    addFloat (p, i::ottMidUp, "Mid Up", Section::ott, { 0.0f, 1.0f }, 0.4f);
+    addFloat (p, i::ottMidDown, "Mid Dn", Section::ott, { 0.0f, 1.0f }, 0.5f);
+    addFloat (p, i::ottMidGain, "Mid G", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
+    addFloat (p, i::ottHighUp, "Hi Up", Section::ott, { 0.0f, 1.0f }, 0.4f);
+    addFloat (p, i::ottHighDown, "Hi Dn", Section::ott, { 0.0f, 1.0f }, 0.5f);
+    addFloat (p, i::ottHighGain, "Hi G", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
+
     return p;
 }
 } // namespace
@@ -185,14 +206,15 @@ juce::String id::eqBand (int band, const juce::String& key)
 const juce::StringArray& sectionTabNames()
 {
     static const juce::StringArray names { "DIST", "CHORUS", "DELAY", "REVERB",
-                                           "EQ", "MOD", "TREM/VIB", "LIMIT" };
+                                           "EQ", "MOD", "TREM/VIB", "LIMIT", "OTT" };
     return names;
 }
 
 const juce::StringArray& sectionTitles()
 {
     static const juce::StringArray names { "Distortion", "Chorus", "Delay", "Reverb",
-                                           "Equaliser", "Modulation", "Trem / Vib", "Limiter" };
+                                           "Equaliser", "Modulation", "Trem / Vib", "Limiter",
+                                           "OTT Compressor" };
     return names;
 }
 
@@ -231,6 +253,7 @@ const char* enableID (Section s)
         case Section::mod:     return id::modEnable;
         case Section::tremVib: return id::tremEnable;
         case Section::limiter: return id::limEnable;
+        case Section::ott:     return id::ottEnable;
         default:               return nullptr;
     }
 }
@@ -284,6 +307,8 @@ void addToLayout (juce::AudioProcessorValueTreeState::ParameterLayout& layout)
                         return juce::String (v, 1) + " dB";
                     if (unit == "s")
                         return juce::String (v, 2) + " s";
+                    if (unit == "%")
+                        return juce::String (juce::roundToInt (v)) + " %";
                     return juce::String (v, 2);
                 };
                 auto fromText = [unit] (const juce::String& t)

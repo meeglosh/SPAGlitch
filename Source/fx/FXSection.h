@@ -92,6 +92,7 @@ public:
                EqEditor::ScopeReader, std::function<double()> sampleRateFn,
                std::function<float()> limiterGainReduction,
                std::function<float()> limiterOutputPeak,
+               std::function<float (int)> ottBandGain,
                MidiLearnManager* learn = nullptr);
     ~FXSection() override;
 

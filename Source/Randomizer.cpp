@@ -80,6 +80,27 @@ const std::vector<Entry>& table()
     { fxid::limDrive, LockGroup::fx, { 0.0f, 0.5f, 0.5f, 0.0f } },
     { fxid::limRelease, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.0f } },
     { fxid::limAutoRelease, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.0f } },
+    // OTT. IN and OUT are deliberately absent for the same reason OUTPUT is:
+    // they span +/-24 dB, and rolling them is a level change dressed up as
+    // sound design. The band gains are rolled, but only inside +/-6 dB of the
+    // +/-24 dB they offer -- enough to tilt the balance, not enough to make
+    // one band the whole patch. UP is capped below its maximum because full
+    // upward compression on a sparse glitch patch is mostly a lift of whatever
+    // sits between the hits.
+    { fxid::ottEnable, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.0f } },
+    { fxid::ottDepth, LockGroup::fx, { 0.3f, 1.0f, 0.75f, 0.35f } },
+    { fxid::ottTime, LockGroup::fx, { 0.15f, 0.85f, 0.5f, 0.3f } },
+    { fxid::ottXoverLow, LockGroup::fx, { 0.2f, 0.8f, 0.5f, 0.3f } },
+    { fxid::ottXoverHigh, LockGroup::fx, { 0.2f, 0.8f, 0.5f, 0.3f } },
+    { fxid::ottLowUp, LockGroup::fx, { 0.0f, 0.8f, 0.4f, 0.25f } },
+    { fxid::ottLowDown, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.2f } },
+    { fxid::ottLowGain, LockGroup::fx, { 0.375f, 0.625f, 0.5f, 0.4f } },
+    { fxid::ottMidUp, LockGroup::fx, { 0.0f, 0.8f, 0.4f, 0.25f } },
+    { fxid::ottMidDown, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.2f } },
+    { fxid::ottMidGain, LockGroup::fx, { 0.375f, 0.625f, 0.5f, 0.4f } },
+    { fxid::ottHighUp, LockGroup::fx, { 0.0f, 0.8f, 0.4f, 0.25f } },
+    { fxid::ottHighDown, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.2f } },
+    { fxid::ottHighGain, LockGroup::fx, { 0.375f, 0.625f, 0.5f, 0.4f } },
     };
     return entries;
 }

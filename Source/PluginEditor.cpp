@@ -180,6 +180,7 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
             [&p]{ return p.getSampleRate(); },
             [&p]{ return p.limiterGainReductionDb(); },
             [&p]{ return p.limiterOutputPeak(); },
+            [&p](int band){ return p.ottBandGainDb(band); },
             &p.midiLearn)
 {
     processor.visualPeak.store(0,std::memory_order_relaxed);

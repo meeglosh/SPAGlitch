@@ -486,7 +486,8 @@ static void fxChainTests(const juce::File& root)
         {fxp::id::tremEnable,"Tremolo",{}},
         {fxp::id::vibEnable,"Vibrato",{}},
         {fxp::id::limEnable,"Limiter",[](GlitchProcessor& p)
-            { parameter(p,fxp::id::limDrive,18.f);parameter(p,fxp::id::limCeiling,-6.f); }}};
+            { parameter(p,fxp::id::limDrive,18.f);parameter(p,fxp::id::limCeiling,-6.f); }},
+        {fxp::id::ottEnable,"OTT",{}}};
     for(const auto& module:modules)
     {
         const auto wet=renderNote([&module](GlitchProcessor& p)
@@ -525,7 +526,8 @@ static void fxChainTests(const juce::File& root)
             p.setFxOrder({(int)Chain::Module::distortion,(int)Chain::Module::delay,
                           (int)Chain::Module::chorus,(int)Chain::Module::reverb,
                           (int)Chain::Module::eq,(int)Chain::Module::mod,
-                          (int)Chain::Module::tremVib,(int)Chain::Module::limiter});
+                          (int)Chain::Module::tremVib,(int)Chain::Module::ott,
+                          (int)Chain::Module::limiter});
         });
         const auto delayFirst=renderNote([&configure](GlitchProcessor& p)
         {
@@ -533,7 +535,8 @@ static void fxChainTests(const juce::File& root)
             p.setFxOrder({(int)Chain::Module::delay,(int)Chain::Module::distortion,
                           (int)Chain::Module::chorus,(int)Chain::Module::reverb,
                           (int)Chain::Module::eq,(int)Chain::Module::mod,
-                          (int)Chain::Module::tremVib,(int)Chain::Module::limiter});
+                          (int)Chain::Module::tremVib,(int)Chain::Module::ott,
+                          (int)Chain::Module::limiter});
         });
         bool different=false;
         for(int i=0;i<512 && !different;++i)
@@ -546,11 +549,14 @@ static void fxChainTests(const juce::File& root)
     {
         GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
         const auto before=p.getFxOrder();
-        p.setFxOrder({0,0,0,0,0,0,0,0});                       // duplicates
+        p.setFxOrder({0,0,0,0,0,0,0,0,0});                     // duplicates
         require(p.getFxOrder()==before,"A duplicate chain order must be rejected");
-        p.setFxOrder({0,1,2,3,4,5,6});                         // too short
+        // Eight is what the pre-OTT build sent. Arriving through this setter it
+        // is simply incomplete and must be refused; the migration path for a
+        // *stored* eight-module order is unpackOrder, tested separately below.
+        p.setFxOrder({0,1,2,3,4,5,6,7});                       // too short
         require(p.getFxOrder()==before,"A short chain order must be rejected");
-        p.setFxOrder({0,1,2,3,4,5,6,99});                      // out of range
+        p.setFxOrder({0,1,2,3,4,5,6,7,99});                    // out of range
         require(p.getFxOrder()==before,"An out-of-range chain order must be rejected");
     }
 
@@ -560,7 +566,8 @@ static void fxChainTests(const juce::File& root)
         const juce::Array<int> custom{(int)Chain::Module::limiter,(int)Chain::Module::eq,
                                       (int)Chain::Module::tremVib,(int)Chain::Module::mod,
                                       (int)Chain::Module::reverb,(int)Chain::Module::delay,
-                                      (int)Chain::Module::chorus,(int)Chain::Module::distortion};
+                                      (int)Chain::Module::ott,(int)Chain::Module::chorus,
+                                      (int)Chain::Module::distortion};
         p.setFxOrder(custom);
         parameter(p,fxp::id::reverbMix,0.77f);
         juce::MemoryBlock state;p.getStateInformation(state);
@@ -693,10 +700,10 @@ static void presetTests(const juce::File& root)
         require(favOnly.size()==1 && items[(size_t)favOnly[0]].name=="Beta","Favourites filter");
     }
 
-    // The twenty bundled patches are installed and all load and sound.
+    // The bundled patches are installed and all load and sound.
     const auto& all=p.presets.all();
     int factory=0;for(const auto& info:all) if(!info.isUser) ++factory;
-    require(factory==40,("Expected 40 factory presets, found "+juce::String(factory)).toRawUTF8());
+    require(factory==48,("Expected 48 factory presets, found "+juce::String(factory)).toRawUTF8());
 
     juce::AudioBuffer<float> b(2,512);
     for(const auto& info:all)
@@ -735,13 +742,13 @@ static void presetTests(const juce::File& root)
         const juce::String name("__spaglitch selftest__");
         parameter(p,fxp::id::reverbMix,0.61f);
         parameter(p,"cutoff",321000);
-        const juce::Array<int> order{7,6,5,4,3,2,1,0};
+        const juce::Array<int> order{8,7,6,5,4,3,2,1,0};
         p.setFxOrder(order);
         require(p.presets.save(name),"Saving a user preset must succeed");
 
         parameter(p,fxp::id::reverbMix,0.11f);
         parameter(p,"cutoff",900000);
-        p.setFxOrder({0,1,2,3,4,5,6,7});
+        p.setFxOrder({0,1,2,3,4,5,6,7,8});
 
         const glitch::PresetManager::Info* saved=nullptr;
         for(const auto& info:p.presets.all()) if(info.name==name) saved=&info;
@@ -754,6 +761,28 @@ static void presetTests(const juce::File& root)
         require(std::abs(p.parameters.getRawParameterValue("cutoff")->load()-321000.f)<1.f,
                 "A preset must restore faceplate parameters");
         require(p.getFxOrder()==order,"A preset must restore the FX chain order");
+
+        // A preset saved before a parameter existed must not leave that
+        // parameter holding the previous patch's value. Simulated by stripping
+        // the OTT entries out of a captured patch, which is exactly the shape
+        // every pre-OTT preset on disk has.
+        {
+            parameter(p,fxp::id::ottEnable,1.f);
+            parameter(p,fxp::id::ottDepth,0.2f);
+            auto stripped=p.capturePreset().createCopy();
+            for(int i=stripped.getNumChildren();--i>=0;)
+            {
+                const auto child=stripped.getChild(i);
+                if(child.hasType("PARAM")
+                   && child.getProperty("id").toString().startsWith("fxOTT."))
+                    stripped.removeChild(i,nullptr);
+            }
+            p.applyPreset(stripped);
+            require(p.parameters.getRawParameterValue(fxp::id::ottEnable)->load()<0.5f,
+                    "A preset without OTT must switch OTT off, not inherit it");
+            require(std::abs(p.parameters.getRawParameterValue(fxp::id::ottDepth)->load()-1.f)<1e-4f,
+                    "A parameter missing from a preset must return to its default");
+        }
 
         // Instance state must survive loading a patch: the samples stay put,
         // and a MIDI binding is hardware, not sound.
@@ -1135,6 +1164,221 @@ static juce::TabbedButtonBar* findTabBar(juce::Component& parent)
 // The end-to-end drag: a real mouseDrag on a tab button must reorder the strip
 // AND publish the new order to the processor. The unit tests above cover
 // setFxOrder itself; this covers the wiring between the two.
+// The three-band compressor, checked on its own terms: the crossover has to
+// give the signal back unchanged when nothing is compressing, each direction
+// has to actually work, and -- the one that matters for RANDOMIZE -- upward
+// compression must never turn a silent band into a hiss.
+static void ottTests()
+{
+    using glitch::fx::OTT;
+
+    constexpr double sr = 48000.0;
+    constexpr int n = 4096;
+
+    auto burst = [] (juce::AudioBuffer<float>& b, float amplitude, int seed)
+    {
+        juce::Random rng (seed);
+        for (int ch = 0; ch < b.getNumChannels(); ++ch)
+            for (int i = 0; i < b.getNumSamples(); ++i)
+                b.setSample (ch, i, amplitude * (rng.nextFloat() * 2.0f - 1.0f));
+    };
+
+    auto rmsRange = [] (const juce::AudioBuffer<float>& b, int start, int count)
+    {
+        double sum = 0.0;
+        for (int i = start; i < start + count; ++i)
+            sum += (double) b.getSample (0, i) * b.getSample (0, i);
+        return std::sqrt (sum / juce::jmax (1, count));
+    };
+    auto rms = [&rmsRange] (const juce::AudioBuffer<float>& b)
+    {
+        return rmsRange (b, 0, b.getNumSamples());
+    };
+    // Attack is 4-15 ms depending on the band, so the front of any burst goes
+    // through before the detector has caught up. That is what a compressor is
+    // supposed to do, so the level tests look at the settled second half
+    // rather than at a peak that is really just the leading transient.
+    constexpr int settled = n / 2;
+
+    // With both amounts at zero the module is three filtered bands summed back
+    // together. A 4th-order Linkwitz-Riley split sums to an allpass rather than
+    // to the identity, so the samples are NOT expected to match -- the energy
+    // is. Comparing RMS is the honest form of "the crossover is transparent".
+    {
+        juce::AudioBuffer<float> b (2, n);
+        burst (b, 0.25f, 4242);
+        const auto before = rms (b);
+
+        OTT ott; ott.prepare (sr, n);
+        OTT::Params op;                 // every band at up = down = 0
+        op.enable = true;
+        ott.process (b, op);
+
+        finite (b);
+        const auto after = rms (b);
+        require (std::abs (after - before) / before < 0.02,
+                 "An OTT with no compression must pass the signal through at the same level");
+    }
+
+    // Downward compression on a loud burst must bring it down.
+    {
+        juce::AudioBuffer<float> b (2, n);
+        burst (b, 0.9f, 77);
+        const auto before = rmsRange (b, settled, n - settled);
+
+        OTT ott; ott.prepare (sr, n);
+        OTT::Params op;
+        op.enable = true;
+        for (auto& band : op.bands) { band.up = 0.0f; band.down = 1.0f; }
+        ott.process (b, op);
+
+        finite (b);
+        require (rmsRange (b, settled, n - settled) < before * 0.7,
+                 "OTT downward compression must hold down loud material");
+
+        // The meter the UI reads has to reflect that, and with a sign: the
+        // display draws downward compression below the centre line.
+        bool anyBandReported = false;
+        for (int band = 0; band < OTT::numBands; ++band)
+            if (ott.bandGainDb (band) < -0.5f)
+                anyBandReported = true;
+        require (anyBandReported, "The OTT meter must report the reduction it applied");
+    }
+
+    // Upward compression on a quiet burst must lift it.
+    {
+        juce::AudioBuffer<float> b (2, n);
+        burst (b, 0.01f, 99);
+        const auto before = rmsRange (b, settled, n - settled);
+
+        OTT ott; ott.prepare (sr, n);
+        OTT::Params op;
+        op.enable = true;
+        for (auto& band : op.bands) { band.up = 1.0f; band.down = 0.0f; }
+        ott.process (b, op);
+
+        finite (b);
+        require (rmsRange (b, settled, n - settled) > before * 1.5,
+                 "OTT upward compression must lift quiet material");
+    }
+
+    // The one that protects RANDOMIZE: full upward compression on silence must
+    // stay silent, and on a -84 dBFS noise floor must not haul it up into
+    // something audible. Without the taper in OTT::process this is a hiss
+    // swell, and a randomized patch would eventually ship one.
+    {
+        juce::AudioBuffer<float> silent (2, n);
+        silent.clear();
+
+        OTT ott; ott.prepare (sr, n);
+        OTT::Params op;
+        op.enable = true;
+        for (auto& band : op.bands) { band.up = 1.0f; band.down = 0.0f; }
+        ott.process (silent, op);
+
+        finite (silent);
+        require (silent.getMagnitude (0, n) < 1.0e-6f,
+                 "OTT must leave silence silent however hard it is compressing upward");
+
+        juce::AudioBuffer<float> floorNoise (2, n);
+        burst (floorNoise, 6.0e-5f, 5);     // about -84 dBFS
+        const auto before = floorNoise.getMagnitude (0, n);
+
+        OTT quiet; quiet.prepare (sr, n);
+        quiet.process (floorNoise, op);
+
+        finite (floorNoise);
+        require (floorNoise.getMagnitude (0, n) < before * 4.0f,
+                 "OTT must not lift the noise floor into audibility");
+    }
+
+    // Depth is a wet/dry control, so at zero the module must be inaudible even
+    // with both directions at full.
+    {
+        juce::AudioBuffer<float> b (2, n), reference (2, n);
+        burst (b, 0.3f, 1234);
+        reference.makeCopyOf (b);
+
+        OTT ott; ott.prepare (sr, n);
+        OTT::Params op;
+        op.enable = true;
+        op.depth = 0.0f;
+        for (auto& band : op.bands) { band.up = 1.0f; band.down = 1.0f; }
+        ott.process (b, op);
+
+        for (int i = 0; i < n; ++i)
+            require (std::abs (b.getSample (0, i) - reference.getSample (0, i)) < 1.0e-6f,
+                     "OTT at zero depth must leave the signal untouched");
+    }
+}
+
+// A chain order saved before OTT existed packs eight modules and leaves the
+// ninth nibble at zero. Read strictly that is a duplicate of module 0, and the
+// user's whole chain would silently reset to the default. It has to migrate
+// instead: the eight they arranged, with the new module appended.
+static void fxOrderMigrationTest()
+{
+    using Chain = glitch::fx::FXChain;
+
+    // Pack exactly as the pre-OTT build did: eight nibbles, nothing above.
+    const int legacyIds[8] { (int) Chain::Module::limiter, (int) Chain::Module::eq,
+                             (int) Chain::Module::tremVib, (int) Chain::Module::mod,
+                             (int) Chain::Module::reverb,  (int) Chain::Module::delay,
+                             (int) Chain::Module::chorus,  (int) Chain::Module::distortion };
+    juce::uint64 packed = 0;
+    for (int i = 0; i < 8; ++i)
+        packed |= (juce::uint64) legacyIds[i] << (i * 4);
+
+    Chain::Module order[Chain::numModules];
+    Chain::unpackOrder (packed, order);
+
+    for (int i = 0; i < 8; ++i)
+        require ((int) order[i] == legacyIds[i],
+                 "A pre-OTT chain order must survive, module for module");
+    require (order[8] == Chain::Module::ott,
+             "A pre-OTT chain order must gain OTT on the end");
+
+    // The same order with the limiter last: OTT must go in FRONT of it, or
+    // every saved preset quietly stops ending in the limiter.
+    const int limiterLastIds[8] { (int) Chain::Module::distortion, (int) Chain::Module::chorus,
+                                  (int) Chain::Module::mod,        (int) Chain::Module::tremVib,
+                                  (int) Chain::Module::delay,      (int) Chain::Module::reverb,
+                                  (int) Chain::Module::eq,         (int) Chain::Module::limiter };
+    juce::uint64 limiterLastPacked = 0;
+    for (int i = 0; i < 8; ++i)
+        limiterLastPacked |= (juce::uint64) limiterLastIds[i] << (i * 4);
+
+    Chain::Module migrated[Chain::numModules];
+    Chain::unpackOrder (limiterLastPacked, migrated);
+    for (int i = 0; i < 7; ++i)
+        require ((int) migrated[i] == limiterLastIds[i],
+                 "Migration must not disturb the modules before the limiter");
+    require (migrated[7] == Chain::Module::ott,
+             "A migrated module must land in front of a trailing limiter");
+    require (migrated[8] == Chain::Module::limiter,
+             "Migration must leave the limiter last");
+
+    // And a genuine nine-module order that happens to end with module 0 must
+    // still read as itself -- that is the case the migration could plausibly
+    // steal, and the reason unpackExactly insists the rest of the word is
+    // empty.
+    Chain::Module trailing[Chain::numModules] {
+        Chain::Module::chorus, Chain::Module::delay, Chain::Module::reverb,
+        Chain::Module::eq, Chain::Module::mod, Chain::Module::tremVib,
+        Chain::Module::limiter, Chain::Module::ott, Chain::Module::distortion };
+    Chain::Module readBack[Chain::numModules];
+    Chain::unpackOrder (Chain::packOrder (trailing), readBack);
+    for (int i = 0; i < Chain::numModules; ++i)
+        require (readBack[i] == trailing[i],
+                 "A full order ending in module 0 must not be mistaken for a short one");
+
+    // A real permutation still round trips, and rubbish still falls back.
+    Chain::Module rubbish[Chain::numModules];
+    Chain::unpackOrder (0xFFFFFFFFFFFFFFFFull, rubbish);
+    for (int i = 0; i < Chain::numModules; ++i)
+        require ((int) rubbish[i] == i, "An unreadable chain order must fall back to the natural one");
+}
+
 static void fxDragReorderTest()
 {
     GlitchProcessor p(juce::File{});
@@ -1500,10 +1744,16 @@ int main(int argc,char** argv)
                 "Marble Bench","Paraffin Dip","Lavender Overdose","Slipper Static",
                 "Brine Pool","Cold Towel Snap","Exfoliant Grain","Reception Chime",
                 "Mud Chamber","Charcoal Rinse","Humidity Fault","Reflexology Map",
-                "Ice Fountain","Gong Misfire","Cotton Gown","Late Cancellation"};
+                "Ice Fountain","Gong Misfire","Cotton Gown","Late Cancellation",
+                // OTT round.
+                "Pressure Suite","Hydrotherapy Jet","Compression Wrap","Steam Valve",
+                "Body Polish","Thermal Blanket","Percussive Massage","Closing Bell"};
             GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
             juce::File out(argv[2]);require(out.createDirectory().wasOk(),"Preset dir failed");
 
+            // Index of the first name in the OTT round (see the list above).
+            constexpr int ottRoundStart=40;
+            int written=0,kept=0;
             for(int i=0;i<(int)std::size(names);++i)
             {
                 // Sweep wildness across the set so the twenty are not all the
@@ -1511,6 +1761,10 @@ int main(int argc,char** argv)
                 p.setRandomWildness(0.2f+0.6f*(float)(i%5)/4.f);
                 auto rng=glitch::rnd::seededGenerator(9000+i*37);
                 p.randomizeAll(rng);
+                // The OTT round exists to show the module off, and a coin-flip
+                // enable left five of the eight without it. Everything else
+                // about these is still the roll.
+                if(i>=ottRoundStart) parameter(p,glitch::fx::params::id::ottEnable,1.f);
 
                 auto tree=p.capturePreset();
                 juce::ValueTree wrapper("SPAGlitchPreset");
@@ -1518,9 +1772,18 @@ int main(int argc,char** argv)
                 for(const auto& child:tree) wrapper.appendChild(child.createCopy(),nullptr);
                 auto xml=wrapper.createXml();require(xml!=nullptr,"Preset XML failed");
                 auto file=out.getChildFile(juce::String(names[i])+".spaglitch");
+                // A shipped preset is an artifact, not a derived file. Adding a
+                // parameter to the randomize table shifts every later draw in
+                // the stream, so re-rolling seed N no longer reproduces the
+                // preset seed N produced before -- regenerating in place would
+                // silently rewrite sounds people already have. Only the names
+                // that have no file yet are written; delete one by hand to
+                // deliberately re-roll it.
+                if(file.existsAsFile()) { ++kept; continue; }
                 require(file.replaceWithText(xml->toString()),"Preset write failed");
+                ++written;
             }
-            std::cout<<"Wrote "<<std::size(names)<<" factory presets\n";
+            std::cout<<"Wrote "<<written<<" factory presets, kept "<<kept<<" already on disk\n";
             return 0;
         }
         if(argc==2 && juce::String(argv[1])=="--reverb-report")
@@ -1615,7 +1878,7 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);keyboardFocusTests();
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);ottTests();fxOrderMigrationTest();fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);keyboardFocusTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

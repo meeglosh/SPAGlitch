@@ -71,6 +71,22 @@ void Snapshot::bind (juce::AudioProcessorValueTreeState& apvts)
     limTruePeak = apvts.getRawParameterValue (id::limTruePeak);
     limLookahead = apvts.getRawParameterValue (id::limLookahead);
     limAutoGain = apvts.getRawParameterValue (id::limAutoGain);
+    ottEnable = apvts.getRawParameterValue (id::ottEnable);
+    ottDepth = apvts.getRawParameterValue (id::ottDepth);
+    ottTime = apvts.getRawParameterValue (id::ottTime);
+    ottInGain = apvts.getRawParameterValue (id::ottInGain);
+    ottOutGain = apvts.getRawParameterValue (id::ottOutGain);
+    ottXoverLow = apvts.getRawParameterValue (id::ottXoverLow);
+    ottXoverHigh = apvts.getRawParameterValue (id::ottXoverHigh);
+    ottLowUp = apvts.getRawParameterValue (id::ottLowUp);
+    ottLowDown = apvts.getRawParameterValue (id::ottLowDown);
+    ottLowGain = apvts.getRawParameterValue (id::ottLowGain);
+    ottMidUp = apvts.getRawParameterValue (id::ottMidUp);
+    ottMidDown = apvts.getRawParameterValue (id::ottMidDown);
+    ottMidGain = apvts.getRawParameterValue (id::ottMidGain);
+    ottHighUp = apvts.getRawParameterValue (id::ottHighUp);
+    ottHighDown = apvts.getRawParameterValue (id::ottHighDown);
+    ottHighGain = apvts.getRawParameterValue (id::ottHighGain);
 
     for (int b = 0; b < ParametricEQ::numBands; ++b)
     {
@@ -164,6 +180,22 @@ void Snapshot::read (FXChain::Params& p, double bpm, juce::uint64 packedOrder) c
     p.limTruePeak = load (limTruePeak) >= 0.5f;
     p.limLookahead = load (limLookahead) >= 0.5f;
     p.limAutoGain = load (limAutoGain) >= 0.5f;
+    p.ottEnable = load (ottEnable) >= 0.5f;
+    p.ottDepth = load (ottDepth);
+    p.ottTime = load (ottTime);
+    p.ottInGain = load (ottInGain);
+    p.ottOutGain = load (ottOutGain);
+    p.ottCrossoverLow = load (ottXoverLow);
+    p.ottCrossoverHigh = load (ottXoverHigh);
+    p.ottLowUp = load (ottLowUp);
+    p.ottLowDown = load (ottLowDown);
+    p.ottLowGain = load (ottLowGain);
+    p.ottMidUp = load (ottMidUp);
+    p.ottMidDown = load (ottMidDown);
+    p.ottMidGain = load (ottMidGain);
+    p.ottHighUp = load (ottHighUp);
+    p.ottHighDown = load (ottHighDown);
+    p.ottHighGain = load (ottHighGain);
 
     readEqBands (p);
     p.bpm = bpm > 0.0 ? bpm : 120.0;

@@ -58,11 +58,16 @@ WHAT IT DOES
   A filter with five modes - low pass, high pass, band pass, notch and peak -
   built from the measured response of the original instrument.
 
-  Eight effects: distortion (soft, hard, fold, crush), chorus, delay, reverb,
-  an 8-band parametric EQ, phaser/flanger, tremolo/vibrato and a limiter.
+  Nine effects: distortion (soft, hard, fold, crush), chorus, delay, reverb,
+  an 8-band parametric EQ, phaser/flanger, tremolo/vibrato, OTT and a limiter.
   Drag the tabs to reorder the chain; the order is part of the patch.
 
-  Forty factory presets, and save as many of your own as you like.
+  OTT is a three-band compressor that works in both directions at once: it
+  lifts what is quiet and holds down what is loud, per band, which is what
+  makes a sparse loop sound dense. UP and DOWN set how much of each, DEPTH
+  blends the whole thing against the dry signal.
+
+  Forty-eight factory presets, and save as many of your own as you like.
 
   Randomize, with a wildness amount and per-group locks. It will not hand you
   a silent patch or a painfully loud one.
