@@ -7,7 +7,7 @@
 ; cannot read CMake, so this is the single place the version lives on Windows;
 ; CI may override it with /DAppVersion.
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.1.0"
 #endif
 #define Root "..\.."
 #define Binaries Root + "\build\windows-x64\SPAGlitch_artefacts\Release"
