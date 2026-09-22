@@ -94,11 +94,17 @@ jobs:
           # run's own would let concurrent runs delete each other's uploads --
           # two runs overlapped the first time this ran, and the later one ate
           # the earlier one's installer.
-          $started = (gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --jq ".run_started_at")
-          $artifacts = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?per_page=100" `
-            --jq ".artifacts[] | select(.expired==false) | select(.created_at < \"$started\") | .id"
-          foreach ($id in $artifacts) {
-            if ($id) { gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$id" | Out-Null }
+          # Filtering happens in PowerShell rather than in a --jq string:
+          # PowerShell does not take \" as an escape, so the embedded quotes
+          # split the argument and gh failed with "accepts 1 arg(s), received
+          # 2" on every run. continue-on-error hid it, and four runs' worth of
+          # artifacts (about a gigabyte) accumulated before anyone looked.
+          $started = [datetime](gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --jq ".run_started_at")
+          $all = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts?per_page=100" | ConvertFrom-Json
+          $stale = @($all.artifacts | Where-Object { -not $_.expired -and [datetime]$_.created_at -lt $started })
+          Write-Host "pruning $($stale.Count) superseded artifacts"
+          foreach ($a in $stale) {
+            gh api -X DELETE "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($a.id)" | Out-Null
           }
       - name: Upload unsigned Windows installer
         if: github.event_name != 'pull_request' && vars.SPAGLITCH_FACTORY_SAMPLES_ENABLED == 'true'
