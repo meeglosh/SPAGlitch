@@ -188,11 +188,15 @@ void CalmButton::paintButton(juce::Graphics& g,bool over,bool down)
     if(on) g.fillEllipse(cx-r,cy-r,r*2,r*2);
     else   g.drawEllipse(cx-r,cy-r,r*2,r*2,1.f);
 
-    g.setFont(juce::Font(juce::FontOptions(9.f,juce::Font::bold)));
-    // Deliberately NOT drawGlitchText: this is the control you reach for when
-    // the glitching is the problem.
-    g.setColour(on ? ink : (over||down ? ink.withAlpha(.85f) : muted));
-    g.drawText("Calm mode",bounds.withTrimmedLeft(16.f),juce::Justification::centredLeft);
+    // Bigger than the surrounding chrome on purpose. This is the control
+    // someone goes looking for because the screen is hurting them, and small
+    // grey capitals are exactly what they will not find.
+    g.setFont(juce::Font(juce::FontOptions(11.f,juce::Font::bold)));
+    // Deliberately NOT drawGlitchText: the control you reach for when the
+    // glitching is the problem must not itself come apart.
+    g.setColour(on ? ink : (over||down ? ink.withAlpha(.9f) : muted.brighter(.2f)));
+    g.drawText("Calm mode",bounds.withTrimmedLeft(15.f).withTrimmedRight(3.f),
+               juce::Justification::centredLeft);
 }
 
 FlashNotice::FlashNotice()
