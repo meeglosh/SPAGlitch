@@ -4,7 +4,7 @@
 #include "ModEffect.h"
 #include "TremVib.h"
 #include "Limiter.h"
-#include "OTT.h"
+#include "Multiband.h"
 #include "PlateReverb.h"
 #include "ParametricEQ.h"
 
@@ -31,7 +31,7 @@ public:
     // Append-only: module ids are serialized in the saved chain order. A new
     // module goes on the end and nowhere else; unpackOrder migrates orders
     // saved before it existed.
-    enum class Module { distortion, chorus, delay, reverb, eq, mod, tremVib, limiter, ott };
+    enum class Module { distortion, chorus, delay, reverb, eq, mod, tremVib, limiter, multiband };
     static constexpr int numModules = 9;
 
     // Pack/unpack the chain order into a uint64 (4 bits/module): a single
@@ -49,7 +49,7 @@ public:
     {
         Module def[numModules] { Module::distortion, Module::chorus, Module::mod,
                                  Module::tremVib, Module::delay, Module::reverb,
-                                 Module::eq, Module::ott, Module::limiter };
+                                 Module::eq, Module::multiband, Module::limiter };
         return packOrder (def);
     }
     static void unpackOrder (juce::uint64 packed, Module* order)
@@ -180,24 +180,19 @@ public:
         bool limLookahead = false;
         bool limAutoGain = false;
 
-        // Three-band upward/downward compressor. Defaults are a recognisable
-        // OTT at moderate strength rather than the full slam, so switching the
-        // module on is a usable starting point and not a jump in level.
-        bool ottEnable = false;
-        float ottDepth = 1.0f;
-        float ottTime = 100.0f;
-        float ottInGain = 0.0f;
-        float ottOutGain = 0.0f;
-        float ottCrossoverLow = 90.0f;
-        float ottCrossoverHigh = 2500.0f;
-        float ottLowUp = 0.4f,  ottLowDown = 0.5f,  ottLowGain = 0.0f;
-        float ottMidUp = 0.4f,  ottMidDown = 0.5f,  ottMidGain = 0.0f;
-        float ottHighUp = 0.4f, ottHighDown = 0.5f, ottHighGain = 0.0f;
+        // Three-band compressor. Defaults are a gentle, ordinary downward
+        // compressor -- upward ratio 1:1, i.e. off -- so switching the module
+        // on does something predictable rather than something dramatic.
+        bool mbEnable = false;
+        float mbMix = 1.0f;
+        float mbCrossoverLow = 200.0f;
+        float mbCrossoverHigh = 2000.0f;
+        std::array<Multiband::Band, Multiband::numBands> mbBands {};
 
         // Runtime FX processing order (drag-reorderable, saved with state).
         Module order[numModules] {
             Module::distortion, Module::chorus, Module::mod, Module::tremVib,
-            Module::delay, Module::reverb, Module::eq, Module::ott, Module::limiter
+            Module::delay, Module::reverb, Module::eq, Module::multiband, Module::limiter
         };
     };
 
@@ -232,9 +227,9 @@ public:
     float limiterGainReductionDb() const { return limiterEffect.gainReductionDb(); }
     float limiterOutputPeak() const { return limiterEffect.outputPeak(); }
 
-    // Signed per-band gain, for the OTT meter: positive is upward boost,
-    // negative is downward reduction.
-    float ottBandGainDb (int band) const { return ottEffect.bandGainDb (band); }
+    // Signed per-band gain, for the multiband meter: positive is upward
+    // gain, negative is downward reduction.
+    float multibandGainDb (int band) const { return multibandEffect.bandGainDb (band); }
 
 private:
     // Reads exactly `length` modules and insists the rest of the word is
@@ -270,13 +265,13 @@ private:
     void processMod (juce::AudioBuffer<float>&, const Params&);
     void processTremVib (juce::AudioBuffer<float>&, const Params&);
     void processLimiter (juce::AudioBuffer<float>&, const Params&);
-    void processOTT (juce::AudioBuffer<float>&, const Params&);
+    void processMultiband (juce::AudioBuffer<float>&, const Params&);
 
     double sampleRate = 48000.0;
     ModEffect modEffect;
     TremVib tremVibEffect;
     Limiter limiterEffect;
-    OTT ottEffect;
+    Multiband multibandEffect;
 
     // Distortion tone filter (post-shaper lowpass), one per channel.
     std::array<juce::dsp::FirstOrderTPTFilter<float>, 2> toneFilters;

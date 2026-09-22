@@ -1,4 +1,5 @@
 #include "FXParameters.h"
+#include "Multiband.h"
 
 namespace glitch::fx::params
 {
@@ -173,26 +174,50 @@ std::vector<Def> build()
     addBool   (p, i::limLookahead, "Look", Section::limiter, 0.0f);
     addBool   (p, i::limAutoGain, "Auto Gain", Section::limiter, 0.0f);
 
-    // --- OTT -------------------------------------------------------------
-    // Thresholds are deliberately not exposed: the premise of this effect is
-    // that you dial how much of each direction you want, not where each one
-    // starts. See OTT.h.
-    addBool  (p, i::ottEnable, "On", Section::ott, 0.0f, true);
-    addFloat (p, i::ottDepth, "Depth", Section::ott, { 0.0f, 1.0f }, 1.0f);
-    addFloat (p, i::ottTime, "Time", Section::ott, skewedRange (10.0f, 500.0f, 100.0f), 100.0f, "%");
-    addFloat (p, i::ottInGain, "In", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
-    addFloat (p, i::ottOutGain, "Out", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
-    addFloat (p, i::ottXoverLow, "Xover L", Section::ott, frequencyRange (30.0f, 1000.0f), 90.0f, "Hz");
-    addFloat (p, i::ottXoverHigh, "Xover H", Section::ott, frequencyRange (500.0f, 16000.0f), 2500.0f, "Hz");
-    addFloat (p, i::ottLowUp, "Low Up", Section::ott, { 0.0f, 1.0f }, 0.4f);
-    addFloat (p, i::ottLowDown, "Low Dn", Section::ott, { 0.0f, 1.0f }, 0.5f);
-    addFloat (p, i::ottLowGain, "Low G", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
-    addFloat (p, i::ottMidUp, "Mid Up", Section::ott, { 0.0f, 1.0f }, 0.4f);
-    addFloat (p, i::ottMidDown, "Mid Dn", Section::ott, { 0.0f, 1.0f }, 0.5f);
-    addFloat (p, i::ottMidGain, "Mid G", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
-    addFloat (p, i::ottHighUp, "Hi Up", Section::ott, { 0.0f, 1.0f }, 0.4f);
-    addFloat (p, i::ottHighDown, "Hi Dn", Section::ott, { 0.0f, 1.0f }, 0.5f);
-    addFloat (p, i::ottHighGain, "Hi G", Section::ott, { -24.0f, 24.0f, 0.1f }, 0.0f, "dB");
+    // --- Multiband compressor --------------------------------------------
+    // Crossovers and the per-band controls are owned by the tab's editor (you
+    // drag the crossovers on the graph and the band controls follow the
+    // selected band), so they are hidden from the auto-built grid the way the
+    // EQ's bands are. MIX is the one control that belongs to the module rather
+    // than to a band, so it is the only one the grid draws.
+    addBool  (p, i::mbEnable, "On", Section::multiband, 0.0f, true);
+    addFloat (p, i::mbMix, "Mix", Section::multiband, { 0.0f, 1.0f }, 1.0f);
+    addFloat (p, i::mbXoverLow, "Xover L", Section::multiband,
+              frequencyRange (20.0f, 2000.0f), 200.0f, "Hz", true);
+    addFloat (p, i::mbXoverHigh, "Xover H", Section::multiband,
+              frequencyRange (200.0f, 18000.0f), 2000.0f, "Hz", true);
+    {
+        static std::vector<std::unique_ptr<juce::String>> ownedMbIDs;
+        auto keepMb = [] (juce::String s)
+        {
+            ownedMbIDs.push_back (std::make_unique<juce::String> (std::move (s)));
+            return ownedMbIDs.back()->toRawUTF8();
+        };
+
+        // Low bands need slower attacks than high ones: a 60 Hz cycle is 16 ms
+        // long, and a detector faster than that follows the waveform instead
+        // of the envelope, which is distortion rather than compression.
+        const struct { float attack, release; } timing[] {
+            { 30.0f, 200.0f }, { 12.0f, 120.0f }, { 5.0f, 80.0f } };
+
+        for (int b = 0; b < Multiband::numBands; ++b)
+        {
+            addFloat (p, keepMb (i::mbBand (b, i::mbband::threshold)), "Thresh", Section::multiband,
+                      { -60.0f, 0.0f, 0.1f }, -24.0f, "dB", true);
+            addFloat (p, keepMb (i::mbBand (b, i::mbband::ratio)), "Ratio", Section::multiband,
+                      skewedRange (1.0f, 20.0f, 4.0f), 4.0f, ":1", true);
+            // 1:1 is off, so the band is an ordinary downward compressor until
+            // this is deliberately turned up.
+            addFloat (p, keepMb (i::mbBand (b, i::mbband::upRatio)), "Up Ratio", Section::multiband,
+                      skewedRange (1.0f, 10.0f, 2.0f), 1.0f, ":1", true);
+            addFloat (p, keepMb (i::mbBand (b, i::mbband::attack)), "Attack", Section::multiband,
+                      skewedRange (0.1f, 300.0f, 20.0f), timing[b].attack, "ms", true);
+            addFloat (p, keepMb (i::mbBand (b, i::mbband::release)), "Release", Section::multiband,
+                      skewedRange (5.0f, 2000.0f, 150.0f), timing[b].release, "ms", true);
+            addFloat (p, keepMb (i::mbBand (b, i::mbband::gain)), "Gain", Section::multiband,
+                      { -24.0f, 24.0f, 0.1f }, 0.0f, "dB", true);
+        }
+    }
 
     return p;
 }
@@ -203,10 +228,21 @@ juce::String id::eqBand (int band, const juce::String& key)
     return "fxEQ.band" + juce::String (band) + "." + key;
 }
 
+juce::String id::mbBand (int band, const juce::String& key)
+{
+    return "fxMB.band" + juce::String (band) + "." + key;
+}
+
+const juce::StringArray& id::mbBandNames()
+{
+    static const juce::StringArray names { "LOW", "MID", "HIGH" };
+    return names;
+}
+
 const juce::StringArray& sectionTabNames()
 {
     static const juce::StringArray names { "DIST", "CHORUS", "DELAY", "REVERB",
-                                           "EQ", "MOD", "TREM/VIB", "LIMIT", "OTT" };
+                                           "EQ", "MOD", "TREM/VIB", "LIMIT", "MBAND" };
     return names;
 }
 
@@ -214,7 +250,7 @@ const juce::StringArray& sectionTitles()
 {
     static const juce::StringArray names { "Distortion", "Chorus", "Delay", "Reverb",
                                            "Equaliser", "Modulation", "Trem / Vib", "Limiter",
-                                           "OTT Compressor" };
+                                           "Multiband Compressor" };
     return names;
 }
 
@@ -253,7 +289,7 @@ const char* enableID (Section s)
         case Section::mod:     return id::modEnable;
         case Section::tremVib: return id::tremEnable;
         case Section::limiter: return id::limEnable;
-        case Section::ott:     return id::ottEnable;
+        case Section::multiband: return id::mbEnable;
         default:               return nullptr;
     }
 }
@@ -309,6 +345,8 @@ void addToLayout (juce::AudioProcessorValueTreeState::ParameterLayout& layout)
                         return juce::String (v, 2) + " s";
                     if (unit == "%")
                         return juce::String (juce::roundToInt (v)) + " %";
+                    if (unit == ":1")
+                        return juce::String (v, v >= 10.0f ? 0 : 1) + ":1";
                     return juce::String (v, 2);
                 };
                 auto fromText = [unit] (const juce::String& t)

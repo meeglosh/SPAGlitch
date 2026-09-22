@@ -59,13 +59,17 @@ WHAT IT DOES
   built from the measured response of the original instrument.
 
   Nine effects: distortion (soft, hard, fold, crush), chorus, delay, reverb,
-  an 8-band parametric EQ, phaser/flanger, tremolo/vibrato, OTT and a limiter.
-  Drag the tabs to reorder the chain; the order is part of the patch.
+  an 8-band parametric EQ, phaser/flanger, tremolo/vibrato, a multiband
+  compressor and a limiter. Drag the tabs to reorder the chain; the order is
+  part of the patch.
 
-  OTT is a three-band compressor that works in both directions at once: it
-  lifts what is quiet and holds down what is loud, per band, which is what
-  makes a sparse loop sound dense. UP and DOWN set how much of each, DEPTH
-  blends the whole thing against the dry signal.
+  The multiband compressor splits the signal at two crossovers you drag on
+  its graph, and gives each of the three bands its own threshold, ratio,
+  attack, release and makeup gain. Each band also has an UP RATIO, which
+  compresses upward instead of downward: it lifts what sits below the
+  threshold rather than holding down what sits above it, which is what makes
+  a sparse loop sound dense. Leave it at 1:1 and the band is an ordinary
+  compressor.
 
   Forty-eight factory presets, and save as many of your own as you like.
 

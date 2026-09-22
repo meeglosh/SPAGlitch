@@ -21,6 +21,7 @@ struct Snapshot
 
 private:
     void readEqBands (FXChain::Params& p) const;
+    void readMbBands (FXChain::Params& p) const;
 
     static float load (const std::atomic<float>* v) { return v != nullptr ? v->load() : 0.0f; }
 
@@ -90,22 +91,11 @@ private:
     std::atomic<float>* limTruePeak = nullptr;
     std::atomic<float>* limLookahead = nullptr;
     std::atomic<float>* limAutoGain = nullptr;
-    std::atomic<float>* ottEnable = nullptr;
-    std::atomic<float>* ottDepth = nullptr;
-    std::atomic<float>* ottTime = nullptr;
-    std::atomic<float>* ottInGain = nullptr;
-    std::atomic<float>* ottOutGain = nullptr;
-    std::atomic<float>* ottXoverLow = nullptr;
-    std::atomic<float>* ottXoverHigh = nullptr;
-    std::atomic<float>* ottLowUp = nullptr;
-    std::atomic<float>* ottLowDown = nullptr;
-    std::atomic<float>* ottLowGain = nullptr;
-    std::atomic<float>* ottMidUp = nullptr;
-    std::atomic<float>* ottMidDown = nullptr;
-    std::atomic<float>* ottMidGain = nullptr;
-    std::atomic<float>* ottHighUp = nullptr;
-    std::atomic<float>* ottHighDown = nullptr;
-    std::atomic<float>* ottHighGain = nullptr;
+    std::atomic<float>* mbEnable = nullptr;
+    std::atomic<float>* mbMix = nullptr;
+    std::atomic<float>* mbXoverLow = nullptr;
+    std::atomic<float>* mbXoverHigh = nullptr;
+    std::array<std::array<std::atomic<float>*, 6>, Multiband::numBands> mbBandValues {};
 
     // [band][enable, type, slope, freq, gain, q]
     std::array<std::array<std::atomic<float>*, 6>, ParametricEQ::numBands> eqBandValues {};

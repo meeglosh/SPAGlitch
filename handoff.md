@@ -6,16 +6,28 @@ there is, plus the per-area READMEs it points at.
 
 ## Where we are
 
-- **2026-09-21 (later): OTT is built on `codex/ott`, not merged and not
-  released.** A three-band upward/downward compressor added to the FX chain
-  as module id 8, taking the chain to nine modules. Full per-band control
-  set (15 knobs), its own bidirectional band meter, in the randomizer, and
-  eight new factory presets built around it (48 total). All four ctest
-  suites pass. Nothing is versioned or staged for it yet: `CMakeLists.txt`
-  still says 1.0.0, and the version bump belongs to whenever a build is
-  actually cut. Mike chose the name "OTT" knowingly after being told the
-  three-letter name originates with Xfer Records; that is a decision of
-  record, not an oversight to re-raise.
+- **2026-09-22: a three-band compressor (`MBAND`) is built on `codex/ott`,
+  not merged and not released.** FX module id 8, taking the chain to nine.
+  Per band: threshold, ratio, up ratio, attack, release, makeup gain. The
+  two crossovers are dragged on the tab's own graph, which also shows each
+  band's live gain reduction; only the selected band's six controls are
+  shown, the way Pro-MB and C6 do it. In the randomizer, and eight new
+  factory presets built around it (48 total). All four ctest suites pass.
+  Nothing is versioned or staged: `CMakeLists.txt` still says 1.0.0, and
+  the bump belongs to whenever a build is actually cut.
+
+- **This started life as an OTT clone and was rebuilt on 2026-09-22 after
+  Mike tried it.** The first version exposed OTT's own interface, per band
+  an UP and a DOWN "amount" plus DEPTH and TIME, and his verdict was that
+  it was "incredibly difficult to understand" - from someone very
+  experienced with multiband compressors. The amounts hid the threshold and
+  ratio you actually reason about, so it read as neither OTT's three-macro
+  simplicity nor a legible compressor. **The lesson is about the questions,
+  not the DSP**: the first round asked how *much* of OTT's control set to
+  expose and never asked whether OTT's control set was the right one. The
+  upward half survives as UP RATIO, the same idea in standard terms. The
+  name went with it, so the earlier "call it OTT" decision is void - it was
+  about a module that no longer exists.
 
 - **2026-09-21: v1.0.0 is tagged, merged to `main`, and staged. Nothing is
   waiting on the agent.** The whole FX round was built in one session on
@@ -193,8 +205,8 @@ Tool modes on the test binary worth knowing: `--reverb-report`,
   for both halves of that.
 - **A preset only stores the parameters that existed when it was saved.**
   `applyPreset` iterated the tree, so anything added since kept the previous
-  patch's value: every pre-OTT preset would have inherited whatever OTT was
-  left switched on. It now resets absent parameters to their defaults, and
+  patch's value: every older preset would have inherited whatever the last
+  patch left switched on. It now resets absent parameters to defaults, and
   an absent `fxOrder` to the default order.
 - **A shipped preset is an artifact, not a derived file.** Adding an entry
   to the randomize table shifts every later draw in the stream, so re-rolling
@@ -202,10 +214,18 @@ Tool modes on the test binary worth knowing: `--reverb-report`,
   `--generate-factory-presets` therefore refuses to overwrite a file that
   already exists; delete one by hand to deliberately re-roll it.
 - **`FXTab::displayWidthFraction` decides how many knobs fit per row.** At
-  the limiter's 0.46 the grid gets seven columns, and OTT's fifteen controls
-  wrapped to a third row that the FX band has no height for — the fifteenth
+  the limiter's 0.46 the grid gets seven columns, and a fifteen-control tab
+  wrapped onto a third row that the FX band has no height for — the last
   knob was simply cut off. Screenshots caught it; the layout tests did not.
-  Check `--fx-screenshots` after adding controls to a tab.
+  **Check `--fx-screenshots` after adding controls to a tab**, and never
+  estimate the column count from the faceplate width: the display takes a
+  third of it.
+- **A parameter's own skew decides what a randomize window means.** UP RATIO
+  spans 1:1 to 10:1 skewed so halfway is 2:1, which puts "off" across most
+  of the bottom of the range. A window of 0..0.5 therefore produced 1:1 —
+  upward compression disabled — in every preset of the first generated
+  batch. Read the skew before picking the window, and check a generated
+  batch rather than assuming.
 
 ## Sample hosting and GitHub storage
 

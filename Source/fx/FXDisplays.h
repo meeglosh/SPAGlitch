@@ -74,28 +74,4 @@ private:
     float gr = 0.0f, grPeak = 0.0f, out = 0.0f;
 };
 
-// OTT scope: one bidirectional meter per band. The bar grows up from the
-// centre line when that band is being lifted and down when it is being held
-// back, which is the only way to see at a glance that both halves of the
-// effect are working -- a single reduction meter would show upward
-// compression as nothing at all.
-class OttDisplay final : public juce::Component,
-                         private juce::Timer
-{
-public:
-    // `bandGainDb` is read from the processor's FX chain each frame: signed,
-    // positive for boost.
-    OttDisplay (juce::AudioProcessorValueTreeState&,
-                std::function<float (int)> bandGainDb);
-
-    void paint (juce::Graphics&) override;
-
-private:
-    void timerCallback() override;
-
-    juce::AudioProcessorValueTreeState& apvts;
-    std::function<float (int)> readBandGain;
-    std::array<float, 3> shown {};
-};
-
 } // namespace glitch::fx::ui
