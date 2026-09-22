@@ -1,4 +1,4 @@
-SPAGlitch 1.1.0 - what's new since 1.0.0
+SPAGlitch 1.0.1 - what's new since 1.0.0
 
 Two additions: a proper multiband compressor, and a calm mode for anyone
 who does not want a flashing screen.
