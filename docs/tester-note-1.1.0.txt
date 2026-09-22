@@ -1,0 +1,68 @@
+SPAGlitch 1.1.0 - what's new since 1.0.0
+
+Two additions: a proper multiband compressor, and a calm mode for anyone
+who does not want a flashing screen.
+
+- New effect: COMP, a three-band compressor, ninth in the chain. Each band
+  has a threshold, ratio, attack, release and makeup gain, and the two
+  crossover points are dragged directly on the graph. Each band shows its
+  own gain reduction while you play.
+
+- Each band also has UP RATIO, which compresses upward instead of
+  downward: it lifts what sits below the threshold rather than holding
+  down what sits above it, which is what makes a sparse loop sound dense.
+  At 1:1 it is off and the band behaves like an ordinary compressor. That
+  is the default, so switching COMP on does something predictable.
+
+- Calm mode. SPAGlitch flashes its background image on every note, which
+  is a risk for anyone with photosensitive epilepsy. The CALM MODE switch
+  in the header replaces the flashing with a still scene whose candles
+  flicker and whose screens tear slightly as you play, and it stops the
+  instrument's text glitching at the same time. It is off by default, the
+  instrument offers you the choice the first time you open it, and the
+  setting belongs to your machine rather than to a patch, so it stays put
+  across every instance and every session.
+
+- Eight new factory presets built around the compressor, forty-eight in
+  all. The original forty are untouched.
+
+- RANDOMIZE now rolls the compressor too, and can place it anywhere in the
+  chain. Its input and output gains are deliberately left alone, as the
+  master OUTPUT is, because rolling those is a level change rather than
+  sound design.
+
+- Fixed: a preset only stores the parameters that existed when it was
+  saved, and loading one used to leave anything newer at whatever the
+  previous patch had set. Any preset saved in 1.0.0 would have inherited
+  the last patch's compressor. Parameters absent from a preset now return
+  to their defaults.
+
+- Your saved chain orders survive. The chain went from eight modules to
+  nine, and a 1.0.0 patch stores only eight. Those patches keep the order
+  you arranged, with the compressor inserted in front of the limiter so
+  the limiter stays last.
+
+Worth trying specifically
+
+- COMP on a busy loop: pick a band on the graph, pull its THRESHOLD down
+  and its RATIO up, and check the band's own meter moves. Then drag the
+  crossovers and confirm the bands follow.
+
+- UP RATIO on something sparse. Leave RATIO at 1:1, raise UP RATIO, and
+  listen to the space between the hits fill in. This is the part we would
+  most like your ear on: the thresholds are fixed internally and we have
+  not tuned them against anything but our own listening.
+
+- Calm mode, on and off, while playing. Tell us whether the candles and
+  the screen tearing give you enough sense that a note landed, or whether
+  it feels dead compared with the flashing version.
+
+- Load a preset you saved in 1.0.0 and confirm its effects chain is in the
+  order you left it, with COMP added and LIMIT still last.
+
+Install notes
+
+- macOS: signed and notarised. If the new version does not appear, use
+  your host's plug-in manager to rescan, then restart it.
+- Windows: unsigned. Click More info, then Run anyway, at the SmartScreen
+  prompt.
