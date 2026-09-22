@@ -267,7 +267,7 @@ private:
     static constexpr int meterX=readoutRight-meterW;
     // Sits in the meter's row, between the two readout lines, so it needs no
     // extra header height -- which Mike has twice asked to keep down.
-    static constexpr int calmW=86,calmH=22,calmGap=10;
+    static constexpr int calmW=90,calmH=22,calmGap=10;
     static constexpr int calmX=meterX-calmGap-calmW;
 
     static constexpr int randomPad=14,randomColGap=12;

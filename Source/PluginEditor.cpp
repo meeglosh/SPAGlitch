@@ -195,7 +195,8 @@ void CalmButton::paintButton(juce::Graphics& g,bool over,bool down)
     // Deliberately NOT drawGlitchText: the control you reach for when the
     // glitching is the problem must not itself come apart.
     g.setColour(on ? ink : (over||down ? ink.withAlpha(.9f) : muted.brighter(.2f)));
-    g.drawText("Calm mode",bounds.withTrimmedLeft(15.f).withTrimmedRight(3.f),
+    // The dot ends at x+12; the text starts at x+19 so the two do not crowd.
+    g.drawText("Calm mode",bounds.withTrimmedLeft(19.f).withTrimmedRight(3.f),
                juce::Justification::centredLeft);
 }
 
