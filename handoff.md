@@ -1,4 +1,4 @@
-# SPAGlitch handoff (2026-09-21)
+# SPAGlitch handoff (2026-09-22)
 
 Quick "start here" for the next session. SPAGlitch has no `CLAUDE.md`, so
 unlike SPASynth's handoff this one is self-contained: what is here is what
@@ -31,8 +31,8 @@ there is, plus the per-area READMEs it points at.
   band's live gain reduction; only the selected band's six controls are
   shown, the way Pro-MB and C6 do it. In the randomizer, and eight new
   factory presets built around it (48 total). All four ctest suites pass.
-  Nothing is versioned or staged: `CMakeLists.txt` still says 1.0.0, and
-  the bump belongs to whenever a build is actually cut.
+  Cut and staged as **1.0.1** (`dist/SPAGlitch-1.0.1/`), tagged `v1.0.1`,
+  merged to `main`.
 
 - **This started life as an OTT clone and was rebuilt on 2026-09-22 after
   Mike tried it.** The first version exposed OTT's own interface, per band
@@ -94,21 +94,18 @@ had to happen to fit it:
 ## Release artifacts
 
 ```
-dist/SPAGlitch-1.0.0/
-  SPAGlitch-1.0.0-macOS.pkg      346MB  md5 fe41f5d9d473d489172bb81ac79f9238
-  SPAGlitch-1.0.0-Windows.exe    207MB  md5 d983d50ee855ed510447bca81da04546
-  EULA.txt  QUICKSTART.txt  README.txt
+dist/SPAGlitch-1.0.1/                        <- current
+  SPAGlitch-1.0.1-macOS.pkg      378MB  md5 83020f805e5e81e3bfb270f808e9152c
+  SPAGlitch-1.0.1-Windows.exe    222MB  md5 88307bcb587726c6b5ecefe2d88a6426
+                                 (CI run 35780830027, commit 6f7bdcf)
+dist/SPAGlitch-1.0.0/                        <- superseded, never sent
 ```
 
-Folder shape matches SPASynth's (`SPASynth-Standard-1.0.22`) minus the
-edition segment, because **there is one edition and no Pro is planned**
-(Mike, 2026-09-20). Both installers sit at the folder root; no `macOS/` or
-`Windows/` subfolders, deliberately, so the two products hand over
-identically.
-
-macOS pkg verifies as `source=Notarized Developer ID`, origin
-`Developer ID Installer: Kenzora Games (7K9WY5T49S)` — same team as
-SPASynth.
+**Mike sets the version number, not the agent.** This round was cut as
+1.1.0 on the assumption that two features meant a minor bump, and had to
+be rebuilt, re-notarized, re-staged and re-tagged as 1.0.1 when he said
+so. The `v1.1.0` tag was deleted from the public repo. Ask, or use the
+next patch number.
 
 ## Windows signing: the one open item
 
