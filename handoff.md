@@ -6,6 +6,18 @@ there is, plus the per-area READMEs it points at.
 
 ## Where we are
 
+- **2026-09-22: calm mode, on `codex/ott`.** An accessibility mode for
+  photosensitive epilepsy, which Mike raised himself. Normally the
+  background hard-cuts between the calm photograph and one of five electric
+  frames on **every note**, which at playing speed is a flashing image.
+  CALM in the header swaps in a still scene (`Assets/spa-scene.png`) whose
+  35 candles brighten and waver while notes sound, and zeroes the glitch
+  energy so the UI text stops tearing too. Off by default with a one-time
+  notice on first launch offering the choice (Mike's call, 2026-09-22).
+  The setting lives in a per-machine `PropertiesFile`, never in a patch:
+  someone who needs it off needs it off everywhere. Documented at the top
+  of QUICKSTART and in README.
+
 - **2026-09-22: a three-band compressor (`COMP`) is built on `codex/ott`,
   not merged and not released.** FX module id 8, taking the chain to nine.
   Per band: threshold, ratio, up ratio, attack, release, makeup gain. The
@@ -220,6 +232,32 @@ Tool modes on the test binary worth knowing: `--reverb-report`,
   **Check `--fx-screenshots` after adding controls to a tab**, and never
   estimate the column count from the faceplate width: the display takes a
   third of it.
+- **The test suite must not read the machine's real visual settings.** Calm
+  mode is stored in a `PropertiesFile`, so the editor would have rendered
+  differently depending on Mike's own preference, and CI would have differed
+  from local. `VisualSettings::useInMemoryStore()` is called at the top of
+  the test main; anything else added to that file needs the same treatment.
+- **Calm mode is a safety feature, so test the property, not the flag.** The
+  test that matters is that rapid notes cannot make the candle field strobe:
+  ten note-ons a second with a fast attack and a fast release would be a
+  ten-per-second flash, which is squarely in the range that triggers
+  seizures. The slow release is what prevents it, and there is a test
+  asserting the field never falls back toward dark between rapid notes.
+  There is also one that it is *perfectly* still at rest, and one that no
+  two candles sit at the same brightness (a field pulsing in unison would
+  be the large-area flash the mode exists to remove).
+- **Zeroing the zap energy for calm mode silently broke the SIGNAL ACTIVE
+  readout**, which was driven from that same value and so would have read
+  AT REST forever while playing. It has its own `signalEnergy` now. Worth
+  grepping for other readers when a shared animation value gets forced to a
+  constant.
+- **The candle positions were found, not guessed.** A flame is a hot orange
+  core sitting inside a pool of its own warm light, which separates it from
+  the backlit mirror rim and the shelf LEDs in the same photograph; the
+  survivors were then curated by eye against a marked-up render. Reflections
+  were kept deliberately: a reflection flickers with its candle. If the
+  scene image is ever replaced, that analysis has to be redone -- the table
+  in `CandleField.h` is specific to this picture.
 - **A parameter's own skew decides what a randomize window means.** UP RATIO
   spans 1:1 to 10:1 skewed so halfway is 2:1, which puts "off" across most
   of the bottom of the range. A window of 0..0.5 therefore produced 1:1 —

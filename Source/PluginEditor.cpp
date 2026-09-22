@@ -173,6 +173,71 @@ void PanicButton::paintButton(juce::Graphics& g,bool over,bool down)
     const float d=r*0.707f;
     g.drawLine(c.x-d,c.y+d,c.x+d,c.y-d,1.2f);
 }
+void CalmButton::paintButton(juce::Graphics& g,bool over,bool down)
+{
+    const bool on=getToggleState();
+    auto bounds=getLocalBounds().toFloat().reduced(1.f);
+    g.setColour(on ? sage.withAlpha(.24f) : paper.withAlpha(.55f));
+    g.fillRoundedRectangle(bounds,4.f);
+    g.setColour(on ? electric.withAlpha(.8f) : sage.withAlpha(.35f));
+    g.drawRoundedRectangle(bounds.reduced(.5f),4.f,1.f);
+
+    // A filled dot when calm mode is on, hollow when it is not: the state has
+    // to be readable without reading the word.
+    const float r=3.f,cx=bounds.getX()+9.f,cy=bounds.getCentreY();
+    if(on) g.fillEllipse(cx-r,cy-r,r*2,r*2);
+    else   g.drawEllipse(cx-r,cy-r,r*2,r*2,1.f);
+
+    g.setFont(juce::Font(juce::FontOptions(9.f,juce::Font::bold)));
+    // Deliberately NOT drawGlitchText: this is the control you reach for when
+    // the glitching is the problem.
+    g.setColour(on ? ink : (over||down ? ink.withAlpha(.85f) : muted));
+    g.drawText("CALM",bounds.withTrimmedLeft(16.f),juce::Justification::centredLeft);
+}
+
+FlashNotice::FlashNotice()
+{
+    setMouseClickGrabsKeyboardFocus(false);
+    for(auto* b:{&calmChoice,&keepChoice})
+    {
+        b->setMouseClickGrabsKeyboardFocus(false);
+        addAndMakeVisible(*b);
+    }
+    calmChoice.onClick=[this]{ if(onDismiss) onDismiss(true); };
+    keepChoice.onClick=[this]{ if(onDismiss) onDismiss(false); };
+}
+
+void FlashNotice::paint(juce::Graphics& g)
+{
+    g.fillAll(paper.withAlpha(.93f));
+    auto bounds=getLocalBounds().toFloat().reduced(1.f);
+    g.setColour(electric.withAlpha(.5f));
+    g.drawRoundedRectangle(bounds,10.f,1.f);
+
+    auto area=getLocalBounds().reduced(28,22);
+    g.setColour(ink);
+    g.setFont(juce::Font(juce::FontOptions(15.f,juce::Font::bold)));
+    g.drawText("Before you play",area.removeFromTop(22),juce::Justification::centredLeft);
+    area.removeFromTop(8);
+
+    g.setColour(muted);
+    g.setFont(juce::Font(juce::FontOptions(12.f)));
+    g.drawFittedText("SPAGlitch flashes its background image every time a note sounds. "
+                     "If you are sensitive to flashing light, or you have photosensitive "
+                     "epilepsy, use calm mode: the scene stays still and its candles "
+                     "flicker as you play instead.\n\n"
+                     "You can change this at any time with the CALM switch in the header.",
+                     area.removeFromTop(area.getHeight()-42),juce::Justification::topLeft,6);
+}
+
+void FlashNotice::resized()
+{
+    auto row=getLocalBounds().reduced(28,22).removeFromBottom(30);
+    calmChoice.setBounds(row.removeFromLeft(150));
+    row.removeFromLeft(10);
+    keepChoice.setBounds(row.removeFromLeft(150));
+}
+
 GlitchEditor::GlitchEditor(GlitchProcessor& p)
  :AudioProcessorEditor(p),processor(p),keyboard(p.keyboard),
   fxSection(p.parameters,
@@ -202,6 +267,23 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     look.setColour(juce::ToggleButton::tickColourId,ink);
     setLookAndFeel(&look);
     calmImage=juce::ImageCache::getFromMemory(BinaryData::spacalm_png,BinaryData::spacalm_pngSize);
+    sceneImage=juce::ImageCache::getFromMemory(BinaryData::spascene_png,BinaryData::spascene_pngSize);
+
+    // One glow sprite, blitted per candle, rather than a radial gradient per
+    // candle per frame: 35 gradients at 30fps is a lot of software rasterising
+    // for something that is the same shape every time.
+    {
+        constexpr int size=128;
+        candleGlow=juce::Image(juce::Image::ARGB,size,size,true);
+        juce::Graphics gg(candleGlow);
+        const juce::Colour flame(0xffffcf8a);
+        juce::ColourGradient grad(flame.withAlpha(.95f),size*.5f,size*.5f,
+                                  flame.withAlpha(0.f),size*.5f,0.f,true);
+        grad.addColour(.30,juce::Colour(0xffffb25e).withAlpha(.45f));
+        grad.addColour(.62,juce::Colour(0xffff9a3c).withAlpha(.14f));
+        gg.setGradientFill(grad);
+        gg.fillEllipse(0.f,0.f,(float)size,(float)size);
+    }
     const char* images[]{BinaryData::spaelectric1_png,BinaryData::spaelectric2_png,BinaryData::spaelectric3_png,BinaryData::spaelectric4_png,BinaryData::spaelectric5_png};
     const int sizes[]{BinaryData::spaelectric1_pngSize,BinaryData::spaelectric2_pngSize,BinaryData::spaelectric3_pngSize,BinaryData::spaelectric4_pngSize,BinaryData::spaelectric5_pngSize};
     for(size_t i=0;i<electricImages.size();++i) electricImages[i]=juce::ImageCache::getFromMemory(images[i],sizes[i]);
@@ -211,6 +293,27 @@ GlitchEditor::GlitchEditor(GlitchProcessor& p)
     motion.setToggleState(true,juce::dontSendNotification);
     motion.setTooltip("Disable animated lightning, sparks and twitching while retaining the audio-reactive x-ray glow");
     faceplate.addAndMakeVisible(motion);
+
+    calmMode=glitch::VisualSettings::calmMode();
+    calmButton.setToggleState(calmMode,juce::dontSendNotification);
+    calmButton.onClick=[this]{ setCalmMode(calmButton.getToggleState(),true); };
+    faceplate.addAndMakeVisible(calmButton);
+
+    if(!glitch::VisualSettings::hasSeenFlashNotice())
+    {
+        flashNotice=std::make_unique<FlashNotice>();
+        flashNotice->onDismiss=[this](bool enableCalm)
+        {
+            glitch::VisualSettings::setSeenFlashNotice();
+            if(enableCalm)
+            {
+                calmButton.setToggleState(true,juce::dontSendNotification);
+                setCalmMode(true,true);
+            }
+            flashNotice.reset();
+        };
+        faceplate.addAndMakeVisible(*flashNotice);
+    }
     categoryLabel.setText("SAMPLE BANK",juce::dontSendNotification);
     filterLabel.setText("FILTER",juce::dontSendNotification);
     for(int i=0;i<9;++i) category.addItem(glitch::categories[(size_t)i],i+1);
@@ -502,6 +605,10 @@ void GlitchEditor::layoutCanvas()
     filterPower->setBounds(1022,contentTop+42,62,22);
     filter.setBounds(956,contentTop+68,132,30);
     motion.setBounds(956,contentTop+336,132,26);
+    calmButton.setBounds(calmX,meterY-6,calmW,calmH);
+    if(flashNotice!=nullptr)
+        flashNotice->setBounds(juce::Rectangle<int>(0,0,540,210)
+                                   .withCentre({faceplateWidth/2,contentTop+190}));
 
     // The randomize cluster takes the strip of photograph between the cards.
     // Each control is centred in its own column, so it lines up with the
@@ -531,6 +638,38 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     {
         juce::Graphics::ScopedSaveState saved(g);
         juce::Path clip;clip.addRectangle(photoBounds.toFloat());g.reduceClipRegion(clip);
+
+        if(calmMode)
+        {
+            // Calm mode: one still photograph, and the only thing that ever
+            // changes is the candles. No image cut, no lightning, no drift --
+            // the whole point is that nothing here flashes.
+            const auto scene=juce::RectanglePlacement(juce::RectanglePlacement::fillDestination)
+                                 .appliedTo(sceneImage.getBounds().toFloat(),photoBounds.toFloat());
+            g.drawImage(sceneImage,scene,juce::RectanglePlacement::stretchToFit);
+
+            if(candles.isMoving())
+            {
+                const float radius=scene.getWidth()*.034f;
+                for(int i=0;i<glitch::CandleField::numCandles;++i)
+                {
+                    const auto b=candles.brightness(i);
+                    if(b<=.004f) continue;
+                    const auto& candle=glitch::CandleField::candles()[(size_t)i];
+                    const auto cx=scene.getX()+candle.x*scene.getWidth();
+                    const auto cy=scene.getY()+candle.y*scene.getHeight();
+                    // A brighter flame also reaches further, which is what
+                    // makes this read as a flame rather than a fading dot.
+                    const auto r=radius*(.75f+.6f*b);
+                    g.setOpacity(juce::jmin(.92f,b*1.05f));
+                    g.drawImage(candleGlow,juce::Rectangle<float>(cx-r,cy-r,r*2.f,r*2.f),
+                                juce::RectanglePlacement::stretchToFit);
+                }
+                g.setOpacity(1.f);
+            }
+        }
+        else
+        {
         const auto bounds=juce::RectanglePlacement(juce::RectanglePlacement::fillDestination).appliedTo(calmImage.getBounds().toFloat(),photoBounds.toFloat());
         g.drawImage(calmImage,bounds,juce::RectanglePlacement::stretchToFit);
         if(energy>.002f)
@@ -573,6 +712,7 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
                 g.setOpacity(glow*.8f);g.drawImage(electricImage,bounds.translated(dx,dy),juce::RectanglePlacement::stretchToFit);
             }
         }
+        }
     }
 
     // Stable contrast over both the warm photograph and the brightest blast.
@@ -607,10 +747,10 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     glitch::theme::drawGlitchText(g,faceplate,"02  /  ALTER",juce::Rectangle<int>(956,contentTop+8,140,18),
         juce::Justification::left,muted);
     g.setColour(paper.withAlpha(.8f));g.fillRoundedRectangle(192,(float)contentTop+2,136,26,13);
-    glitch::theme::drawGlitchText(g,faceplate,energy>.03f ? "SIGNAL ACTIVE" : "AT REST",
+    glitch::theme::drawGlitchText(g,faceplate,signalEnergy>.03f ? "SIGNAL ACTIVE" : "AT REST",
         juce::Rectangle<int>(214,contentTop+5,108,18),juce::Justification::left,
-        energy>.03f ? electric : muted);
-    g.setColour(energy>.03f ? electric : muted);
+        signalEnergy>.03f ? electric : muted);
+    g.setColour(signalEnergy>.03f ? electric : muted);
     g.fillEllipse(202,(float)contentTop+11,5,5);
     // Backing for the randomize cluster, matching the control cards.
     {
@@ -648,10 +788,44 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
     g.fillRect((float)meterX,(float)meterY+8.f,(float)meterW*std::min(1.f,meterRight),3.f);
 
 }
+void GlitchEditor::setCalmMode(bool on,bool store)
+{
+    if(calmMode==on && !store) return;
+    calmMode=on;
+    if(store) glitch::VisualSettings::setCalmMode(on);
+
+    // Leaving calm mode must not inherit a half-finished zap, and entering it
+    // must not leave one frozen on screen.
+    energy=0.f;
+    shock={};
+    blast={};
+    candles={};
+    wasGlitching=false;
+    wasCandleMoving=false;
+    look.setGlitch(0.f,glitchFrame);
+    canvas.repaint();
+}
+
 void GlitchEditor::timerCallback()
 {
     const float peak=processor.visualPeak.exchange(0,std::memory_order_relaxed);
+    if(calmMode)
+    {
+        // The zap machinery is left completely idle rather than run and
+        // ignored, so there is no path by which a stray repaint could show a
+        // frame of it.
+        candles.advance(peak);
+        energy=0.f;
+        signalEnergy=candles.energy();
+        ++animationFrame;
+        if(candles.isMoving()||wasCandleMoving) canvas.repaint();
+        wasCandleMoving=candles.isMoving();
+        look.setGlitch(0.f,glitchFrame);
+    }
+    else
+    {
     shock.advance(peak,motion.getToggleState());energy=shock.energy();
+    signalEnergy=energy;
     blast.advance(energy,motion.getToggleState());
     ++animationFrame;
     // The zap drives the text as well as the photograph. The glitch frame
@@ -663,6 +837,7 @@ void GlitchEditor::timerCallback()
     look.setGlitch(glitching ? energy : 0.f,glitchFrame);
     if(frameAdvanced || (wasGlitching!=glitching)) canvas.repaint();
     wasGlitching=glitching;
+    }
     meterLeft=std::max(processor.leftPeak.load(),meterLeft*0.85f);
     meterRight=std::max(processor.rightPeak.load(),meterRight*0.85f);
     restoreKeyboardFocus();

@@ -1,6 +1,15 @@
 SPAGlitch Quickstart
 ====================
 
+BEFORE YOU START: FLASHING IMAGES
+   SPAGlitch flashes its background image every time a note sounds. If you
+   are sensitive to flashing light, or you have photosensitive epilepsy,
+   switch on CALM in the header before you play. Calm mode replaces the
+   flashing with a still scene whose candles flicker as you play, and it
+   stays on for every instance and every session until you turn it off.
+
+   The instrument offers you this choice the first time you open it.
+
 1. FIRST SOUND
    Load SPAGlitch in your DAW (or open the standalone app) and play. All 479
    factory sounds install with it, so it makes a noise immediately - no
@@ -16,8 +25,9 @@ SPAGlitch Quickstart
 
 3. BROWSE THE PRESETS
    PRESETS, top left. The browser opens in its own column beside the
-   instrument, so it never covers anything. Forty factory patches, live
-   search, star your favourites, and SAVE to keep your own.
+   instrument, so it never covers anything. Live
+   search, star your favourites, and SAVE to keep your own. Forty-eight
+   factory patches in all.
 
 4. ROLL THE DICE
    The dice in the RANDOMIZE strip rolls a brand-new patch. WILD sets how

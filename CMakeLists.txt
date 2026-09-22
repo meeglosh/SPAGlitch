@@ -23,7 +23,7 @@ juce_add_plugin(SPAGlitch ICON_BIG Assets/branding/app-icon.png ICON_SMALL Asset
 target_sources(SPAGlitch PRIVATE Source/Plugin.cpp Source/GlitchEngine.cpp Source/TubeModel.cpp Source/ContentLoader.cpp Source/PluginEditor.cpp Source/Drawer.cpp Source/MidiLearn.cpp Source/Randomizer.cpp Source/PresetManager.cpp Source/PresetBrowser.cpp Source/MidiLearnMenu.cpp
   Source/fx/FXChain.cpp Source/fx/FXParameters.cpp Source/fx/FXParamSnapshot.cpp Source/fx/FXTheme.cpp Source/fx/FXDisplays.cpp Source/fx/EqEditor.cpp Source/fx/MultibandEditor.cpp Source/fx/FXControls.cpp Source/fx/FXSection.cpp)
 target_compile_definitions(SPAGlitch PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0)
-juce_add_binary_data(SpaArtwork SOURCES Assets/spa-calm.png
+juce_add_binary_data(SpaArtwork SOURCES Assets/spa-calm.png Assets/spa-scene.png
   "Assets/Presets/Aromatherapy Fault.spaglitch"
   "Assets/Presets/Body Polish.spaglitch"
   "Assets/Presets/Brine Pool.spaglitch"

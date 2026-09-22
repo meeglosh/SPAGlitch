@@ -1346,6 +1346,127 @@ static void multibandTests()
     }
 }
 
+// Calm mode exists so that someone with photosensitive epilepsy can use this
+// instrument. These check the properties that makes it worth having, not just
+// that a flag flips.
+static void calmModeTests()
+{
+    using glitch::CandleField;
+
+    // At rest nothing moves at all. Calm mode promises a still photograph, and
+    // a photograph that breathes slightly is not still.
+    {
+        CandleField field;
+        for (int i = 0; i < 120; ++i) field.advance (0.0f);
+        require (field.energy() == 0.0f, "Calm mode must be perfectly still when nothing sounds");
+        require (! field.isMoving(), "An idle candle field must report that it is not moving");
+        for (int c = 0; c < CandleField::numCandles; ++c)
+            require (field.brightness (c) == 0.0f, "An idle candle must add no light at all");
+    }
+
+    // A note lights them, and silence puts them out again.
+    {
+        CandleField field;
+        for (int i = 0; i < 10; ++i) field.advance (0.4f);
+        require (field.energy() > 0.8f, "A sounding note must light the candles");
+
+        bool anyLit = false;
+        for (int c = 0; c < CandleField::numCandles; ++c)
+        {
+            const auto b = field.brightness (c);
+            require (b >= 0.0f && b <= 1.0f, "Candle brightness must stay inside 0..1");
+            if (b > 0.05f) anyLit = true;
+        }
+        require (anyLit, "Lighting the field must actually light candles");
+
+        for (int i = 0; i < 200; ++i) field.advance (0.0f);
+        require (field.energy() == 0.0f, "The candles must settle back to nothing");
+    }
+
+    // The one that matters. Sixteenth notes at 150bpm is ten note-ons a
+    // second; if the field fell back to dark between them it would be a
+    // ten-per-second flash, which is squarely in the range that triggers
+    // seizures. The slow release is what prevents that, so assert it: once
+    // lit, repeated notes must never drop the field back toward dark.
+    {
+        CandleField field;
+        for (int i = 0; i < 12; ++i) field.advance (0.4f);   // settle at full
+        const auto lit = field.energy();
+
+        float lowest = lit;
+        for (int note = 0; note < 40; ++note)
+            for (int frame = 0; frame < 3; ++frame)          // ~10 notes/second at 30fps
+            {
+                field.advance (frame == 0 ? 0.4f : 0.0f);
+                lowest = juce::jmin (lowest, field.energy());
+            }
+
+        require (lowest > lit * 0.75f,
+                 "Rapid notes must not make the candle field strobe");
+    }
+
+    // No two candles waver together: a field pulsing in unison would be the
+    // large-area flash this mode exists to remove.
+    {
+        CandleField field;
+        for (int i = 0; i < 10; ++i) field.advance (0.4f);
+
+        std::set<int> buckets;
+        for (int c = 0; c < CandleField::numCandles; ++c)
+            buckets.insert ((int) (field.brightness (c) * 40.0f));
+        require (buckets.size() > 6, "The candles must not all be at the same brightness");
+    }
+
+    // Calm mode zeroes the zap energy on purpose, and the SIGNAL ACTIVE
+    // readout used to be driven from it. Without its own source that readout
+    // would say AT REST forever, so the instrument would look dead while it
+    // was playing. Checked through the field, which is what now feeds it.
+    {
+        CandleField field;
+        require (field.energy() <= .03f, "A silent instrument must read AT REST");
+        for (int i = 0; i < 10; ++i) field.advance (0.4f);
+        require (field.energy() > .03f, "A playing instrument must read SIGNAL ACTIVE in calm mode");
+    }
+
+    // The editor must actually show a different picture, and must report no
+    // glitch energy at all -- the same energy drives the text tearing, so a
+    // calm instrument with glitching labels would miss half the point.
+    {
+        glitch::VisualSettings::useInMemoryStore();
+        glitch::VisualSettings::setSeenFlashNotice();
+
+        auto render = [] (bool calm)
+        {
+            glitch::VisualSettings::setCalmMode (calm);
+            GlitchProcessor p (juce::File{});
+            std::unique_ptr<juce::AudioProcessorEditor> editor (p.createEditor());
+            require (editor != nullptr, "The processor must build its own editor");
+            editor->setSize (GlitchEditor::faceplateWidth,
+                             dynamic_cast<GlitchEditor*> (editor.get())->designHeight());
+            juce::Image shot (juce::Image::ARGB, editor->getWidth(), editor->getHeight(), true);
+            juce::Graphics g (shot);
+            editor->paintEntireComponent (g, true);
+            return shot;
+        };
+
+        const auto flashing = render (false);
+        const auto calm = render (true);
+        require (flashing.getWidth() == calm.getWidth() && flashing.getHeight() == calm.getHeight(),
+                 "Calm mode must not change the window size");
+
+        int differing = 0;
+        for (int y = 100; y < calm.getHeight() - 200; y += 7)
+            for (int x = 0; x < calm.getWidth(); x += 7)
+                if (calm.getPixelAt (x, y) != flashing.getPixelAt (x, y))
+                    ++differing;
+        require (differing > 200, "Calm mode must show a different background");
+
+        glitch::VisualSettings::setCalmMode (false);
+    }
+
+    std::cout << "PASS: calm mode is still at rest, lights on notes, and cannot strobe\n";
+}
+
 static void fxOrderMigrationTest()
 {
     using Chain = glitch::fx::FXChain;
@@ -1715,6 +1836,47 @@ int main(int argc,char** argv)
                 {false,false,"expanded"},{true,false,"fx-collapsed"},
                 {false,true,"keys-collapsed"},{true,true,"both-collapsed"}};
 
+            {   // The one-time flash notice, as a first-run user meets it.
+                glitch::VisualSettings::useInMemoryStore();
+                auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+                std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+                editor->setSize(editor->designWidth(),editor->designHeight());
+                auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
+                juce::PNGImageFormat format;
+                auto output=directory.getChildFile("flash-notice.png").createOutputStream();
+                require(output!=nullptr,"Notice shot failed");output->setPosition(0);output->truncate();
+                require(format.writeImageToStream(shot,*output),"Notice shot write failed");
+            }
+
+            {   // Calm mode, at rest and with the candles lit, so the one
+                // animation it does have can be checked by eye.
+                glitch::VisualSettings::setSeenFlashNotice();
+                glitch::VisualSettings::setCalmMode(true);
+                auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+                std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+                editor->setSize(editor->designWidth(),editor->designHeight());
+
+                auto shoot=[&](const char* name)
+                {
+                    auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
+                    juce::PNGImageFormat format;
+                    auto output=directory.getChildFile(name).createOutputStream();
+                    require(output!=nullptr,"Calm shot failed");output->setPosition(0);output->truncate();
+                    require(format.writeImageToStream(shot,*output),"Calm shot write failed");
+                };
+
+                juce::Timer::callPendingTimersSynchronously();
+                shoot("calm-at-rest.png");
+
+                p.visualPeak.store(.9f);
+                for(int i=0;i<8;++i)
+                { juce::Thread::sleep(34);juce::Timer::callPendingTimersSynchronously();
+                  p.visualPeak.store(.9f); }
+                shoot("calm-playing.png");
+
+                glitch::VisualSettings::setCalmMode(false);
+            }
+
             {   // Mid-zap: the artwork and every label come apart together.
                 auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
                 std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
@@ -1909,7 +2071,8 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);multibandTests();fxOrderMigrationTest();fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);keyboardFocusTests();
+        glitch::VisualSettings::useInMemoryStore();
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);multibandTests();calmModeTests();fxOrderMigrationTest();fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);keyboardFocusTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }
