@@ -1,5 +1,6 @@
 #include "Randomizer.h"
 #include "fx/FXParameters.h"
+#include "fx/Multiband.h"
 #include "GlitchEngine.h"
 
 namespace glitch::rnd
@@ -80,6 +81,12 @@ const std::vector<Entry>& table()
     { fxid::limDrive, LockGroup::fx, { 0.0f, 0.5f, 0.5f, 0.0f } },
     { fxid::limRelease, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.0f } },
     { fxid::limAutoRelease, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.0f } },
+    // Multiband compressor. The crossovers and MIX belong to the module; the
+    // per-band controls are generated ids and live in multibandTable() below.
+    { fxid::mbEnable, LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.0f } },
+    { fxid::mbMix, LockGroup::fx, { 0.5f, 1.0f, 0.85f, 0.4f } },
+    { fxid::mbXoverLow, LockGroup::fx, { 0.25f, 0.75f, 0.5f, 0.3f } },
+    { fxid::mbXoverHigh, LockGroup::fx, { 0.25f, 0.75f, 0.5f, 0.3f } },
     };
     return entries;
 }
@@ -97,6 +104,33 @@ const std::vector<Entry>& eqBandTable()
             v.push_back ({ fxid::eqBand (b, fxid::eqband::freq),   LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.0f } });
             v.push_back ({ fxid::eqBand (b, fxid::eqband::gain),   LockGroup::fx, { 0.0f, 1.0f, 0.5f, 0.6f } });
             v.push_back ({ fxid::eqBand (b, fxid::eqband::q),      LockGroup::fx, { 0.0f, 1.0f, 0.3f, 0.0f } });
+        }
+        return v;
+    }();
+    return entries;
+}
+// The compressor's three bands are generated ids too. The windows here are
+// what keeps a rolled patch usable: GAIN is held inside +/-6 dB of the +/-24 dB
+// it offers, because one band 24 dB up is not a patch, and UP RATIO is biased
+// hard toward 1:1 (off) so upward compression is something a roll reaches for
+// occasionally rather than every time.
+const std::vector<Entry>& multibandTable()
+{
+    static const std::vector<Entry> entries = []
+    {
+        std::vector<Entry> v;
+        for (int b = 0; b < fx::Multiband::numBands; ++b)
+        {
+            v.push_back ({ fxid::mbBand (b, fxid::mbband::threshold), LockGroup::fx, { 0.35f, 0.85f, 0.6f, 0.3f } });
+            v.push_back ({ fxid::mbBand (b, fxid::mbband::ratio),     LockGroup::fx, { 0.0f, 0.7f, 0.35f, 0.3f } });
+            // Wide, because the parameter's own skew already puts 1:1 to 2:1
+            // across the bottom half of the range: a window of 0..0.5 here
+            // produced 1.0:1 -- upward compression switched off -- in every
+            // roll of the first batch. This spans off to about 7:1.
+            v.push_back ({ fxid::mbBand (b, fxid::mbband::upRatio),   LockGroup::fx, { 0.2f, 1.0f, 0.45f, 0.25f } });
+            v.push_back ({ fxid::mbBand (b, fxid::mbband::attack),    LockGroup::fx, { 0.1f, 0.9f, 0.5f, 0.2f } });
+            v.push_back ({ fxid::mbBand (b, fxid::mbband::release),   LockGroup::fx, { 0.1f, 0.9f, 0.5f, 0.2f } });
+            v.push_back ({ fxid::mbBand (b, fxid::mbband::gain),      LockGroup::fx, { 0.375f, 0.625f, 0.5f, 0.4f } });
         }
         return v;
     }();
@@ -196,6 +230,7 @@ void randomizeAll (juce::AudioProcessorValueTreeState& apvts, float wildness,
     };
     roll (table());
     roll (eqBandTable());
+    roll (multibandTable());
 
     // --- Musicality pass ----------------------------------------------------
     // sampleValue() opens every window toward the full range as WILDNESS rises

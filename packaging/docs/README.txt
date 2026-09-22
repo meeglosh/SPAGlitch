@@ -58,16 +58,34 @@ WHAT IT DOES
   A filter with five modes - low pass, high pass, band pass, notch and peak -
   built from the measured response of the original instrument.
 
-  Eight effects: distortion (soft, hard, fold, crush), chorus, delay, reverb,
-  an 8-band parametric EQ, phaser/flanger, tremolo/vibrato and a limiter.
-  Drag the tabs to reorder the chain; the order is part of the patch.
+  Nine effects: distortion (soft, hard, fold, crush), chorus, delay, reverb,
+  an 8-band parametric EQ, phaser/flanger, tremolo/vibrato, a multiband
+  compressor and a limiter. Drag the tabs to reorder the chain; the order is
+  part of the patch.
 
-  Forty factory presets, and save as many of your own as you like.
+  The multiband compressor splits the signal at two crossovers you drag on
+  its graph, and gives each of the three bands its own threshold, ratio,
+  attack, release and makeup gain. Each band also has an UP RATIO, which
+  compresses upward instead of downward: it lifts what sits below the
+  threshold rather than holding down what sits above it, which is what makes
+  a sparse loop sound dense. Leave it at 1:1 and the band is an ordinary
+  compressor.
+
+  Forty-eight factory presets, and save as many of your own as you like.
 
   Randomize, with a wildness amount and per-group locks. It will not hand you
   a silent patch or a painfully loud one.
 
   MIDI learn on any knob, by right-clicking it.
+
+  Calm mode, for anyone sensitive to flashing light. The background image
+  normally flashes on every note; CALM MODE in the header replaces it with
+  a still scene, where the only movement is the candles flickering and the
+  screens tearing slightly as you play. It turns off the glitch treatment
+  on the instrument's text at the same time. The setting belongs to your
+  machine rather than to a patch, so it holds across every instance and
+  every session. We ask you which you want the first time you open the
+  instrument.
 
 
 GOOD TO KNOW

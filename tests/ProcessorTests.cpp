@@ -5,6 +5,7 @@
 #include "../Source/fx/FXSection.h"
 #include "../Source/PluginEditor.h"
 #include "../Source/Randomizer.h"
+#include "../Source/TechGlitch.h"
 #include "../Source/PresetBrowser.h"
 #include <cmath>
 #include <complex>
@@ -486,7 +487,11 @@ static void fxChainTests(const juce::File& root)
         {fxp::id::tremEnable,"Tremolo",{}},
         {fxp::id::vibEnable,"Vibrato",{}},
         {fxp::id::limEnable,"Limiter",[](GlitchProcessor& p)
-            { parameter(p,fxp::id::limDrive,18.f);parameter(p,fxp::id::limCeiling,-6.f); }}};
+            { parameter(p,fxp::id::limDrive,18.f);parameter(p,fxp::id::limCeiling,-6.f); }},
+        {fxp::id::mbEnable,"Multiband",[](GlitchProcessor& p)
+            { for(int b=0;b<3;++b){
+                parameter(p,fxp::id::mbBand(b,fxp::id::mbband::threshold),-48.f);
+                parameter(p,fxp::id::mbBand(b,fxp::id::mbband::ratio),12.f); } }}};
     for(const auto& module:modules)
     {
         const auto wet=renderNote([&module](GlitchProcessor& p)
@@ -525,7 +530,8 @@ static void fxChainTests(const juce::File& root)
             p.setFxOrder({(int)Chain::Module::distortion,(int)Chain::Module::delay,
                           (int)Chain::Module::chorus,(int)Chain::Module::reverb,
                           (int)Chain::Module::eq,(int)Chain::Module::mod,
-                          (int)Chain::Module::tremVib,(int)Chain::Module::limiter});
+                          (int)Chain::Module::tremVib,(int)Chain::Module::multiband,
+                          (int)Chain::Module::limiter});
         });
         const auto delayFirst=renderNote([&configure](GlitchProcessor& p)
         {
@@ -533,7 +539,8 @@ static void fxChainTests(const juce::File& root)
             p.setFxOrder({(int)Chain::Module::delay,(int)Chain::Module::distortion,
                           (int)Chain::Module::chorus,(int)Chain::Module::reverb,
                           (int)Chain::Module::eq,(int)Chain::Module::mod,
-                          (int)Chain::Module::tremVib,(int)Chain::Module::limiter});
+                          (int)Chain::Module::tremVib,(int)Chain::Module::multiband,
+                          (int)Chain::Module::limiter});
         });
         bool different=false;
         for(int i=0;i<512 && !different;++i)
@@ -546,11 +553,14 @@ static void fxChainTests(const juce::File& root)
     {
         GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
         const auto before=p.getFxOrder();
-        p.setFxOrder({0,0,0,0,0,0,0,0});                       // duplicates
+        p.setFxOrder({0,0,0,0,0,0,0,0,0});                     // duplicates
         require(p.getFxOrder()==before,"A duplicate chain order must be rejected");
-        p.setFxOrder({0,1,2,3,4,5,6});                         // too short
+        // Eight is what the pre-OTT build sent. Arriving through this setter it
+        // is simply incomplete and must be refused; the migration path for a
+        // *stored* eight-module order is unpackOrder, tested separately below.
+        p.setFxOrder({0,1,2,3,4,5,6,7});                       // too short
         require(p.getFxOrder()==before,"A short chain order must be rejected");
-        p.setFxOrder({0,1,2,3,4,5,6,99});                      // out of range
+        p.setFxOrder({0,1,2,3,4,5,6,7,99});                    // out of range
         require(p.getFxOrder()==before,"An out-of-range chain order must be rejected");
     }
 
@@ -560,7 +570,8 @@ static void fxChainTests(const juce::File& root)
         const juce::Array<int> custom{(int)Chain::Module::limiter,(int)Chain::Module::eq,
                                       (int)Chain::Module::tremVib,(int)Chain::Module::mod,
                                       (int)Chain::Module::reverb,(int)Chain::Module::delay,
-                                      (int)Chain::Module::chorus,(int)Chain::Module::distortion};
+                                      (int)Chain::Module::multiband,(int)Chain::Module::chorus,
+                                      (int)Chain::Module::distortion};
         p.setFxOrder(custom);
         parameter(p,fxp::id::reverbMix,0.77f);
         juce::MemoryBlock state;p.getStateInformation(state);
@@ -693,10 +704,10 @@ static void presetTests(const juce::File& root)
         require(favOnly.size()==1 && items[(size_t)favOnly[0]].name=="Beta","Favourites filter");
     }
 
-    // The twenty bundled patches are installed and all load and sound.
+    // The bundled patches are installed and all load and sound.
     const auto& all=p.presets.all();
     int factory=0;for(const auto& info:all) if(!info.isUser) ++factory;
-    require(factory==40,("Expected 40 factory presets, found "+juce::String(factory)).toRawUTF8());
+    require(factory==48,("Expected 48 factory presets, found "+juce::String(factory)).toRawUTF8());
 
     juce::AudioBuffer<float> b(2,512);
     for(const auto& info:all)
@@ -735,13 +746,13 @@ static void presetTests(const juce::File& root)
         const juce::String name("__spaglitch selftest__");
         parameter(p,fxp::id::reverbMix,0.61f);
         parameter(p,"cutoff",321000);
-        const juce::Array<int> order{7,6,5,4,3,2,1,0};
+        const juce::Array<int> order{8,7,6,5,4,3,2,1,0};
         p.setFxOrder(order);
         require(p.presets.save(name),"Saving a user preset must succeed");
 
         parameter(p,fxp::id::reverbMix,0.11f);
         parameter(p,"cutoff",900000);
-        p.setFxOrder({0,1,2,3,4,5,6,7});
+        p.setFxOrder({0,1,2,3,4,5,6,7,8});
 
         const glitch::PresetManager::Info* saved=nullptr;
         for(const auto& info:p.presets.all()) if(info.name==name) saved=&info;
@@ -754,6 +765,28 @@ static void presetTests(const juce::File& root)
         require(std::abs(p.parameters.getRawParameterValue("cutoff")->load()-321000.f)<1.f,
                 "A preset must restore faceplate parameters");
         require(p.getFxOrder()==order,"A preset must restore the FX chain order");
+
+        // A preset saved before a parameter existed must not leave that
+        // parameter holding the previous patch's value. Simulated by stripping
+        // the OTT entries out of a captured patch, which is exactly the shape
+        // every pre-OTT preset on disk has.
+        {
+            parameter(p,fxp::id::mbEnable,1.f);
+            parameter(p,fxp::id::mbMix,0.2f);
+            auto stripped=p.capturePreset().createCopy();
+            for(int i=stripped.getNumChildren();--i>=0;)
+            {
+                const auto child=stripped.getChild(i);
+                if(child.hasType("PARAM")
+                   && child.getProperty("id").toString().startsWith("fxMB."))
+                    stripped.removeChild(i,nullptr);
+            }
+            p.applyPreset(stripped);
+            require(p.parameters.getRawParameterValue(fxp::id::mbEnable)->load()<0.5f,
+                    "A preset without the compressor must switch it off, not inherit it");
+            require(std::abs(p.parameters.getRawParameterValue(fxp::id::mbMix)->load()-1.f)<1e-4f,
+                    "A parameter missing from a preset must return to its default");
+        }
 
         // Instance state must survive loading a patch: the samples stay put,
         // and a MIDI binding is hardware, not sound.
@@ -1135,6 +1168,424 @@ static juce::TabbedButtonBar* findTabBar(juce::Component& parent)
 // The end-to-end drag: a real mouseDrag on a tab button must reorder the strip
 // AND publish the new order to the processor. The unit tests above cover
 // setFxOrder itself; this covers the wiring between the two.
+// The three-band compressor, checked on its own terms: the crossover has to
+// give the signal back unchanged when nothing is compressing, each direction
+// has to actually work, and -- the one that matters for RANDOMIZE -- upward
+// compression must never turn a silent band into a hiss.
+static void multibandTests()
+{
+    using glitch::fx::Multiband;
+
+    constexpr double sr = 48000.0;
+    constexpr int n = 4096;
+
+    auto burst = [] (juce::AudioBuffer<float>& b, float amplitude, int seed)
+    {
+        juce::Random rng (seed);
+        for (int ch = 0; ch < b.getNumChannels(); ++ch)
+            for (int i = 0; i < b.getNumSamples(); ++i)
+                b.setSample (ch, i, amplitude * (rng.nextFloat() * 2.0f - 1.0f));
+    };
+
+    auto rmsRange = [] (const juce::AudioBuffer<float>& b, int start, int count)
+    {
+        double sum = 0.0;
+        for (int i = start; i < start + count; ++i)
+            sum += (double) b.getSample (0, i) * b.getSample (0, i);
+        return std::sqrt (sum / juce::jmax (1, count));
+    };
+    auto rms = [&rmsRange] (const juce::AudioBuffer<float>& b)
+    {
+        return rmsRange (b, 0, b.getNumSamples());
+    };
+    // Attack is milliseconds, so the front of any burst goes through before
+    // the detector has caught up. That is what a compressor is supposed to do,
+    // so the level tests look at the settled second half rather than at a peak
+    // that is really just the leading transient.
+    constexpr int settled = n / 2;
+
+    // Both ratios at 1:1 means the module is three filtered bands summed back
+    // together. A 4th-order Linkwitz-Riley split sums to an allpass rather than
+    // to the identity, so the samples are NOT expected to match -- the energy
+    // is. Comparing RMS is the honest form of "the crossover is transparent".
+    {
+        juce::AudioBuffer<float> b (2, n);
+        burst (b, 0.25f, 4242);
+        const auto before = rms (b);
+
+        Multiband mb; mb.prepare (sr, n);
+        Multiband::Params mp;
+        mp.enable = true;
+        for (auto& band : mp.bands) { band.ratio = 1.0f; band.upRatio = 1.0f; }
+        mb.process (b, mp);
+
+        finite (b);
+        require (std::abs (rms (b) - before) / before < 0.02,
+                 "A compressor at 1:1 must pass the signal through at the same level");
+    }
+
+    // Downward compression on a loud burst must bring it down, and the meter
+    // the UI reads must report it with a sign.
+    {
+        juce::AudioBuffer<float> b (2, n);
+        burst (b, 0.9f, 77);
+        const auto before = rmsRange (b, settled, n - settled);
+
+        Multiband mb; mb.prepare (sr, n);
+        Multiband::Params mp;
+        mp.enable = true;
+        for (auto& band : mp.bands) { band.thresholdDb = -40.0f; band.ratio = 10.0f; }
+        mb.process (b, mp);
+
+        finite (b);
+        require (rmsRange (b, settled, n - settled) < before * 0.7,
+                 "Downward compression must hold down loud material");
+
+        bool anyBandReported = false;
+        for (int band = 0; band < Multiband::numBands; ++band)
+            if (mb.bandGainDb (band) < -0.5f)
+                anyBandReported = true;
+        require (anyBandReported, "The band meter must report the reduction it applied");
+    }
+
+    // Ratio is a ratio: 10:1 must reduce more than 2:1 on the same material.
+    {
+        auto measure = [&] (float ratio)
+        {
+            juce::AudioBuffer<float> b (2, n);
+            burst (b, 0.9f, 77);
+            Multiband mb; mb.prepare (sr, n);
+            Multiband::Params mp;
+            mp.enable = true;
+            for (auto& band : mp.bands) { band.thresholdDb = -40.0f; band.ratio = ratio; }
+            mb.process (b, mp);
+            finite (b);
+            return rmsRange (b, settled, n - settled);
+        };
+        require (measure (10.0f) < measure (2.0f),
+                 "A higher ratio must compress harder than a lower one");
+    }
+
+    // Upward compression on a quiet burst must lift it, and 1:1 must not.
+    {
+        auto measure = [&] (float upRatio)
+        {
+            juce::AudioBuffer<float> b (2, n);
+            burst (b, 0.01f, 99);
+            Multiband mb; mb.prepare (sr, n);
+            Multiband::Params mp;
+            mp.enable = true;
+            for (auto& band : mp.bands) { band.ratio = 1.0f; band.upRatio = upRatio; }
+            mb.process (b, mp);
+            finite (b);
+            return rmsRange (b, settled, n - settled);
+        };
+        const auto off = measure (1.0f);
+        require (measure (8.0f) > off * 1.5,
+                 "Upward compression must lift quiet material");
+    }
+
+    // The one that protects RANDOMIZE: full upward compression on silence must
+    // stay silent, and on a -84 dBFS noise floor must not haul it up into
+    // something audible. Without the taper in Multiband::process this is a
+    // hiss swell, and a randomized patch would eventually ship one.
+    {
+        Multiband::Params mp;
+        mp.enable = true;
+        for (auto& band : mp.bands) { band.ratio = 1.0f; band.upRatio = 8.0f; }
+
+        juce::AudioBuffer<float> silent (2, n);
+        silent.clear();
+        Multiband mb; mb.prepare (sr, n);
+        mb.process (silent, mp);
+        finite (silent);
+        require (silent.getMagnitude (0, n) < 1.0e-6f,
+                 "Silence must stay silent however hard the band is compressing upward");
+
+        juce::AudioBuffer<float> floorNoise (2, n);
+        burst (floorNoise, 6.0e-5f, 5);     // about -84 dBFS
+        const auto before = floorNoise.getMagnitude (0, n);
+        Multiband quiet; quiet.prepare (sr, n);
+        quiet.process (floorNoise, mp);
+        finite (floorNoise);
+        require (floorNoise.getMagnitude (0, n) < before * 4.0f,
+                 "Upward compression must not lift the noise floor into audibility");
+    }
+
+    // MIX is a wet/dry control, so at zero the module must be inaudible even
+    // with both directions working hard.
+    {
+        juce::AudioBuffer<float> b (2, n), reference (2, n);
+        burst (b, 0.3f, 1234);
+        reference.makeCopyOf (b);
+
+        Multiband mb; mb.prepare (sr, n);
+        Multiband::Params mp;
+        mp.enable = true;
+        mp.mix = 0.0f;
+        for (auto& band : mp.bands) { band.thresholdDb = -40.0f; band.ratio = 10.0f; band.upRatio = 8.0f; }
+        mb.process (b, mp);
+
+        for (int i = 0; i < n; ++i)
+            require (std::abs (b.getSample (0, i) - reference.getSample (0, i)) < 1.0e-6f,
+                     "A compressor at zero mix must leave the signal untouched");
+    }
+
+    // Crossovers that arrive the wrong way round must not invert the mid band.
+    {
+        juce::AudioBuffer<float> b (2, n);
+        burst (b, 0.25f, 31);
+        Multiband mb; mb.prepare (sr, n);
+        Multiband::Params mp;
+        mp.enable = true;
+        mp.crossoverLowHz = 8000.0f;    // above the upper one
+        mp.crossoverHighHz = 100.0f;
+        for (auto& band : mp.bands) { band.ratio = 1.0f; band.upRatio = 1.0f; }
+        mb.process (b, mp);
+        finite (b);
+        require (b.getMagnitude (0, n) > 0.0f, "A reversed crossover must still pass audio");
+    }
+}
+
+// Calm mode exists so that someone with photosensitive epilepsy can use this
+// instrument. These check the properties that makes it worth having, not just
+// that a flag flips.
+static void calmModeTests()
+{
+    using glitch::CandleField;
+
+    // At rest nothing moves at all. Calm mode promises a still photograph, and
+    // a photograph that breathes slightly is not still.
+    {
+        CandleField field;
+        for (int i = 0; i < 120; ++i) field.advance (0.0f);
+        require (field.energy() == 0.0f, "Calm mode must be perfectly still when nothing sounds");
+        require (! field.isMoving(), "An idle candle field must report that it is not moving");
+        for (int c = 0; c < CandleField::numCandles; ++c)
+            require (field.brightness (c) == 0.0f, "An idle candle must add no light at all");
+    }
+
+    // A note lights them, and silence puts them out again.
+    {
+        CandleField field;
+        for (int i = 0; i < 10; ++i) field.advance (0.4f);
+        require (field.energy() > 0.8f, "A sounding note must light the candles");
+
+        bool anyLit = false;
+        for (int c = 0; c < CandleField::numCandles; ++c)
+        {
+            const auto b = field.brightness (c);
+            require (b >= 0.0f && b <= 1.0f, "Candle brightness must stay inside 0..1");
+            if (b > 0.05f) anyLit = true;
+        }
+        require (anyLit, "Lighting the field must actually light candles");
+
+        for (int i = 0; i < 200; ++i) field.advance (0.0f);
+        require (field.energy() == 0.0f, "The candles must settle back to nothing");
+    }
+
+    // The one that matters. Sixteenth notes at 150bpm is ten note-ons a
+    // second; if the field fell back to dark between them it would be a
+    // ten-per-second flash, which is squarely in the range that triggers
+    // seizures. The slow release is what prevents that, so assert it: once
+    // lit, repeated notes must never drop the field back toward dark.
+    {
+        CandleField field;
+        for (int i = 0; i < 12; ++i) field.advance (0.4f);   // settle at full
+        const auto lit = field.energy();
+
+        float lowest = lit;
+        for (int note = 0; note < 40; ++note)
+            for (int frame = 0; frame < 3; ++frame)          // ~10 notes/second at 30fps
+            {
+                field.advance (frame == 0 ? 0.4f : 0.0f);
+                lowest = juce::jmin (lowest, field.energy());
+            }
+
+        require (lowest > lit * 0.75f,
+                 "Rapid notes must not make the candle field strobe");
+    }
+
+    // No two candles waver together: a field pulsing in unison would be the
+    // large-area flash this mode exists to remove.
+    {
+        CandleField field;
+        for (int i = 0; i < 10; ++i) field.advance (0.4f);
+
+        std::set<int> buckets;
+        for (int c = 0; c < CandleField::numCandles; ++c)
+            buckets.insert ((int) (field.brightness (c) * 40.0f));
+        require (buckets.size() > 6, "The candles must not all be at the same brightness");
+    }
+
+    // Calm mode zeroes the zap energy on purpose, and the SIGNAL ACTIVE
+    // readout used to be driven from it. Without its own source that readout
+    // would say AT REST forever, so the instrument would look dead while it
+    // was playing. Checked through the field, which is what now feeds it.
+    {
+        CandleField field;
+        require (field.energy() <= .03f, "A silent instrument must read AT REST");
+        for (int i = 0; i < 10; ++i) field.advance (0.4f);
+        require (field.energy() > .03f, "A playing instrument must read SIGNAL ACTIVE in calm mode");
+    }
+
+    // The tech elements tear as notes land. Same constraint as the candles:
+    // it has to emphasise playing without becoming a strobe on a photograph.
+    {
+        using glitch::TechGlitch;
+        TechGlitch tech;
+        TechGlitch::Slice slices[TechGlitch::maxSlices];
+
+        for (int i = 0; i < 60; ++i) tech.advance (0.0f);
+        require (! tech.isActive(), "The tech must be still when nothing sounds");
+        require (tech.buildSlices (slices) == 0, "A silent instrument must tear nothing");
+
+        for (int i = 0; i < 10; ++i) tech.advance (0.4f);
+        const auto count = tech.buildSlices (slices);
+        require (count > 0, "A sounding note must tear the tech");
+        require (count <= TechGlitch::maxSlices, "The slice count must stay bounded");
+
+        for (int i = 0; i < count; ++i)
+        {
+            const auto& s = slices[i];
+            require (juce::isPositiveAndBelow (s.region, TechGlitch::numRegions),
+                     "A slice must name a real region");
+            require (s.y >= 0.0f && s.y + s.height <= 1.0f,
+                     "A slice must stay inside its region");
+            // A displacement this small cannot read as a large-area change,
+            // which is the whole basis for this being safe.
+            require (std::abs (s.offset) < 0.02f, "Tear displacement must stay small");
+        }
+
+        // However fast the notes arrive, the pattern must not change faster
+        // than about six times a second -- otherwise it is a strobe that
+        // happens to be made of photograph.
+        int changes = 0;
+        TechGlitch::Slice previous[TechGlitch::maxSlices];
+        tech.buildSlices (previous);
+        for (int frame = 0; frame < 90; ++frame)     // three seconds at 30fps
+        {
+            // Alternating, so every other frame is a fresh onset -- fifteen a
+            // second, which is what the limiter exists to cap. Holding the
+            // note down instead would produce no onsets at all and the test
+            // would pass without exercising anything.
+            tech.advance (frame % 2 == 0 ? 0.4f : 0.0f);
+            TechGlitch::Slice now[TechGlitch::maxSlices];
+            const auto n = tech.buildSlices (now);
+            if (n > 0 && (previous[0].region != now[0].region
+                          || std::abs (previous[0].y - now[0].y) > 1.0e-6f))
+                ++changes;
+            for (int i = 0; i < n; ++i) previous[i] = now[i];
+        }
+        require (changes <= 20, "The tear pattern must not change faster than ~6 times a second");
+        require (changes > 4, "...and must still change at all, or the bound above proves nothing");
+
+        for (int i = 0; i < 200; ++i) tech.advance (0.0f);
+        require (! tech.isActive(), "The tech must settle back to still");
+    }
+
+    // The editor must actually show a different picture, and must report no
+    // glitch energy at all -- the same energy drives the text tearing, so a
+    // calm instrument with glitching labels would miss half the point.
+    {
+        glitch::VisualSettings::useInMemoryStore();
+        glitch::VisualSettings::setSeenFlashNotice();
+
+        auto render = [] (bool calm)
+        {
+            glitch::VisualSettings::setCalmMode (calm);
+            GlitchProcessor p (juce::File{});
+            std::unique_ptr<juce::AudioProcessorEditor> editor (p.createEditor());
+            require (editor != nullptr, "The processor must build its own editor");
+            editor->setSize (GlitchEditor::faceplateWidth,
+                             dynamic_cast<GlitchEditor*> (editor.get())->designHeight());
+            juce::Image shot (juce::Image::ARGB, editor->getWidth(), editor->getHeight(), true);
+            juce::Graphics g (shot);
+            editor->paintEntireComponent (g, true);
+            return shot;
+        };
+
+        const auto flashing = render (false);
+        const auto calm = render (true);
+        require (flashing.getWidth() == calm.getWidth() && flashing.getHeight() == calm.getHeight(),
+                 "Calm mode must not change the window size");
+
+        int differing = 0;
+        for (int y = 100; y < calm.getHeight() - 200; y += 7)
+            for (int x = 0; x < calm.getWidth(); x += 7)
+                if (calm.getPixelAt (x, y) != flashing.getPixelAt (x, y))
+                    ++differing;
+        require (differing > 200, "Calm mode must show a different background");
+
+        glitch::VisualSettings::setCalmMode (false);
+    }
+
+    std::cout << "PASS: calm mode is still at rest, lights on notes, and cannot strobe\n";
+}
+
+static void fxOrderMigrationTest()
+{
+    using Chain = glitch::fx::FXChain;
+
+    // Pack exactly as the pre-OTT build did: eight nibbles, nothing above.
+    const int legacyIds[8] { (int) Chain::Module::limiter, (int) Chain::Module::eq,
+                             (int) Chain::Module::tremVib, (int) Chain::Module::mod,
+                             (int) Chain::Module::reverb,  (int) Chain::Module::delay,
+                             (int) Chain::Module::chorus,  (int) Chain::Module::distortion };
+    juce::uint64 packed = 0;
+    for (int i = 0; i < 8; ++i)
+        packed |= (juce::uint64) legacyIds[i] << (i * 4);
+
+    Chain::Module order[Chain::numModules];
+    Chain::unpackOrder (packed, order);
+
+    for (int i = 0; i < 8; ++i)
+        require ((int) order[i] == legacyIds[i],
+                 "A pre-OTT chain order must survive, module for module");
+    require (order[8] == Chain::Module::multiband,
+             "A pre-OTT chain order must gain OTT on the end");
+
+    // The same order with the limiter last: OTT must go in FRONT of it, or
+    // every saved preset quietly stops ending in the limiter.
+    const int limiterLastIds[8] { (int) Chain::Module::distortion, (int) Chain::Module::chorus,
+                                  (int) Chain::Module::mod,        (int) Chain::Module::tremVib,
+                                  (int) Chain::Module::delay,      (int) Chain::Module::reverb,
+                                  (int) Chain::Module::eq,         (int) Chain::Module::limiter };
+    juce::uint64 limiterLastPacked = 0;
+    for (int i = 0; i < 8; ++i)
+        limiterLastPacked |= (juce::uint64) limiterLastIds[i] << (i * 4);
+
+    Chain::Module migrated[Chain::numModules];
+    Chain::unpackOrder (limiterLastPacked, migrated);
+    for (int i = 0; i < 7; ++i)
+        require ((int) migrated[i] == limiterLastIds[i],
+                 "Migration must not disturb the modules before the limiter");
+    require (migrated[7] == Chain::Module::multiband,
+             "A migrated module must land in front of a trailing limiter");
+    require (migrated[8] == Chain::Module::limiter,
+             "Migration must leave the limiter last");
+
+    // And a genuine nine-module order that happens to end with module 0 must
+    // still read as itself -- that is the case the migration could plausibly
+    // steal, and the reason unpackExactly insists the rest of the word is
+    // empty.
+    Chain::Module trailing[Chain::numModules] {
+        Chain::Module::chorus, Chain::Module::delay, Chain::Module::reverb,
+        Chain::Module::eq, Chain::Module::mod, Chain::Module::tremVib,
+        Chain::Module::limiter, Chain::Module::multiband, Chain::Module::distortion };
+    Chain::Module readBack[Chain::numModules];
+    Chain::unpackOrder (Chain::packOrder (trailing), readBack);
+    for (int i = 0; i < Chain::numModules; ++i)
+        require (readBack[i] == trailing[i],
+                 "A full order ending in module 0 must not be mistaken for a short one");
+
+    // A real permutation still round trips, and rubbish still falls back.
+    Chain::Module rubbish[Chain::numModules];
+    Chain::unpackOrder (0xFFFFFFFFFFFFFFFFull, rubbish);
+    for (int i = 0; i < Chain::numModules; ++i)
+        require ((int) rubbish[i] == i, "An unreadable chain order must fall back to the natural one");
+}
+
 static void fxDragReorderTest()
 {
     GlitchProcessor p(juce::File{});
@@ -1441,6 +1892,47 @@ int main(int argc,char** argv)
                 {false,false,"expanded"},{true,false,"fx-collapsed"},
                 {false,true,"keys-collapsed"},{true,true,"both-collapsed"}};
 
+            {   // The one-time flash notice, as a first-run user meets it.
+                glitch::VisualSettings::useInMemoryStore();
+                auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+                std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+                editor->setSize(editor->designWidth(),editor->designHeight());
+                auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
+                juce::PNGImageFormat format;
+                auto output=directory.getChildFile("flash-notice.png").createOutputStream();
+                require(output!=nullptr,"Notice shot failed");output->setPosition(0);output->truncate();
+                require(format.writeImageToStream(shot,*output),"Notice shot write failed");
+            }
+
+            {   // Calm mode, at rest and with the candles lit, so the one
+                // animation it does have can be checked by eye.
+                glitch::VisualSettings::setSeenFlashNotice();
+                glitch::VisualSettings::setCalmMode(true);
+                auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
+                std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
+                editor->setSize(editor->designWidth(),editor->designHeight());
+
+                auto shoot=[&](const char* name)
+                {
+                    auto shot=editor->createComponentSnapshot(editor->getLocalBounds());
+                    juce::PNGImageFormat format;
+                    auto output=directory.getChildFile(name).createOutputStream();
+                    require(output!=nullptr,"Calm shot failed");output->setPosition(0);output->truncate();
+                    require(format.writeImageToStream(shot,*output),"Calm shot write failed");
+                };
+
+                juce::Timer::callPendingTimersSynchronously();
+                shoot("calm-at-rest.png");
+
+                p.visualPeak.store(.9f);
+                for(int i=0;i<8;++i)
+                { juce::Thread::sleep(34);juce::Timer::callPendingTimersSynchronously();
+                  p.visualPeak.store(.9f); }
+                shoot("calm-playing.png");
+
+                glitch::VisualSettings::setCalmMode(false);
+            }
+
             {   // Mid-zap: the artwork and every label come apart together.
                 auto* editor=dynamic_cast<GlitchEditor*>(p.createEditor());
                 std::unique_ptr<juce::AudioProcessorEditor> owned(editor);
@@ -1500,10 +1992,16 @@ int main(int argc,char** argv)
                 "Marble Bench","Paraffin Dip","Lavender Overdose","Slipper Static",
                 "Brine Pool","Cold Towel Snap","Exfoliant Grain","Reception Chime",
                 "Mud Chamber","Charcoal Rinse","Humidity Fault","Reflexology Map",
-                "Ice Fountain","Gong Misfire","Cotton Gown","Late Cancellation"};
+                "Ice Fountain","Gong Misfire","Cotton Gown","Late Cancellation",
+                // Multiband round.
+                "Pressure Suite","Hydrotherapy Jet","Compression Wrap","Steam Valve",
+                "Body Polish","Thermal Blanket","Percussive Massage","Closing Bell"};
             GlitchProcessor p(juce::File{});p.prepareToPlay(48000,512);
             juce::File out(argv[2]);require(out.createDirectory().wasOk(),"Preset dir failed");
 
+            // Index of the first name in the multiband round (see the list).
+            constexpr int multibandRoundStart=40;
+            int written=0,kept=0;
             for(int i=0;i<(int)std::size(names);++i)
             {
                 // Sweep wildness across the set so the twenty are not all the
@@ -1511,6 +2009,11 @@ int main(int argc,char** argv)
                 p.setRandomWildness(0.2f+0.6f*(float)(i%5)/4.f);
                 auto rng=glitch::rnd::seededGenerator(9000+i*37);
                 p.randomizeAll(rng);
+                // The multiband round exists to show the module off, and a
+                // coin-flip enable left five of the eight without it.
+                // Everything else about these is still the roll.
+                if(i>=multibandRoundStart)
+                    parameter(p,glitch::fx::params::id::mbEnable,1.f);
 
                 auto tree=p.capturePreset();
                 juce::ValueTree wrapper("SPAGlitchPreset");
@@ -1518,9 +2021,18 @@ int main(int argc,char** argv)
                 for(const auto& child:tree) wrapper.appendChild(child.createCopy(),nullptr);
                 auto xml=wrapper.createXml();require(xml!=nullptr,"Preset XML failed");
                 auto file=out.getChildFile(juce::String(names[i])+".spaglitch");
+                // A shipped preset is an artifact, not a derived file. Adding a
+                // parameter to the randomize table shifts every later draw in
+                // the stream, so re-rolling seed N no longer reproduces the
+                // preset seed N produced before -- regenerating in place would
+                // silently rewrite sounds people already have. Only the names
+                // that have no file yet are written; delete one by hand to
+                // deliberately re-roll it.
+                if(file.existsAsFile()) { ++kept; continue; }
                 require(file.replaceWithText(xml->toString()),"Preset write failed");
+                ++written;
             }
-            std::cout<<"Wrote "<<std::size(names)<<" factory presets\n";
+            std::cout<<"Wrote "<<written<<" factory presets, kept "<<kept<<" already on disk\n";
             return 0;
         }
         if(argc==2 && juce::String(argv[1])=="--reverb-report")
@@ -1615,7 +2127,8 @@ int main(int argc,char** argv)
             output->setPosition(0); output->truncate();
             require(format.writeImageToStream(shot,*output),"Screenshot write failed");return 0;
         }
-        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);keyboardFocusTests();
+        glitch::VisualSettings::useInMemoryStore();
+        shockTests();Scratch scratch;processorTests(scratch.root);libraryTests(scratch.root);engineTests();callbackParityTests();measuredReleaseTest();tubeStabilityTest();loFiClockTest();adaptiveFilterTests();fxChainTests(scratch.root);multibandTests();calmModeTests();fxOrderMigrationTest();fxDragReorderTest();{GlitchProcessor lp(juce::File{});editorLayoutTests(lp);}drawerStateTests();destroyStageRetirementTests();xrayFollowsNotesTest(scratch.root);filterTypeTests(scratch.root);midiLearnTests(scratch.root);randomizeTests(scratch.root);presetTests(scratch.root);keyboardFocusTests();
         return 0;
     }
     catch(const std::exception& e) { std::cerr<<"FAIL: "<<e.what()<<'\n';return 1; }

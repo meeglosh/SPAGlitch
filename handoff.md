@@ -6,6 +6,47 @@ there is, plus the per-area READMEs it points at.
 
 ## Where we are
 
+- **2026-09-22: calm mode, on `codex/ott`.** An accessibility mode for
+  photosensitive epilepsy, which Mike raised himself. Normally the
+  background hard-cuts between the calm photograph and one of five electric
+  frames on **every note**, which at playing speed is a flashing image.
+  CALM MODE in the header swaps in a still scene (`Assets/spa-scene.png`)
+  where 35 candles brighten and waver while notes sound and six tech
+  regions -- the mirror, the column, the counter, the floor reflections,
+  the geode, the disco ball -- tear sideways by a few pixels, and zeroes
+  the glitch energy so the UI text stops tearing too. The tear is a
+  sideways *copy* of the picture, so the region's luminance barely changes;
+  it is a spatial shift rather than a flash, which is what makes it safe
+  where the zap is not. Its pattern only changes on a note onset and never
+  more than about six times a second however fast the notes come. Off by default with a one-time
+  notice on first launch offering the choice (Mike's call, 2026-09-22).
+  The setting lives in a per-machine `PropertiesFile`, never in a patch:
+  someone who needs it off needs it off everywhere. Documented at the top
+  of QUICKSTART and in README.
+
+- **2026-09-22: a three-band compressor (`COMP`) is built on `codex/ott`,
+  not merged and not released.** FX module id 8, taking the chain to nine.
+  Per band: threshold, ratio, up ratio, attack, release, makeup gain. The
+  two crossovers are dragged on the tab's own graph, which also shows each
+  band's live gain reduction; only the selected band's six controls are
+  shown, the way Pro-MB and C6 do it. In the randomizer, and eight new
+  factory presets built around it (48 total). All four ctest suites pass.
+  Nothing is versioned or staged: `CMakeLists.txt` still says 1.0.0, and
+  the bump belongs to whenever a build is actually cut.
+
+- **This started life as an OTT clone and was rebuilt on 2026-09-22 after
+  Mike tried it.** The first version exposed OTT's own interface, per band
+  an UP and a DOWN "amount" plus DEPTH and TIME, and his verdict was that
+  it was "incredibly difficult to understand" - from someone very
+  experienced with multiband compressors. The amounts hid the threshold and
+  ratio you actually reason about, so it read as neither OTT's three-macro
+  simplicity nor a legible compressor. **The lesson is about the questions,
+  not the DSP**: the first round asked how *much* of OTT's control set to
+  expose and never asked whether OTT's control set was the right one. The
+  upward half survives as UP RATIO, the same idea in standard terms. The
+  name went with it, so the earlier "call it OTT" decision is void - it was
+  about a module that no longer exists.
+
 - **2026-09-21: v1.0.0 is tagged, merged to `main`, and staged. Nothing is
   waiting on the agent.** The whole FX round was built in one session on
   `codex/fx-chain`, merged to `main` (`7bf8cbd`), README de-dev-ified
@@ -172,6 +213,69 @@ Tool modes on the test binary worth knowing: `--reverb-report`,
   because CI passes `/DBuildTag`. Run the suite locally before pushing.
 - **Installer HTML needs `<meta charset="utf-8">`** or you get `Â·`
   mojibake, which Mike will screenshot.
+- **Appending an FX module breaks every saved chain order unless you
+  migrate it.** The order packs 4 bits per module; a state written when
+  there were eight packs eight nibbles and leaves the ninth at zero, which
+  reads as a duplicate of module 0 and throws the user's whole chain away.
+  `FXChain::unpackOrder` now falls back through shorter lengths and appends
+  what is missing — **in front of a trailing limiter**, not behind it, or
+  every factory preset silently stops ending in the limiter. There is a test
+  for both halves of that.
+- **A preset only stores the parameters that existed when it was saved.**
+  `applyPreset` iterated the tree, so anything added since kept the previous
+  patch's value: every older preset would have inherited whatever the last
+  patch left switched on. It now resets absent parameters to defaults, and
+  an absent `fxOrder` to the default order.
+- **A shipped preset is an artifact, not a derived file.** Adding an entry
+  to the randomize table shifts every later draw in the stream, so re-rolling
+  seed N no longer reproduces the preset seed N produced before.
+  `--generate-factory-presets` therefore refuses to overwrite a file that
+  already exists; delete one by hand to deliberately re-roll it.
+- **`FXTab::displayWidthFraction` decides how many knobs fit per row.** At
+  the limiter's 0.46 the grid gets seven columns, and a fifteen-control tab
+  wrapped onto a third row that the FX band has no height for — the last
+  knob was simply cut off. Screenshots caught it; the layout tests did not.
+  **Check `--fx-screenshots` after adding controls to a tab**, and never
+  estimate the column count from the faceplate width: the display takes a
+  third of it.
+- **The test suite must not read the machine's real visual settings.** Calm
+  mode is stored in a `PropertiesFile`, so the editor would have rendered
+  differently depending on Mike's own preference, and CI would have differed
+  from local. `VisualSettings::useInMemoryStore()` is called at the top of
+  the test main; anything else added to that file needs the same treatment.
+- **Calm mode is a safety feature, so test the property, not the flag.** The
+  test that matters is that rapid notes cannot make the candle field strobe:
+  ten note-ons a second with a fast attack and a fast release would be a
+  ten-per-second flash, which is squarely in the range that triggers
+  seizures. The slow release is what prevents it, and there is a test
+  asserting the field never falls back toward dark between rapid notes.
+  There is also one that it is *perfectly* still at rest, and one that no
+  two candles sit at the same brightness (a field pulsing in unison would
+  be the large-area flash the mode exists to remove).
+- **A rate-limit test that holds a note down tests nothing.** The tear
+  pattern advances on note *onsets*, so feeding it a sounding note every
+  frame produces no onsets at all and the bound passes without exercising
+  the limiter. It alternates on/off now, and asserts both an upper bound
+  (not a strobe) and a lower one (it still moves, so the upper bound means
+  something).
+- **Zeroing the zap energy for calm mode silently broke the SIGNAL ACTIVE
+  readout**, which was driven from that same value and so would have read
+  AT REST forever while playing. It has its own `signalEnergy` now. Worth
+  grepping for other readers when a shared animation value gets forced to a
+  constant.
+- **The candle positions were found, not guessed.** A flame is a hot orange
+  core sitting inside a pool of its own warm light, which separates it from
+  the backlit mirror rim and the shelf LEDs in the same photograph; the
+  survivors were then curated by eye against a marked-up render. Reflections
+  were kept deliberately: a reflection flickers with its candle. If the
+  scene image is ever replaced, that analysis has to be redone -- the table
+  in `CandleField.h` is specific to this picture.
+- **A parameter's own skew decides what a randomize window means.** UP RATIO
+  spans 1:1 to 10:1 skewed so halfway is 2:1, which puts "off" across most
+  of the bottom of the range. A window of 0..0.5 therefore produced 1:1 —
+  upward compression disabled — in every preset of the first generated
+  batch. Read the skew before picking the window, and check a generated
+  batch rather than assuming.
 
 ## Sample hosting and GitHub storage
 
@@ -189,9 +293,12 @@ repos, not per-repo, so check every repo before blaming this one.
 
 ## Branches
 
-`main` is the only branch to work from and has everything. Two `codex/`
-branches remain on the remote and both are fully merged into `main`, so
-neither holds anything and both can be deleted whenever:
+`codex/ott` is the live one (see the top of "Where we are"); it is ahead of
+`main` and not merged.
+
+`main` holds everything through 1.0.0. Two older `codex/` branches remain on
+the remote and both are fully merged into it, so neither holds anything and
+both can be deleted whenever:
 
 - `codex/fx-chain` — the whole 1.0.0 round, merged at `7bf8cbd`.
 - `codex/kontakt-port` — the original port, older still.
@@ -209,7 +316,9 @@ same version number.
 
 - `CMAKE_OSX_DEPLOYMENT_TARGET=13.0`, `arm64;x86_64` for distribution.
 - **Append-only choice orders**: FX module ids, filter modes, EQ band types,
-  reverb/limiter character modes. They are stored in presets as indices.
+  reverb/limiter character modes. They are stored in presets as indices. A
+  new module goes on the end of `FXChain::Module` and nowhere else, and
+  `unpackOrder` has to learn to migrate the shorter orders (see Gotchas).
 - **RT-safety on the audio thread**: no allocation, no locks, no host
   notifications.
 - The per-preset packed `fxOrder` atomic, and its permutation validation in

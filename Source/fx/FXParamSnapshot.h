@@ -21,6 +21,7 @@ struct Snapshot
 
 private:
     void readEqBands (FXChain::Params& p) const;
+    void readMbBands (FXChain::Params& p) const;
 
     static float load (const std::atomic<float>* v) { return v != nullptr ? v->load() : 0.0f; }
 
@@ -90,6 +91,11 @@ private:
     std::atomic<float>* limTruePeak = nullptr;
     std::atomic<float>* limLookahead = nullptr;
     std::atomic<float>* limAutoGain = nullptr;
+    std::atomic<float>* mbEnable = nullptr;
+    std::atomic<float>* mbMix = nullptr;
+    std::atomic<float>* mbXoverLow = nullptr;
+    std::atomic<float>* mbXoverHigh = nullptr;
+    std::array<std::array<std::atomic<float>*, 6>, Multiband::numBands> mbBandValues {};
 
     // [band][enable, type, slope, freq, gain, q]
     std::array<std::array<std::atomic<float>*, 6>, ParametricEQ::numBands> eqBandValues {};

@@ -124,7 +124,11 @@ FXTab::FXTab (juce::AudioProcessorValueTreeState& apvts, params::Section s,
 {
     // EQ is edited entirely on its curve (CHARACTER is its only knob), and the
     // limiter's transfer curve + GR meter want room to be read at a glance.
-    displayWidthFraction = s == params::Section::eq ? 0.80f : 0.46f;
+    // The multiband editor holds its own controls as well as its graph, so it
+    // takes nearly the whole tab; the grid is left with MIX alone.
+    displayWidthFraction = s == params::Section::eq        ? 0.80f
+                         : s == params::Section::multiband ? 0.86f
+                                                           : 0.46f;
     display = std::move (customDisplay);
     if (display != nullptr)
         addAndMakeVisible (*display);
@@ -222,6 +226,7 @@ FXSection::FXSection (juce::AudioProcessorValueTreeState& state,
                       std::function<double()> sampleRateFn,
                       std::function<float()> limiterGainReduction,
                       std::function<float()> limiterOutputPeak,
+                      std::function<float (int)> multibandGain,
                       MidiLearnManager* learn)
     : apvts (state)
 {
@@ -258,6 +263,12 @@ FXSection::FXSection (juce::AudioProcessorValueTreeState& state,
                             std::make_unique<LimiterDisplay> (apvts,
                                                               std::move (limiterGainReduction),
                                                               std::move (limiterOutputPeak)), learn), true);
+
+    tabs.addTab (params::sectionTabNames()[(int) S::multiband], tabBg,
+                 new FXTab (apvts, S::multiband,
+                            std::make_unique<MultibandEditor> (apvts, std::move (multibandGain),
+                                                               learn),
+                            learn), true);
 
     tabs.setModuleNames (params::sectionTabNames());
     tabs.onOrderChanged = [this]

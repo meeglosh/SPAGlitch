@@ -1,6 +1,7 @@
 #pragma once
 #include "FXParameters.h"
 #include "FXTheme.h"
+#include <array>
 
 namespace glitch::fx::ui
 {

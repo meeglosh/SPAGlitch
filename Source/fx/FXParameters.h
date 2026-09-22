@@ -12,7 +12,7 @@
 namespace glitch::fx::params
 {
 
-enum class Section { dist, chorus, delay, reverb, eq, mod, tremVib, limiter, count };
+enum class Section { dist, chorus, delay, reverb, eq, mod, tremVib, limiter, multiband, count };
 inline constexpr int numSections = (int) Section::count;
 
 // Tab labels, indexed by Section AND by FXChain::Module -- the two enums are
@@ -138,6 +138,28 @@ namespace id
     inline constexpr const char* limTruePeak    = "fxLim.truepeak";
     inline constexpr const char* limLookahead   = "fxLim.lookahead";
     inline constexpr const char* limAutoGain    = "fxLim.autogain";
+
+    // Three-band compressor. The per-band controls are generated ids, like the
+    // EQ's bands: band 0 is low, 1 is mid, 2 is high.
+    inline constexpr const char* mbEnable     = "fxMB.enable";
+    inline constexpr const char* mbMix        = "fxMB.mix";
+    inline constexpr const char* mbXoverLow   = "fxMB.xoverlow";
+    inline constexpr const char* mbXoverHigh  = "fxMB.xoverhigh";
+
+    namespace mbband
+    {
+        inline constexpr const char* threshold = "thresh";
+        inline constexpr const char* ratio     = "ratio";
+        inline constexpr const char* upRatio   = "upratio";
+        inline constexpr const char* attack    = "attack";
+        inline constexpr const char* release   = "release";
+        inline constexpr const char* gain      = "gain";
+    }
+    // "fxMB.band0.thresh" and friends.
+    juce::String mbBand (int band, const juce::String& key);
+
+    // Band names as the UI shows them, indexed by band.
+    const juce::StringArray& mbBandNames();
 }
 
 } // namespace glitch::fx::params

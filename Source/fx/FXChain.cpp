@@ -40,6 +40,7 @@ void FXChain::prepare (double newSampleRate, int maxBlockSize)
     modEffect.prepare (sampleRate, maxBlockSize);
     tremVibEffect.prepare (sampleRate, maxBlockSize);
     limiterEffect.prepare (sampleRate, maxBlockSize);
+    multibandEffect.prepare (sampleRate, maxBlockSize);
 
     delayBuffer.setSize (2, (int) (sampleRate * 4.0) + 8);
     delayBuffer.clear();
@@ -63,6 +64,7 @@ void FXChain::reset()
     modEffect.reset();
     tremVibEffect.reset();
     limiterEffect.reset();
+    multibandEffect.reset();
     delayBuffer.clear();
     reverb.reset();
     eq.reset();
@@ -111,6 +113,7 @@ void FXChain::process (juce::AudioBuffer<float>& buffer, const Params& params)
             case Module::tremVib:    if (params.tremEnable || params.vibEnable)
                                                             { processTremVib (buffer, params); } break;
             case Module::limiter:    if (params.limEnable)    processLimiter (buffer, params); break;
+            case Module::multiband:  if (params.mbEnable)     processMultiband (buffer, params); break;
         }
     }
 }
@@ -307,6 +310,17 @@ void FXChain::processLimiter (juce::AudioBuffer<float>& buffer, const Params& p)
     lp.lookahead   = p.limLookahead;
     lp.autoGain    = p.limAutoGain;
     limiterEffect.process (buffer, lp);
+}
+
+void FXChain::processMultiband (juce::AudioBuffer<float>& buffer, const Params& p)
+{
+    Multiband::Params mp;
+    mp.enable           = p.mbEnable;
+    mp.mix              = p.mbMix;
+    mp.crossoverLowHz   = p.mbCrossoverLow;
+    mp.crossoverHighHz  = p.mbCrossoverHigh;
+    mp.bands            = p.mbBands;
+    multibandEffect.process (buffer, mp);
 }
 
 int FXChain::limiterLatencySamples (const Params& p) const

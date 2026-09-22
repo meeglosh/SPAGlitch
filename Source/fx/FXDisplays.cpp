@@ -398,4 +398,5 @@ void LimiterDisplay::paint (juce::Graphics& g)
                 meterArea.reduced (6.0f, 0.0f), juce::Justification::centredRight);
 }
 
+
 } // namespace glitch::fx::ui

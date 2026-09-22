@@ -71,6 +71,18 @@ void Snapshot::bind (juce::AudioProcessorValueTreeState& apvts)
     limTruePeak = apvts.getRawParameterValue (id::limTruePeak);
     limLookahead = apvts.getRawParameterValue (id::limLookahead);
     limAutoGain = apvts.getRawParameterValue (id::limAutoGain);
+    mbEnable = apvts.getRawParameterValue (id::mbEnable);
+    mbMix = apvts.getRawParameterValue (id::mbMix);
+    mbXoverLow = apvts.getRawParameterValue (id::mbXoverLow);
+    mbXoverHigh = apvts.getRawParameterValue (id::mbXoverHigh);
+
+    for (int b = 0; b < Multiband::numBands; ++b)
+    {
+        const char* mbKeys[6] { id::mbband::threshold, id::mbband::ratio, id::mbband::upRatio,
+                                id::mbband::attack, id::mbband::release, id::mbband::gain };
+        for (int k = 0; k < 6; ++k)
+            mbBandValues[(size_t) b][(size_t) k] = apvts.getRawParameterValue (id::mbBand (b, mbKeys[k]));
+    }
 
     for (int b = 0; b < ParametricEQ::numBands; ++b)
     {
@@ -93,6 +105,21 @@ void Snapshot::readEqBands (FXChain::Params& p) const
         band.freq    = load (v[3]);
         band.gainDb  = load (v[4]);
         band.q       = load (v[5]);
+    }
+}
+
+void Snapshot::readMbBands (FXChain::Params& p) const
+{
+    for (int b = 0; b < Multiband::numBands; ++b)
+    {
+        const auto& v = mbBandValues[(size_t) b];
+        auto& band = p.mbBands[(size_t) b];
+        band.thresholdDb = load (v[0]);
+        band.ratio       = load (v[1]);
+        band.upRatio     = load (v[2]);
+        band.attackMs    = load (v[3]);
+        band.releaseMs   = load (v[4]);
+        band.gainDb      = load (v[5]);
     }
 }
 
@@ -164,6 +191,11 @@ void Snapshot::read (FXChain::Params& p, double bpm, juce::uint64 packedOrder) c
     p.limTruePeak = load (limTruePeak) >= 0.5f;
     p.limLookahead = load (limLookahead) >= 0.5f;
     p.limAutoGain = load (limAutoGain) >= 0.5f;
+    p.mbEnable = load (mbEnable) >= 0.5f;
+    p.mbMix = load (mbMix);
+    p.mbCrossoverLow = load (mbXoverLow);
+    p.mbCrossoverHigh = load (mbXoverHigh);
+    readMbBands (p);
 
     readEqBands (p);
     p.bpm = bpm > 0.0 ? bpm : 120.0;

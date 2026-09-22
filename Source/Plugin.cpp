@@ -306,17 +306,33 @@ void GlitchProcessor::applyPreset(const juce::ValueTree& tree)
 {
     // Applied parameter by parameter rather than replaceState, so loading a
     // patch cannot disturb the loaded samples, the MIDI map or the editor.
+    juce::StringArray applied;
     for(const auto& child:tree)
     {
         if(!child.hasType("PARAM")) continue;
-        if(auto* param=parameters.getParameter(child.getProperty("id").toString()))
+        const auto paramID=child.getProperty("id").toString();
+        if(auto* param=parameters.getParameter(paramID))
         {
             const auto value=(float)(double)child.getProperty("value",param->convertFrom0to1(param->getDefaultValue()));
             param->setValueNotifyingHost(param->convertTo0to1(value));
+            applied.add(paramID);
         }
     }
-    if(tree.hasProperty("fxOrder"))
-        fxOrderPacked.store((juce::uint64)(juce::int64)tree.getProperty("fxOrder"),std::memory_order_relaxed);
+    // A preset stores only the parameters that existed when it was saved, so
+    // anything added to the plugin since has to go back to its default rather
+    // than keep whatever the previous patch left it on. Without this, loading
+    // any preset written before OTT existed would inherit the last patch's
+    // OTT, and a preset would stop being a complete description of a sound.
+    for(auto* parameter:getParameters())
+        if(auto* withID=dynamic_cast<juce::AudioProcessorParameterWithID*>(parameter))
+            if(!applied.contains(withID->paramID))
+                withID->setValueNotifyingHost(withID->getDefaultValue());
+
+    // Same reasoning for the chain order: absent means default, not "keep".
+    fxOrderPacked.store(tree.hasProperty("fxOrder")
+                            ? (juce::uint64)(juce::int64)tree.getProperty("fxOrder")
+                            : glitch::fx::FXChain::defaultOrderPacked(),
+                        std::memory_order_relaxed);
 }
 void GlitchProcessor::randomizeAll() { randomizeAll(juce::Random::getSystemRandom()); }
 void GlitchProcessor::randomizeAll(juce::Random& rng)

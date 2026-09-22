@@ -1,6 +1,9 @@
 #pragma once
 #include "Plugin.h"
 #include "ShockAnimation.h"
+#include "CandleField.h"
+#include "TechGlitch.h"
+#include "VisualSettings.h"
 #include "BlastAnimation.h"
 #include "fx/FXTheme.h"
 #include "KeyboardFocus.h"
@@ -72,6 +75,37 @@ public:
 private:
     void paintButton(juce::Graphics&,bool over,bool down) override;
 };
+// Calm mode's switch. Not an APVTS parameter: it is an accessibility setting
+// that belongs to the person at the machine, not to the patch, so it must not
+// travel in a preset or get automated by a host.
+class CalmButton final : public juce::Button
+{
+public:
+    CalmButton():juce::Button("Calm mode")
+    {
+        setTooltip("Calm mode: replaces the flashing background with a still scene whose candles "
+                   "flicker as you play. Recommended if you are sensitive to flashing light.");
+        setClickingTogglesState(true);
+        setMouseClickGrabsKeyboardFocus(false);
+    }
+private:
+    void paintButton(juce::Graphics&,bool over,bool down) override;
+};
+
+// Shown once per machine, before anyone has played a note: the background
+// flashes, and the people most at risk from that cannot find out safely by
+// trying it.
+class FlashNotice final : public juce::Component
+{
+public:
+    FlashNotice();
+    std::function<void(bool enableCalm)> onDismiss;
+    void paint(juce::Graphics&) override;
+    void resized() override;
+private:
+    juce::TextButton calmChoice{"USE CALM MODE"},keepChoice{"KEEP FLASHING"};
+};
+
 // RANDOMIZE ALL's trigger: a die that lands on a new face every time it is
 // clicked, so a roll that happens to change little still reads as a roll.
 class DiceButton final : public juce::Button
@@ -168,10 +202,16 @@ private:
     PanicButton panic;
     juce::TooltipWindow tooltips{this,600};
     juce::ToggleButton motion{"Motion"};
-    juce::Image calmImage;
+    CalmButton calmButton;
+    std::unique_ptr<FlashNotice> flashNotice;
+    juce::Image calmImage,sceneImage,candleGlow;
     std::array<juce::Image,5> electricImages;
     ShockAnimation shock;
     BlastAnimation blast;
+    glitch::CandleField candles;
+    glitch::TechGlitch techGlitch;
+    bool calmMode=false;
+    void setCalmMode(bool on,bool store);
     juce::Rectangle<int> photoBounds;
     juce::ComboBox category,filter;
     std::unique_ptr<glitch::fx::ui::PowerButton> filterPower;
@@ -194,6 +234,10 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> categoryAttachment,filterAttachment;
     float meterLeft=0,meterRight=0;
     float energy=0;
+    // What the instrument is doing, as opposed to what the artwork is doing.
+    // Calm mode holds `energy` at zero on purpose, so the SIGNAL ACTIVE
+    // readout needs its own source or it would never light again.
+    float signalEnergy=0;
     int animationFrame=0;
     int highlighted=-1,lastKeyRange=-1;
     // The chain order can change without the strip being touched -- a roll or
@@ -201,7 +245,7 @@ private:
     // rather than assuming it only ever changes by dragging a tab.
     juce::Array<int> shownFxOrder;
     int glitchTick=0,glitchFrame=0;
-    bool wasGlitching=false;
+    bool wasGlitching=false,wasCandleMoving=false;
     // Invalidates a pending close-completion if the drawer is reopened first.
     int browserAnimSeq=0;
 
@@ -215,12 +259,16 @@ private:
     // RANDOMIZE running into WILD.
     // Header right cluster: the readouts, the meters and panic, as one block
     // ending on a common margin rather than an icon stranded in the corner.
-    static constexpr int panicSize=24,panicGap=14,meterW=132;
+    static constexpr int panicSize=24,panicGap=14,meterW=122;
     static constexpr int headerRight=faceplateWidth-headerMargin;
     static constexpr int panicX=headerRight-panicSize;
     static constexpr int readoutRight=panicX-panicGap;
     static constexpr int readoutX=700;
     static constexpr int meterX=readoutRight-meterW;
+    // Sits in the meter's row, between the two readout lines, so it needs no
+    // extra header height -- which Mike has twice asked to keep down.
+    static constexpr int calmW=90,calmH=22,calmGap=10;
+    static constexpr int calmX=meterX-calmGap-calmW;
 
     static constexpr int randomPad=14,randomColGap=12;
     static constexpr int diceCol=72,wildCol=46,lockCol=204;   // lockCol: 3*66 + 2*3

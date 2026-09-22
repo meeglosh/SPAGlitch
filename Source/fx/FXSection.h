@@ -2,6 +2,7 @@
 #include "FXParameters.h"
 #include "FXControls.h"
 #include "FXDisplays.h"
+#include "MultibandEditor.h"
 #include "EqEditor.h"
 #include "../Drawer.h"
 
@@ -92,6 +93,7 @@ public:
                EqEditor::ScopeReader, std::function<double()> sampleRateFn,
                std::function<float()> limiterGainReduction,
                std::function<float()> limiterOutputPeak,
+               std::function<float (int)> multibandGain,
                MidiLearnManager* learn = nullptr);
     ~FXSection() override;
 
