@@ -242,7 +242,7 @@ const juce::StringArray& id::mbBandNames()
 const juce::StringArray& sectionTabNames()
 {
     static const juce::StringArray names { "DIST", "CHORUS", "DELAY", "REVERB",
-                                           "EQ", "MOD", "TREM/VIB", "LIMIT", "MBAND" };
+                                           "EQ", "MOD", "TREM/VIB", "LIMIT", "COMP" };
     return names;
 }
 

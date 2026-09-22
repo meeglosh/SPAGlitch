@@ -6,7 +6,7 @@ there is, plus the per-area READMEs it points at.
 
 ## Where we are
 
-- **2026-09-22: a three-band compressor (`MBAND`) is built on `codex/ott`,
+- **2026-09-22: a three-band compressor (`COMP`) is built on `codex/ott`,
   not merged and not released.** FX module id 8, taking the chain to nine.
   Per band: threshold, ratio, up ratio, attack, release, makeup gain. The
   two crossovers are dragged on the tab's own graph, which also shows each
