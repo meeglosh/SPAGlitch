@@ -2,6 +2,7 @@
 #include "Plugin.h"
 #include "ShockAnimation.h"
 #include "CandleField.h"
+#include "TechGlitch.h"
 #include "VisualSettings.h"
 #include "BlastAnimation.h"
 #include "fx/FXTheme.h"
@@ -208,6 +209,7 @@ private:
     ShockAnimation shock;
     BlastAnimation blast;
     glitch::CandleField candles;
+    glitch::TechGlitch techGlitch;
     bool calmMode=false;
     void setCalmMode(bool on,bool store);
     juce::Rectangle<int> photoBounds;
@@ -257,7 +259,7 @@ private:
     // RANDOMIZE running into WILD.
     // Header right cluster: the readouts, the meters and panic, as one block
     // ending on a common margin rather than an icon stranded in the corner.
-    static constexpr int panicSize=24,panicGap=14,meterW=132;
+    static constexpr int panicSize=24,panicGap=14,meterW=108;
     static constexpr int headerRight=faceplateWidth-headerMargin;
     static constexpr int panicX=headerRight-panicSize;
     static constexpr int readoutRight=panicX-panicGap;
@@ -265,7 +267,7 @@ private:
     static constexpr int meterX=readoutRight-meterW;
     // Sits in the meter's row, between the two readout lines, so it needs no
     // extra header height -- which Mike has twice asked to keep down.
-    static constexpr int calmW=78,calmH=20,calmGap=10;
+    static constexpr int calmW=100,calmH=20,calmGap=10;
     static constexpr int calmX=meterX-calmGap-calmW;
 
     static constexpr int randomPad=14,randomColGap=12;

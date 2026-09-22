@@ -192,7 +192,7 @@ void CalmButton::paintButton(juce::Graphics& g,bool over,bool down)
     // Deliberately NOT drawGlitchText: this is the control you reach for when
     // the glitching is the problem.
     g.setColour(on ? ink : (over||down ? ink.withAlpha(.85f) : muted));
-    g.drawText("CALM",bounds.withTrimmedLeft(16.f),juce::Justification::centredLeft);
+    g.drawText("Calm mode",bounds.withTrimmedLeft(16.f),juce::Justification::centredLeft);
 }
 
 FlashNotice::FlashNotice()
@@ -648,6 +648,43 @@ void GlitchEditor::paintCanvas(juce::Graphics& g)
                                  .appliedTo(sceneImage.getBounds().toFloat(),photoBounds.toFloat());
             g.drawImage(sceneImage,scene,juce::RectanglePlacement::stretchToFit);
 
+            if(techGlitch.isActive())
+            {
+                // Each slice is the picture redrawn a few pixels sideways.
+                // Same pixels, so the region's brightness barely moves -- what
+                // changes is where they are, which is what a digital tear
+                // actually looks like and is not a flash.
+                glitch::TechGlitch::Slice slices[glitch::TechGlitch::maxSlices];
+                const int count=techGlitch.buildSlices(slices);
+                const auto imgW=(float)sceneImage.getWidth(),imgH=(float)sceneImage.getHeight();
+
+                for(int i=0;i<count;++i)
+                {
+                    const auto& s=slices[i];
+                    const auto& r=glitch::TechGlitch::regions()[(size_t)s.region];
+
+                    const auto srcX=juce::roundToInt(r.x*imgW);
+                    const auto srcW=juce::jmax(1,juce::roundToInt(r.w*imgW));
+                    const auto srcY=juce::roundToInt((r.y+s.y*r.h)*imgH);
+                    const auto srcH=juce::jmax(1,juce::roundToInt(s.height*r.h*imgH));
+
+                    const auto dx=scene.getX()+(r.x+s.offset)*scene.getWidth();
+                    const auto dy=scene.getY()+(r.y+s.y*r.h)*scene.getHeight();
+                    const auto dw=r.w*scene.getWidth();
+                    const auto dh=juce::jmax(1.f,s.height*r.h*scene.getHeight());
+
+                    g.drawImage(sceneImage,juce::roundToInt(dx),juce::roundToInt(dy),
+                                juce::roundToInt(dw),juce::roundToInt(dh),
+                                srcX,srcY,srcW,srcH);
+
+                    // A faint chromatic wash, the colour the tech already is.
+                    g.setColour((s.cyan ? juce::Colour(0xff6fe8ff) : juce::Colour(0xffff5ce0))
+                                    .withAlpha(.16f*techGlitch.energy()));
+                    g.fillRect(dx,dy,dw,dh);
+                }
+                g.setOpacity(1.f);
+            }
+
             if(candles.isMoving())
             {
                 const float radius=scene.getWidth()*.034f;
@@ -800,6 +837,7 @@ void GlitchEditor::setCalmMode(bool on,bool store)
     shock={};
     blast={};
     candles={};
+    techGlitch={};
     wasGlitching=false;
     wasCandleMoving=false;
     look.setGlitch(0.f,glitchFrame);
@@ -815,11 +853,13 @@ void GlitchEditor::timerCallback()
         // ignored, so there is no path by which a stray repaint could show a
         // frame of it.
         candles.advance(peak);
+        techGlitch.advance(peak);
         energy=0.f;
         signalEnergy=candles.energy();
         ++animationFrame;
-        if(candles.isMoving()||wasCandleMoving) canvas.repaint();
-        wasCandleMoving=candles.isMoving();
+        const bool moving=candles.isMoving()||techGlitch.isActive();
+        if(moving||wasCandleMoving) canvas.repaint();
+        wasCandleMoving=moving;
         look.setGlitch(0.f,glitchFrame);
     }
     else

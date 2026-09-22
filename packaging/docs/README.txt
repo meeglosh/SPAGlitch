@@ -79,11 +79,12 @@ WHAT IT DOES
   MIDI learn on any knob, by right-clicking it.
 
   Calm mode, for anyone sensitive to flashing light. The background image
-  normally flashes on every note; CALM in the header replaces it with a
-  still scene whose candles flicker as you play, and turns off the glitch
-  treatment on the instrument's text at the same time. The setting belongs
-  to your machine rather than to a patch, so it holds across every instance
-  and every session. We ask you which you want the first time you open the
+  normally flashes on every note; CALM MODE in the header replaces it with
+  a still scene, where the only movement is the candles flickering and the
+  screens tearing slightly as you play. It turns off the glitch treatment
+  on the instrument's text at the same time. The setting belongs to your
+  machine rather than to a patch, so it holds across every instance and
+  every session. We ask you which you want the first time you open the
   instrument.
 
 

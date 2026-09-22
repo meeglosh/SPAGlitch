@@ -10,9 +10,15 @@ there is, plus the per-area READMEs it points at.
   photosensitive epilepsy, which Mike raised himself. Normally the
   background hard-cuts between the calm photograph and one of five electric
   frames on **every note**, which at playing speed is a flashing image.
-  CALM in the header swaps in a still scene (`Assets/spa-scene.png`) whose
-  35 candles brighten and waver while notes sound, and zeroes the glitch
-  energy so the UI text stops tearing too. Off by default with a one-time
+  CALM MODE in the header swaps in a still scene (`Assets/spa-scene.png`)
+  where 35 candles brighten and waver while notes sound and six tech
+  regions -- the mirror, the column, the counter, the floor reflections,
+  the geode, the disco ball -- tear sideways by a few pixels, and zeroes
+  the glitch energy so the UI text stops tearing too. The tear is a
+  sideways *copy* of the picture, so the region's luminance barely changes;
+  it is a spatial shift rather than a flash, which is what makes it safe
+  where the zap is not. Its pattern only changes on a note onset and never
+  more than about six times a second however fast the notes come. Off by default with a one-time
   notice on first launch offering the choice (Mike's call, 2026-09-22).
   The setting lives in a per-machine `PropertiesFile`, never in a patch:
   someone who needs it off needs it off everywhere. Documented at the top
@@ -246,6 +252,12 @@ Tool modes on the test binary worth knowing: `--reverb-report`,
   There is also one that it is *perfectly* still at rest, and one that no
   two candles sit at the same brightness (a field pulsing in unison would
   be the large-area flash the mode exists to remove).
+- **A rate-limit test that holds a note down tests nothing.** The tear
+  pattern advances on note *onsets*, so feeding it a sounding note every
+  frame produces no onsets at all and the bound passes without exercising
+  the limiter. It alternates on/off now, and asserts both an upper bound
+  (not a strobe) and a lower one (it still moves, so the upper bound means
+  something).
 - **Zeroing the zap energy for calm mode silently broke the SIGNAL ACTIVE
   readout**, which was driven from that same value and so would have read
   AT REST forever while playing. It has its own `signalEnergy` now. Worth

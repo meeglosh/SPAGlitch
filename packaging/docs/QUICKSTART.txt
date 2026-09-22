@@ -4,9 +4,10 @@ SPAGlitch Quickstart
 BEFORE YOU START: FLASHING IMAGES
    SPAGlitch flashes its background image every time a note sounds. If you
    are sensitive to flashing light, or you have photosensitive epilepsy,
-   switch on CALM in the header before you play. Calm mode replaces the
-   flashing with a still scene whose candles flicker as you play, and it
-   stays on for every instance and every session until you turn it off.
+   switch on CALM MODE in the header before you play. Calm mode replaces
+   the flashing with a still scene: its candles flicker and its screens
+   tear very slightly as you play, and nothing else moves. It stays on for
+   every instance and every session until you turn it off.
 
    The instrument offers you this choice the first time you open it.
 

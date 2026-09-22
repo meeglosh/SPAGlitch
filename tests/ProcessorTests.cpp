@@ -5,6 +5,7 @@
 #include "../Source/fx/FXSection.h"
 #include "../Source/PluginEditor.h"
 #include "../Source/Randomizer.h"
+#include "../Source/TechGlitch.h"
 #include "../Source/PresetBrowser.h"
 #include <cmath>
 #include <complex>
@@ -1426,6 +1427,61 @@ static void calmModeTests()
         require (field.energy() <= .03f, "A silent instrument must read AT REST");
         for (int i = 0; i < 10; ++i) field.advance (0.4f);
         require (field.energy() > .03f, "A playing instrument must read SIGNAL ACTIVE in calm mode");
+    }
+
+    // The tech elements tear as notes land. Same constraint as the candles:
+    // it has to emphasise playing without becoming a strobe on a photograph.
+    {
+        using glitch::TechGlitch;
+        TechGlitch tech;
+        TechGlitch::Slice slices[TechGlitch::maxSlices];
+
+        for (int i = 0; i < 60; ++i) tech.advance (0.0f);
+        require (! tech.isActive(), "The tech must be still when nothing sounds");
+        require (tech.buildSlices (slices) == 0, "A silent instrument must tear nothing");
+
+        for (int i = 0; i < 10; ++i) tech.advance (0.4f);
+        const auto count = tech.buildSlices (slices);
+        require (count > 0, "A sounding note must tear the tech");
+        require (count <= TechGlitch::maxSlices, "The slice count must stay bounded");
+
+        for (int i = 0; i < count; ++i)
+        {
+            const auto& s = slices[i];
+            require (juce::isPositiveAndBelow (s.region, TechGlitch::numRegions),
+                     "A slice must name a real region");
+            require (s.y >= 0.0f && s.y + s.height <= 1.0f,
+                     "A slice must stay inside its region");
+            // A displacement this small cannot read as a large-area change,
+            // which is the whole basis for this being safe.
+            require (std::abs (s.offset) < 0.02f, "Tear displacement must stay small");
+        }
+
+        // However fast the notes arrive, the pattern must not change faster
+        // than about six times a second -- otherwise it is a strobe that
+        // happens to be made of photograph.
+        int changes = 0;
+        TechGlitch::Slice previous[TechGlitch::maxSlices];
+        tech.buildSlices (previous);
+        for (int frame = 0; frame < 90; ++frame)     // three seconds at 30fps
+        {
+            // Alternating, so every other frame is a fresh onset -- fifteen a
+            // second, which is what the limiter exists to cap. Holding the
+            // note down instead would produce no onsets at all and the test
+            // would pass without exercising anything.
+            tech.advance (frame % 2 == 0 ? 0.4f : 0.0f);
+            TechGlitch::Slice now[TechGlitch::maxSlices];
+            const auto n = tech.buildSlices (now);
+            if (n > 0 && (previous[0].region != now[0].region
+                          || std::abs (previous[0].y - now[0].y) > 1.0e-6f))
+                ++changes;
+            for (int i = 0; i < n; ++i) previous[i] = now[i];
+        }
+        require (changes <= 20, "The tear pattern must not change faster than ~6 times a second");
+        require (changes > 4, "...and must still change at all, or the bound above proves nothing");
+
+        for (int i = 0; i < 200; ++i) tech.advance (0.0f);
+        require (! tech.isActive(), "The tech must settle back to still");
     }
 
     // The editor must actually show a different picture, and must report no
