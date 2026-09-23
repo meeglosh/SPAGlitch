@@ -1,4 +1,4 @@
-# SPAGlitch handoff (2026-09-22)
+# SPAGlitch handoff (2026-09-23)
 
 Quick "start here" for the next session. SPAGlitch has no `CLAUDE.md`, so
 unlike SPASynth's handoff this one is self-contained: what is here is what
@@ -6,78 +6,91 @@ there is, plus the per-area READMEs it points at.
 
 ## Where we are
 
-- **2026-09-22: calm mode, on `codex/ott`.** An accessibility mode for
-  photosensitive epilepsy, which Mike raised himself. Normally the
-  background hard-cuts between the calm photograph and one of five electric
-  frames on **every note**, which at playing speed is a flashing image.
-  CALM MODE in the header swaps in a still scene (`Assets/spa-scene.png`)
-  where 35 candles brighten and waver while notes sound and six tech
-  regions -- the mirror, the column, the counter, the floor reflections,
-  the geode, the disco ball -- tear sideways by a few pixels, and zeroes
-  the glitch energy so the UI text stops tearing too. The tear is a
-  sideways *copy* of the picture, so the region's luminance barely changes;
-  it is a spatial shift rather than a flash, which is what makes it safe
-  where the zap is not. Its pattern only changes on a note onset and never
-  more than about six times a second however fast the notes come. Off by default with a one-time
-  notice on first launch offering the choice (Mike's call, 2026-09-22).
-  The setting lives in a per-machine `PropertiesFile`, never in a patch:
-  someone who needs it off needs it off everywhere. Documented at the top
-  of QUICKSTART and in README.
+- **2026-09-23: 1.0.1 is cut, signed, notarized, staged, tagged and merged.
+  Nothing is waiting on the agent.** The release is the `v1.0.1` tag; the
+  handoff commit sits on `main` just after it. All three `codex/` branches
+  are merged and hold nothing. Four
+  ctest suites pass. The build is in `dist/SPAGlitch-1.0.1/` with the docs
+  beside it, and the tester note is committed at
+  `docs/tester-note-1.0.1.txt`.
 
-- **2026-09-22: a three-band compressor (`COMP`) is built on `codex/ott`,
-  not merged and not released.** FX module id 8, taking the chain to nine.
-  Per band: threshold, ratio, up ratio, attack, release, makeup gain. The
-  two crossovers are dragged on the tab's own graph, which also shows each
-  band's live gain reduction; only the selected band's six controls are
-  shown, the way Pro-MB and C6 do it. In the randomizer, and eight new
-  factory presets built around it (48 total). All four ctest suites pass.
-  Cut and staged as **1.0.1** (`dist/SPAGlitch-1.0.1/`), tagged `v1.0.1`,
-  merged to `main`.
+- **It has NOT been sent to Paul and Phil, and Mike has not installed it.**
+  That is the next thing to happen, and it is his to do. The paste-ready
+  changelog is the tester note above; it asks them specifically for an ear
+  on the compressor's internal thresholds and for a verdict on whether
+  calm mode gives enough feedback that a note landed.
 
-- **This started life as an OTT clone and was rebuilt on 2026-09-22 after
-  Mike tried it.** The first version exposed OTT's own interface, per band
-  an UP and a DOWN "amount" plus DEPTH and TIME, and his verdict was that
-  it was "incredibly difficult to understand" - from someone very
-  experienced with multiband compressors. The amounts hid the threshold and
-  ratio you actually reason about, so it read as neither OTT's three-macro
-  simplicity nor a legible compressor. **The lesson is about the questions,
-  not the DSP**: the first round asked how *much* of OTT's control set to
-  expose and never asked whether OTT's control set was the right one. The
-  upward half survives as UP RATIO, the same idea in standard terms. The
-  name went with it, so the earlier "call it OTT" decision is void - it was
-  about a module that no longer exists.
+- **Nobody has heard the compressor or seen calm mode in motion except
+  Mike.** The agent verified both numerically and in still screenshots
+  only. The compressor's fixed thresholds (-24 dB default per band), its
+  per-band attack/release defaults and the internal +24 dB cap on upward
+  gain are all judgement calls, not measurements. Same for whether the
+  candle flicker and the screen tearing read strongly enough at playing
+  speed. If any of that comes back as wrong, those are the numbers to
+  move; the safety argument for calm mode does not depend on them (see
+  Gotchas).
 
-- **2026-09-21: v1.0.0 is tagged, merged to `main`, and staged. Nothing is
-  waiting on the agent.** The whole FX round was built in one session on
-  `codex/fx-chain`, merged to `main` (`7bf8cbd`), README de-dev-ified
-  (`00fea37`), and tagged `v1.0.0` (annotated, pushed). `main` went from 2
-  commits to 65. The macOS pkg is signed + notarized; the Windows exe is
-  built by CI and is **not signed** (see "Windows signing" below, the one
-  real open item).
-- **The build in `dist/` is the tag.** `git diff` between the commits the
-  installers were built from (`c9cb4cf` mac, `edb104a` win) and `v1.0.0`
-  touches no `Source/` or `CMakeLists.txt`, only docs and release layout.
-  So the tag describes those exact binaries.
-- **Not yet sent to Paul and Phil.** A changelog for them was written in
-  session (customer voice, the 1.0.0 feature list); it is not committed
-  anywhere, so if they need it again, regenerate it from the commit log.
-- **Nothing has been installed-and-confirmed by Mike on a clean machine
-  since the final staging.** The pkg was verified with `spctl` and a
-  quarantine flag, and an earlier install failure that round was the
-  agent's fault, not the package's (see Gotchas).
+- **What 1.0.1 added over 1.0.0:** the `COMP` multiband compressor and
+  calm mode. Both are described under "What the instrument is" below.
 
-## What 1.0.0 actually is
+- **Two things were fixed in passing that were latent before:** a preset
+  only stores the parameters that existed when it was saved, and loading
+  one used to leave anything newer at the previous patch's value; and the
+  CI artifact prune had never once run. Both in Gotchas.
+
+## Open items
+
+Mike's, not the agent's:
+
+- **Send 1.0.1 to Paul and Phil.** Paste `docs/tester-note-1.0.1.txt`.
+- **Install it himself** and confirm on a clean machine. Always hand him an
+  **absolute** pkg path -- a relative one from the wrong directory failed
+  silently on SPASynth's 1.0.14 and looked like it had worked.
+- **Windows code signing.** Needs an Azure Artifact Signing account; only
+  he can create it. See the section below -- it unblocks SPASynth and
+  SPAStation too, so it is one job for three products.
+- **A French translation of the EULA**, for the Bill 96 clause it already
+  carries. Still outstanding.
+- **Lawyer review of the EULA.** Mike has said one will not happen before
+  release. Decision of record, not an oversight to re-raise.
+
+Housekeeping, whenever:
+
+- `dist/SPAGlitch-1.0.0/` is still on disk, about 600MB, superseded and
+  never sent. Delete when he says so, not before.
+- All three `codex/` branches are merged and can be deleted from the
+  remote.
+
+Nothing in the product is known-broken.
+
+## What the instrument is
 
 The Kontakt port plus the entire SPASynth FX chain, and the UI work that
 had to happen to fit it:
 
 - **FX chain** (`Source/fx/`), ported from SPASynth minus Convolve (no IR
   library here): distortion, chorus, delay, Dattorro plate reverb, 8-band
-  parametric EQ, phaser/flanger, tremolo/vibrato, limiter. Drag the tabs to
-  reorder. Order is a packed uint64 atomic, 4 bits per module.
+  parametric EQ, phaser/flanger, tremolo/vibrato, the multiband compressor
+  and the limiter -- nine modules. Drag the tabs to reorder. Order is a
+  packed uint64 atomic, 4 bits per module.
+- **`COMP`, a three-band compressor** (`Source/fx/Multiband.h`,
+  `MultibandEditor.*`), module id 8. Per band: threshold, ratio, up ratio,
+  attack, release, makeup gain. UP RATIO compresses *upward* -- it lifts
+  what sits below the threshold -- and 1:1 is off, which is the default, so
+  switching the module on does something predictable. Two Linkwitz-Riley
+  crossovers dragged on the tab's own graph, which also shows each band's
+  live gain reduction. Only the selected band's six controls are shown;
+  all eighteen knobs exist and are hidden, so no parameter attachment is
+  ever torn down while the audio thread is reading it.
+- **Calm mode** (`Source/CandleField.h`, `TechGlitch.h`, `VisualSettings.h`),
+  for photosensitive epilepsy. Replaces the per-note image cut with a still
+  scene whose 35 candles waver and whose six tech regions tear sideways by
+  a few pixels, and zeroes the glitch energy so UI text stops tearing. Off
+  by default, offered once on first launch, stored per machine.
 - **Preset browser** (`Source/PresetBrowser.*`), opens to the left and
-  **grows the window** rather than squeezing the instrument. 40 factory
-  presets in `Assets/Presets/`, embedded via `juce_add_binary_data`.
+  **grows the window** rather than squeezing the instrument. 48 factory
+  presets in `Assets/Presets/`, embedded via `juce_add_binary_data`: the
+  original 40, plus 8 built around the compressor.
 - **Randomize all** with `sound / filter / fx` lock groups, chain-order
   randomization (limiter stays last), and the never-silent/never-blaring
   clamps. Dice icon button.
@@ -127,35 +140,84 @@ times. Researched 2026-09-20:
 
 ## How to rebuild after a code fix
 
-macOS signing and notary are already set up on this machine. Full detail in
-`packaging/macos/README.md`; the short version:
+The full sequence is the next section. The two things that waste a build
+if you get them wrong:
 
-```
-export SPAGLITCH_CODESIGN_IDENTITY="Developer ID Application: Kenzora Games (7K9WY5T49S)"
-export SPAGLITCH_INSTALLER_IDENTITY="Developer ID Installer: Kenzora Games (7K9WY5T49S)"
-cmake --build build-dist --config Release --parallel 4
-bash packaging/macos/build-installer.sh \
-     build-dist/SPAGlitch_artefacts/Release \
-     dist/SPAGlitch-<v>-macOS.pkg \
-     "/Users/mikejerugim/Music/Silverplatter Audio/Glitch Bundle Samples"
-bash scripts/notarize.sh dist/SPAGlitch-<v>-macOS.pkg
-```
+- **Build from `build-dist`, not `build-release`.** `build-dist` is
+  `arm64;x86_64`; `build-release` is arm64-only and is a local dev dir.
+  `validate_binaries.py` rejects an arm64-only bundle, but only after a
+  full build has been spent on it.
+- **`build-installer.sh` wants the three bundles flat in one directory**,
+  not JUCE's `Standalone/`, `AU/`, `VST3/` layout. Handing it
+  `build-dist/SPAGlitch_artefacts/Release` fails inside
+  `validate_binaries.py` with `lipo: file not found`, which does not point
+  at the real problem.
 
-**Build from `build-dist`, not `build-release`.** `build-dist` is
-`arm64;x86_64`; `build-release` is arm64-only and is a local dev dir.
-`validate_binaries.py` will reject an arm64-only bundle, but only after a
-full build has been spent on it.
+Signing and notary are already set up on this machine; full detail in
+`packaging/macos/README.md`.
 
-Windows: push `main` or a `codex/**` branch to trigger CI (the workflow is
-branch-triggered, **not** tag-triggered), then pull the artifact down and
-`scripts/stage-release.sh <version> <mac-pkg> <windows-exe-or-dir>`. Either
-payload may be omitted; re-staging to add the second platform does not
-undo the first, and a half-staged folder leaves a PENDING note saying what
-is missing.
+## How a release round goes, start to finish
 
-Bumping the version is two lines: `project(SPAGlitch VERSION ...)` in
-`CMakeLists.txt`, and `AppVersion` in `packaging/windows/SPAGlitch.iss`
-(Inno Setup cannot read CMake).
+Done twice now. In order, with the bits that are not obvious:
+
+1. **Bump the version in TWO places**: `project(SPAGlitch VERSION ...)` in
+   `CMakeLists.txt` and `#define AppVersion` in
+   `packaging/windows/SPAGlitch.iss`. Inno Setup cannot read CMake.
+   **The number is Mike's call** -- see Release artifacts.
+
+2. **Push, to start Windows CI early.** It triggers on `main` and
+   `codex/**`, runs about six minutes, and the Mac build can happen while
+   it does. Put `[skip ci]` in the message of any commit that touches only
+   docs, or it burns a build and 250MB for nothing.
+
+3. **Build the Mac universal** from `build-dist`, never `build-release`
+   (that one is arm64-only):
+   `cmake --build build-dist --config Release --parallel 4`, about three
+   minutes. Check `lipo -archs` gives `x86_64 arm64` and the app's
+   `CFBundleShortVersionString` is the new version.
+
+4. **Flatten the bundles before packaging.** `build-installer.sh` wants
+   `SPAGlitch.app`, `SPAGlitch.component` and `SPAGlitch.vst3` side by side
+   in one directory; JUCE emits them under `Standalone/`, `AU/` and
+   `VST3/`. Passing the artefacts directory straight in fails in
+   `validate_binaries.py` with a confusing `lipo: file not found`. Copy the
+   three into a scratch directory first.
+
+5. **Package, sign, notarize** (identities are in the login keychain,
+   notary credentials in `~/.config/spaglitch/notary.env`):
+   ```
+   export SPAGLITCH_CODESIGN_IDENTITY="Developer ID Application: Kenzora Games (7K9WY5T49S)"
+   export SPAGLITCH_INSTALLER_IDENTITY="Developer ID Installer: Kenzora Games (7K9WY5T49S)"
+   bash packaging/macos/build-installer.sh <flat-bundle-dir> dist/SPAGlitch-<v>-macOS.pkg \
+        "/Users/mikejerugim/Music/Silverplatter Audio/Glitch Bundle Samples"
+   bash scripts/notarize.sh dist/SPAGlitch-<v>-macOS.pkg
+   ```
+   Notarization takes three to five minutes. The script staples and runs
+   `spctl` itself.
+
+6. **Verify it the way a customer receives it**, with the quarantine flag a
+   download attaches:
+   ```
+   cp <pkg> /tmp/q.pkg && xattr -w com.apple.quarantine "0083;00000000;Safari;" /tmp/q.pkg
+   spctl -a -vvv -t install /tmp/q.pkg     # expect source=Notarized Developer ID
+   ```
+
+7. **Fetch the Windows exe** once CI is green:
+   `gh run download <run-id> --repo meeglosh/SPAGlitch --name SPAGlitch-Windows-x64-Installer --dir <dir>`
+
+8. **Stage**: `scripts/stage-release.sh <version> <mac-pkg> <windows-exe>`,
+   then delete the loose pkg left in `dist/`. Record both md5s here.
+
+9. **Merge to `main`, tag `v<version>`, push both.** Before tagging, prove
+   the binaries are the tag:
+   `git diff --stat <build-commit>..HEAD -- Source/ CMakeLists.txt Assets/ packaging/`
+   must be empty.
+
+10. **Write the tester note** at `docs/tester-note-<version>.txt` and commit
+    it. That file IS the paste-ready changelog; SPASynth does the same.
+    House style is below. Mike has asked for these to be concise.
+
+11. **Check CI artifact storage** is back to one set (see Sample hosting).
 
 ## Verification ritual for every change
 
@@ -169,7 +231,7 @@ Bumping the version is two lines: `project(SPAGlitch VERSION ...)` in
 Tool modes on the test binary worth knowing: `--reverb-report`,
 `--generate-factory-presets`, plus the reference-JSON modes ctest uses.
 
-## Gotchas learned (this round, all of them cost real time)
+## Gotchas learned (every one of these cost real time)
 
 - **`setMouseClickGrabsKeyboardFocus(false)`, not `setWantsKeyboardFocus`**,
   is what stops a component stealing QWERTY note entry. Same lesson SPASynth
@@ -280,23 +342,38 @@ Windows CI pulls factory samples from the GitHub release
 `spaglitch-factory-build-inputs`, gated by the repo variable
 `SPAGLITCH_FACTORY_SAMPLES_ENABLED`. **Standing rule from Mike: only ever
 one sample set uploaded at a time** — the free-tier quota got hit on
-SPASynth this way. The workflow's prune step deletes superseded artifacts,
-but **only ones created before `run_started_at`**, so concurrent runs no
-longer delete each other's (they did; that was a bug). Retention is 5 days.
+SPASynth this way. Retention is 5 days.
 
-Storage went 967MB -> 241MB once the concurrent-run duplicates were
-cleared. GitHub's storage alerts are account-wide across all of Mike's
-repos, not per-repo, so check every repo before blaming this one.
+The workflow's prune step deletes superseded artifacts, but **only ones
+created before `run_started_at`**, so concurrent runs cannot delete each
+other's uploads (they did once; that was the bug it was written for).
+
+**Two things to know about that step.** It had never once run before
+2026-09-22 — PowerShell does not take `\"` as an escape, so the quotes
+inside its `--jq` filter split the argument and `gh` failed with "accepts
+1 arg(s), received 2" on every single run, silently, because
+`continue-on-error` is set. A gigabyte had accumulated. It filters in
+PowerShell now and prints how many it pruned, so a silent zero is visible.
+And because it runs **before** its own upload, the previous run's set
+survives one cycle: after a release, check and clear by hand.
+
+```
+gh api repos/meeglosh/SPAGlitch/actions/artifacts \
+  -q '[.artifacts[] | select(.expired==false)] | "live: \(length), MB: \((map(.size_in_bytes)|add)/1048576|floor)"'
+```
+One set is about 251MB. GitHub's storage alerts are account-wide across
+all of Mike's repos, not per-repo, so check every repo before blaming this
+one.
 
 ## Branches
 
-`codex/ott` is the live one (see the top of "Where we are"); it is ahead of
-`main` and not merged.
+**`main` is the only branch to work from and holds everything.** All three
+`codex/` branches are fully merged into it and hold nothing, so all three
+can be deleted whenever:
 
-`main` holds everything through 1.0.0. Two older `codex/` branches remain on
-the remote and both are fully merged into it, so neither holds anything and
-both can be deleted whenever:
-
+- `codex/ott` — the 1.0.1 round (compressor + calm mode), merged at
+  `1cd6925`. Named for the OTT clone it started as; the module it produced
+  is not OTT any more.
 - `codex/fx-chain` — the whole 1.0.0 round, merged at `7bf8cbd`.
 - `codex/kontakt-port` — the original port, older still.
 
@@ -326,7 +403,10 @@ same version number.
 ## House style (customer-facing copy)
 
 First-person company voice ("we"/"our"/Silverplatter Audio), never name
-individuals, **no em dashes**. The shipped docs live in `packaging/docs/`
+individuals, **no em dashes**. Tester notes live at
+`docs/tester-note-<version>.txt`, follow SPASynth's shape (what's new,
+then "Worth trying specifically", then "Install notes"), and **Mike has
+asked for them to be more concise than SPASynth's**. The shipped docs live in `packaging/docs/`
 and are plain text in SPASynth's house style. EULA is **Quebec law**, with
 a Consumer Protection Act carve-out and a Bill 96 bilingual clause. No
 lawyer has reviewed it and Mike has said one will not before release; a
